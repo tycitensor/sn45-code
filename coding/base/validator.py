@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import os
 import sys
 import copy
 import asyncio
@@ -329,16 +330,40 @@ class BaseValidatorNeuron(BaseNeuron):
         self.scores = np.maximum(self.scores - 0.001, 0)
         bt.logging.info(f"Updated moving avg scores: {self.scores}")
 
-    def save_state(self): # TODO implement this and the one below
+    def save_state(self):
         """Saves the state of the validator to a file."""
         bt.logging.info("Saving validator state.")
 
         # Save the state of the validator to file.
+        np.savez(
+            self.config.neuron.full_path + "/state.npz",
+            step=self.step,
+            scores=self.scores,
+            hotkeys=self.hotkeys,
+        )
 
     def load_state(self):
         """Loads the state of the validator from a file."""
         bt.logging.info("Loading validator state.")
 
+        state_path = self.config.neuron.full_path + "/state.npz"
+        
+        # Check if the state file exists before loading.
+        if not os.path.exists(state_path):
+            bt.warning("State file not found. Loading default state.")
+            self.step = None
+            self.scores = None
+            self.hotkeys = None
+            return
+
         # Load the state of the validator from file.
+        state = np.load(state_path)
+        
+        # Set attributes, using default values if they don't exist in the state file.
+        self.step = state["step"].item() if "step" in state else None
+        self.scores = state["scores"] if "scores" in state else None
+        self.hotkeys = state["hotkeys"] if "hotkeys" in state else None
+    
+    
     
     
