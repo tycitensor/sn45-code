@@ -584,7 +584,12 @@ class GithubDataset(Dataset):
 
         self.dataset_id = dataset_id
 
-        self.dataset = cache_dataset(dataset_id=dataset_id, seed=seed)
+        # self.dataset = cache_dataset(dataset_id=dataset_id, seed=seed)
+        self.dataset = load_dataset(
+                dataset_id,
+                split="train",
+                # languages=languages, # TODO: Uncomment if using large git repo
+            ).sort("path").shard(8, random.choice([0, 1, 2, 3, 4, 5, 6, 7])).shuffle(seed=seed)
         self.iterset = iter(self.dataset)
 
     def get(self, min_lines=10, max_lines=3000, selector: Selector = None, include_sibling_docs=False, min_sibling_docs=1, **kwargs):
