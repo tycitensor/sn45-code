@@ -518,7 +518,7 @@ def cache_dataset(
     # Expand user path
     cache_dir = os.path.expanduser(cache_dir)
     cache_path = os.path.join(cache_dir, cache_file)
-    
+    shard = random.choice([0, 1, 2, 3, 4, 5, 6, 7])
     # Check if cached dataset exists
     if os.path.exists(f"{cache_path}.{shard}.{seed}"):
         # Load cached dataset
@@ -527,7 +527,7 @@ def cache_dataset(
     else:
         # Load, shuffle, and shard the dataset
         # print(f"Downloading and processing dataset {dataset_id}")
-        shard = random.choice([0, 1, 2, 3, 4, 5, 6, 7])
+        
         dataset = load_dataset(
             dataset_id,
             split="train",
