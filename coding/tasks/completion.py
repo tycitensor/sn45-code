@@ -55,7 +55,7 @@ class CompletionTask(Task):
 
         func_name, func_body = extract_random_function(context.content) # TODO handle comments
         self.query = (
-            func_name
+            func_name + "<|fim_hole|>" # we want them to complete that area, pretending its a hole
         )
         self.reference = func_body
 

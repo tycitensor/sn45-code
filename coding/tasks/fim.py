@@ -1,5 +1,4 @@
 import random
-from dataclasses import field
 from typing import Callable, List, Dict
 
 
@@ -11,13 +10,13 @@ def make_hole(text, chunk_size=5):
     total_lines = len(lines)
     
     if chunk_size >= total_lines:
-        return '<fim_hole>', text
+        return '<|fim_hole|>', text
     
     start_index = random.randint(0, total_lines - chunk_size)
     end_index = start_index + chunk_size
     
     hole = '\n'.join(lines[start_index:end_index])
-    new_lines = lines[:start_index] + ['<fim_hole>'] + lines[end_index:]
+    new_lines = lines[:start_index] + ['<|fim_hole|>'] + lines[end_index:]
     
     return '\n'.join(new_lines), hole
 
