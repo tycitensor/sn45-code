@@ -5,7 +5,7 @@
 
 You must have the following things:
 
-- System with atleast 8gb of VRAM
+- System with atleast 24gb of VRAM
 - Python >=3.10
 - Docker with [gpu support](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
 
