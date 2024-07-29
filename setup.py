@@ -68,7 +68,7 @@ setup(
     description="Code Generation Subnet",  
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/brokespace/coding",  
+    url="https://github.com/brokespace/code",  
     author="brokespace",  
     packages=find_packages(),
     include_package_data=True,

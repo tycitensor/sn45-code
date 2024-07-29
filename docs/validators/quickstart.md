@@ -23,8 +23,8 @@ Ensure that you have Docker with GPU support, you can choose to follow either of
 
 This repository requires python3.9 or higher. To install it, simply clone this repository and run the [install.sh](./install.sh) script.
 ```bash
-git clone https://github.com/brokespace/coding
-cd coding
+git clone https://github.com/brokespace/code
+cd code
 python -m pip install -r requirements.txt
 python -m pip install -e .
 python -m pip uninstall uvloop # b/c it causes issues with threading/loops
