@@ -3,6 +3,7 @@ import os
 import random
 import lib2to3
 import itertools
+import bittensor as bt
 from io import StringIO
 from datasets import load_dataset, Dataset, load_from_disk
 from lib2to3.refactor import RefactoringTool, get_fixers_from_package
@@ -522,11 +523,11 @@ def cache_dataset(
     # Check if cached dataset exists
     if os.path.exists(f"{cache_path}.{shard}.{seed}"):
         # Load cached dataset
-        # print(f"Loading cached dataset from {cache_path}")
+        bt.logging.info(f"Loading cached dataset from {cache_path}")
         dataset = load_from_disk(f"{cache_path}.{shard}.{seed}")
     else:
         # Load, shuffle, and shard the dataset
-        # print(f"Downloading and processing dataset {dataset_id}")
+        bt.logging.info(f"Downloading and processing dataset {dataset_id}")
         
         dataset = load_dataset(
             dataset_id,
@@ -539,7 +540,7 @@ def cache_dataset(
         
         # Save processed dataset to disk
         dataset.save_to_disk(f"{cache_path}.{shard}.{seed}")
-        # print(f"Dataset cached at {cache_path}")
+        bt.logging.info(f"Dataset cached at {cache_path}")
 
     return dataset
 
