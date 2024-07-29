@@ -520,10 +520,10 @@ def cache_dataset(
     cache_path = os.path.join(cache_dir, cache_file)
     
     # Check if cached dataset exists
-    if os.path.exists(cache_path):
+    if os.path.exists(f"{cache_path}.{shard}.{seed}"):
         # Load cached dataset
         # print(f"Loading cached dataset from {cache_path}")
-        dataset = load_from_disk(cache_path)
+        dataset = load_from_disk(f"{cache_path}.{shard}.{seed}")
     else:
         # Load, shuffle, and shard the dataset
         # print(f"Downloading and processing dataset {dataset_id}")
