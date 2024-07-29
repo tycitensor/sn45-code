@@ -44,7 +44,7 @@ sudo docker run -d -p 8028:8000  --gpus device=0 --ipc host --name mistral-instr
 #### Start the validator
 
 ```bash
-python <SCRIPT_PATH>
+python neurons/validator.py
     --netuid 42
     --subtensor.network <finney/local/test>
     --neuron.device cuda
