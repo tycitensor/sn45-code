@@ -19,6 +19,8 @@ class CodeSimModel(BaseRewardModel):
         self.code_scorer = code_scorer
 
     def similarity(self, reference: str, completion: str) -> float:
+        if not reference:
+            return 0
         if not completion:
             return 0
         P, R, F1 = self.code_scorer.score([completion], [reference])
