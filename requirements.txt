@@ -1,0 +1,10 @@
+bittensor
+langchain-openai
+sentence_transformers
+numpy
+datasets
+langchain
+python-dotenv
+code_bert_score
+cachetools
+strenum
