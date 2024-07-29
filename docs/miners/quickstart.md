@@ -18,7 +18,7 @@ You can use the following command to run a miner or a validator.
 
 ```bash
 python <SCRIPT_PATH>
-    --netuid 1
+    --netuid 42
     --subtensor.network <finney/local/test>
     --neuron.device cuda
     --wallet.name <your wallet> # Must be created using the bittensor-cli

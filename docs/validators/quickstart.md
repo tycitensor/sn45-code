@@ -45,7 +45,7 @@ sudo docker run -d -p 8028:8000  --gpus device=0 --ipc host --name mistral-instr
 
 ```bash
 python <SCRIPT_PATH>
-    --netuid 1
+    --netuid 42
     --subtensor.network <finney/local/test>
     --neuron.device cuda
     --wallet.name <your wallet> # Must be created using the bittensor-cli
