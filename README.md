@@ -14,9 +14,9 @@ Gen42 leverages the Bittensor network to provide decentralized code generation s
 
 :link:**Useful Links:** <br>
 
-- [Gen42 Home]()
-- [Gen42 Chat]()
-- [Gen42 API]()
+- [Gen42 Home](www.gen42.ai)
+- [Gen42 Chat](chat.gen42.ai)
+- [Gen42 API](api.gen42.ai)
 
 
 ### Products
@@ -33,7 +33,7 @@ Code completion has exploded in recent years, tools like [Github Copilot](https:
 
 <!-- With an unoptimized miner we have already found that  -->
 
-We provide an openai compliant api capable of being utilized with [continue.dev](https://continue.dev/). For information on getting started visit [Gen42](). 
+We provide an openai compliant api capable of being utilized with [continue.dev](https://continue.dev/). For information on getting started visit [Gen42](www.gen42.ai). 
 
 ---
 
