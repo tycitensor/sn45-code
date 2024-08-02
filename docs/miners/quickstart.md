@@ -43,6 +43,18 @@ Example of running an openai miner:
 pm2 start neurons/miner.py --interpreter python3 --name miner -- --netuid XY  --subtensor.network finney --wallet.name coldkey --wallet.hotkey hotkey --neuron.model_id gpt4 --axon.port 8091 --logging.debug --miner.name openai
 ```
 
+## Subnet Wallet Registration
+Register your wallet on the subnet: 
+```
+btcli s register --subtensor.network finney --netuid 42
+```
+
+Testnet: 
+```
+btcli s register --subtensor.network test --netuid 171
+```
+
+
 # Testnet 
 We highly recommend that you run your miners on testnet before deploying on main. This is give you an opportunity to debug your systems, and ensure that you will not lose valuable immunity time. The SN1 testnet is **netuid 171**. 
 
@@ -65,3 +77,4 @@ A list of the provided tasks can be seen [here](./tasks.md). Tasks are scored eq
 ## Helpful Tips
 
 It is suggested that you play around with mining on Testnet before going to Mainnet.
+If issues are encountered with btcli, it is recommended to use btcli v7.1.2 (https://github.com/opentensor/bittensor/commits/release/7.1.2/)
