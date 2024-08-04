@@ -2,7 +2,6 @@
 import time
 import os
 import bittensor as bt
-import argparse
 from starlette.types import Send
 from functools import partial
 from typing import Dict, Awaitable
@@ -21,7 +20,6 @@ def miner_init(self):
     """
     _ = load_dotenv(find_dotenv())
     api_key = os.environ.get("OPENAI_API_KEY", "EMPTY")
-
     # Set openai key and other args
     self.model = OpenAI(
         api_key=api_key,
@@ -90,7 +88,7 @@ def miner_process(self, synapse: StreamCodeSynapse) -> Awaitable:
     
     bt.logging.debug(f"📧 Query received, forwarding synapse: {synapse}")
 
-    prompt = PromptTemplate(
+    prompt = PromptTemplate.from_template(
         "{query}"
     )
     chain = prompt | self.model | StrOutputParser()
