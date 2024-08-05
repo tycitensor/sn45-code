@@ -592,6 +592,9 @@ class GithubDataset(Dataset):
             ).sort("path").shard(8, random.choice([0, 1, 2, 3, 4, 5, 6, 7])).shuffle(seed=seed)
         self.iterset = iter(self.dataset)
 
+    def random(self, min_lines=10, max_lines=3000, selector: Selector = None, include_sibling_docs=False, min_sibling_docs=1, **kwargs):
+        return self.get(min_lines, max_lines, selector, include_sibling_docs, min_sibling_docs, **kwargs)
+    
     def get(self, min_lines=10, max_lines=3000, selector: Selector = None, include_sibling_docs=False, min_sibling_docs=1, **kwargs):
         row = next(self.iterset)
         if not (min_lines <= len(row["code"].splitlines()) <= max_lines):
@@ -682,3 +685,5 @@ class GithubDataset(Dataset):
         present_keywords = self.extract_keywords(code, language, "keywords")
 
         return present_keywords, present_libraries
+    
+    
