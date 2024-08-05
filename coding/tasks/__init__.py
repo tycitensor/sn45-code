@@ -18,7 +18,7 @@ TASKS = {
 from coding.repl import REPLClient
 from coding.schemas import Context
 from coding.helpers import Selector
-from coding.datasets import DATASETS
+from coding.datasets import DATASET_MANAGER
 from coding.protocol import StreamCodeSynapse
 from coding.datasets import GithubDataset, PipDataset
 
@@ -60,7 +60,7 @@ def create_task(
     if len(dataset_choices) == 0:
         raise ValueError(f"No datasets available for task {task_name}")
     dataset_name = selector(dataset_choices)
-    dataset = DATASETS.get(dataset_name, None)
+    dataset = DATASET_MANAGER.datasets.get(dataset_name, None)
     if dataset is None:
         raise ValueError(f"Dataset {dataset_name} not found")
     return task(
