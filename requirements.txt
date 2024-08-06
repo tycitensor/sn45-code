@@ -8,3 +8,4 @@ python-dotenv
 code_bert_score
 cachetools
 strenum
+detect-secrets

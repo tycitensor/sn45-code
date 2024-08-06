@@ -9,8 +9,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from coding.api.cleaners import clean_fixes
 from coding.protocol import StreamCodeSynapse
+from coding.api.cleaners import clean_fixes, remove_secret_lines
 from coding.api.protocol import CompletionRequest, ChatCompletionRequest
 from coding.api.completion import completion, chat_completion, chat_completion_stream_generator, completion_stream_generator
 
@@ -119,7 +119,7 @@ async def completions(request: CompletionRequest):
     if isinstance(request.prompt, list):
         request.prompt = " ".join(request.prompt)
     # remove any fim prefix/suffixes
-    request.prompt = clean_fixes(request.prompt) 
+    request.prompt = remove_secret_lines(clean_fixes(request.prompt))
     try: 
         generator = await forward(
             get_top_miner_uid(), StreamCodeSynapse(query=request.prompt)
