@@ -230,7 +230,7 @@ def add_validator_args(cls, parser):
     parser.add_argument(
         "--wandb.on",
         type=bool,
-        default=False,
+        default=True,
         help="Enable wandb logging.",
     )
 
