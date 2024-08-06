@@ -117,8 +117,8 @@ def add_args(cls, parser):
         type=int,
         nargs="+",
         help="The weights for sampling of each task.",
-        # default=[1,1,1,1,0], # TODO uncomment
-        default=[1,0,0,0,0]
+        default=[1,1,1,1,0], # TODO uncomment
+        # default=[1,0,0,0,0]
     )
     
     parser.add_argument(
