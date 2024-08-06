@@ -117,7 +117,8 @@ def add_args(cls, parser):
         type=int,
         nargs="+",
         help="The weights for sampling of each task.",
-        default=[1,1,1,1,0],
+        # default=[1,1,1,1,0], # TODO uncomment
+        default=[1,0,0,0,0]
     )
     
     parser.add_argument(
@@ -218,7 +219,28 @@ def add_validator_args(cls, parser):
         help="Moving average alpha parameter, how much to add of the new observation.",
         default=0.05,
     )
+    
+    parser.add_argument(
+        "--wandb.project_name",
+        type=str,
+        help="The name of the project where you are sending the new run.",
+        default="gen42",
+    )
 
+    parser.add_argument(
+        "--wandb.on",
+        type=bool,
+        default=False,
+        help="Enable wandb logging.",
+    )
+
+    parser.add_argument(
+        "--wandb.entity",
+        type=str,
+        default="gen42",
+        help="Wandb entity to log to.",
+    )
+    
     parser.add_argument(
         "--neuron.axon_off",
         "--axon_off",

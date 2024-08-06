@@ -30,6 +30,7 @@ from coding.rewards import RewardResult
 from coding.utils.uids import get_random_uids
 from coding.protocol import StreamCodeSynapse
 from coding.dendrite import DendriteResponseEvent
+from coding.utils.logging import log_event
 from coding.tasks import create_task, create_organic_task
 
 
@@ -38,9 +39,6 @@ class StreamResult:
     synapse: StreamCodeSynapse = None
     exception: BaseException = None
     uid: int = None
-
-    # class Config:
-    # arbitrary_types_allowed = True
 
 
 async def process_response(uid: int, async_generator: Awaitable):
@@ -146,7 +144,7 @@ def forward_organic_synapse(self, synapse: StreamCodeSynapse):
                 )
 
         axon = self.metagraph.axons[synapse.uid]
-        bt.logging.info(f"🛈🛈🛈🛈🛈Forwarding {synapse} request to axon: {axon}")
+        bt.logging.info(f"🛈🛈🛈🛈🛈 Forwarding {synapse} request to axon: {axon}")
         responses = self.dendrite.query(
             axons=[axon],
             synapse=synapse,
@@ -194,8 +192,12 @@ async def forward(self, synapse: StreamCodeSynapse):
                 print(traceback.format_exc())
                 continue
     else:
-        task = create_organic_task(llm=self.llm, synapse=synapse)
-        
+        try:
+            task = create_organic_task(llm=self.llm, synapse=synapse)
+        except:
+            bt.logging.error(f"Failed to create organic task. {sys.exc_info()}")
+            return
+
     uids = get_random_uids(self, k=self.config.neuron.sample_size)
     uids_cpu = uids.tolist()
     print(f"uids_cpu: {uids_cpu}")
@@ -227,5 +229,14 @@ async def forward(self, synapse: StreamCodeSynapse):
         response_event=response_event,
         device=self.device,
     )
-    
+
     self.update_scores(reward_result.rewards, uids)
+
+    log_event(
+        self,
+        {
+            "step": self.step,
+            **reward_result.__state_dict__(full=self.config.neuron.log_full),
+            **response_event.__state_dict__(),
+        },
+    )
