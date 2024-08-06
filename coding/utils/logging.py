@@ -92,7 +92,9 @@ def reinit_wandb(self):
 
 
 def log_event(self, event):
-    print("logging event")
+    if self.config.netuid != 42:
+        return
+    
     if self.config.wandb.off:
         return
 
