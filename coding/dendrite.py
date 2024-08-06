@@ -11,6 +11,7 @@ class DendriteResponseEvent:
         self.status_messages = []
         self.status_codes = []
         self.timings = []
+        self.hotkeys = []
 
         for synapse in responses:
             self.completions.append(synapse.completion)
@@ -40,6 +41,8 @@ class DendriteResponseEvent:
         ]
         self.status_codes = [synapse.dendrite.status_code for synapse in responses]
 
+        self.miner_hotkeys = [synapse.axon.hotkey for synapse in responses]
+        
     def __state_dict__(self):
         return {
             "uids": self.uids.tolist(),
@@ -47,7 +50,9 @@ class DendriteResponseEvent:
             "timings": self.timings,
             "status_messages": self.status_messages,
             "status_codes": self.status_codes,
+            "miner_hotkeys": self.miner_hotkeys,
         }
 
     def __repr__(self):
-        return f"DendriteResponseEvent(uids={self.uids}, completions={self.completions}, timings={self.timings}, status_messages={self.status_messages}, status_codes={self.status_codes})"
+        return f"DendriteResponseEvent(uids={self.uids}, completions={self.completions}, timings={self.timings}, status_messages={self.status_messages}, status_codes={self.status_codes}, miner_hotkeys={self.hotkeys})"
+    
