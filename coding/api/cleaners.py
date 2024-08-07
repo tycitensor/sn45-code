@@ -41,6 +41,9 @@ def remove_secret_lines(multiline_string):
     return '\n'.join(clean_lines)
 
 def remove_generate_prompt(string):
+    """
+    Cleaner to remove the blocks that are used by continue.dev when running `Generate Code`
+    """
     blocks = ["<|im_start|>user\n", "<|im_end|>\n", "<|im_start|>assistant\n", "Sure! Here\'s the entire rewritten code block:\n```python\n"]
     for block in blocks:
         string = string.replace(block, "")
