@@ -10,9 +10,9 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from coding.protocol import StreamCodeSynapse
-from coding.api.cleaners import clean_fixes, remove_secret_lines
 from coding.api.protocol import CompletionRequest, ChatCompletionRequest
 from coding.api.completion import completion, chat_completion, chat_completion_stream_generator, completion_stream_generator
+from coding.api.cleaners import clean_fixes, remove_secret_lines, remove_generate_prompt
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -97,7 +97,7 @@ async def chat_completions(request: ChatCompletionRequest):
         request.files = []
     try:
         generator = await forward(
-            get_top_miner_uid(), StreamCodeSynapse(messages=request.messages, attachments=request.attachments, files=request.files, uid=0)
+            2, StreamCodeSynapse(messages=request.messages, attachments=request.attachments, files=request.files, uid=0)
         )
         if request.stream:
             return StreamingResponse(chat_completion_stream_generator(request, generator), media_type="text/event-stream")
@@ -119,10 +119,13 @@ async def completions(request: CompletionRequest):
     if isinstance(request.prompt, list):
         request.prompt = " ".join(request.prompt)
     # remove any fim prefix/suffixes
-    request.prompt = remove_secret_lines(clean_fixes(request.prompt))
+    request.prompt = remove_generate_prompt(remove_secret_lines(clean_fixes(request.prompt))) 
     try: 
+        # generator = await forward(
+        #     get_top_miner_uid(), StreamCodeSynapse(query=clean_deepseek(request.prompt))
+        # )
         generator = await forward(
-            get_top_miner_uid(), StreamCodeSynapse(query=request.prompt)
+            2, StreamCodeSynapse(query=request.prompt, uid=0)
         )
 
         if request.stream:

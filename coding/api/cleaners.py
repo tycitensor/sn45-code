@@ -2,14 +2,16 @@ from detect_secrets.core import scan
 from detect_secrets.settings import default_settings
 
 FIM_PREFIXES = ["<fim_prefix>", "[PREFIX]", "<PRE>", "<|fim_begin|>"]
-FIM_SUFFIXES = ["<fim_suffix>", "[SUFFIX]", "<SUF>", "<|fim_end|>"]
-
+FIM_ENDS = ["<fim_middle>", "[SUFFIX]", "<SUF>", "<|fim_end|>"]
+FIM_HOLES = ["<fim_suffix>"]
 
 def clean_fixes(text):
     for prefix in FIM_PREFIXES:
         text = text.replace(prefix, "")
-    for suffix in FIM_SUFFIXES:
-        text = text.replace(suffix, "")
+    for end in FIM_ENDS:
+        text = text.replace(end, "")
+    for hole in FIM_HOLES:
+        text = text.replace(hole, "<|fim_hole|>")
     return text
 
 def remove_secret_lines(multiline_string):
@@ -37,3 +39,10 @@ def remove_secret_lines(multiline_string):
     
     # Join the clean lines back into a single string
     return '\n'.join(clean_lines)
+
+def remove_generate_prompt(string):
+    blocks = ["<|im_start|>user\n", "<|im_end|>\n", "<|im_start|>assistant\n", "Sure! Here\'s the entire rewritten code block:\n```python\n"]
+    for block in blocks:
+        string = string.replace(block, "")
+    
+    return string
