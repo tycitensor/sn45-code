@@ -40,6 +40,13 @@ The following command will run vllm on gpu:0. The `--gpu-memory-utilization` fla
 sudo docker run -d -p 8028:8000  --gpus device=0 --ipc host --name mistral-instruct docker.io/vllm/vllm-openai:latest --model thesven/Mistral-7B-Instruct-v0.3-GPTQ --max-model-len 8912 --quantization gptq --dtype half --gpu-memory-utilization 0.5
 ```
 
+#### Setup Wandb 
+
+This is optional, but recommended make sure you login
+
+```bash
+wandb login
+```
 
 #### Start the validator
 
@@ -53,4 +60,6 @@ python neurons/validator.py
     --logging.debug # Run in debug mode, alternatively --logging.trace for trace mode
     --axon.port # VERY IMPORTANT: set the port to be one of the open TCP ports on your machine
     --neuron.model_url # OPTIONAL, if you are hosting the model somewhere else other then port 8028
+    --wandb.on True # default is true but you can disable
 ```
+

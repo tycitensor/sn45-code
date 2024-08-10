@@ -186,10 +186,10 @@ async def forward(self, synapse: StreamCodeSynapse):
                 )
                 break
             except Exception as e:
-                bt.logging.error(
+                bt.logging.debug(
                     f"Failed to create {task_name} task. {sys.exc_info()}. Skipping to next task."
                 )
-                print(traceback.format_exc())
+                bt.logging.debug(traceback.format_exc())
                 continue
     else:
         try:
