@@ -95,7 +95,7 @@ def log_event(self, event):
     if self.config.netuid != 42:
         return
     
-    if self.config.wandb.on:
+    if not self.config.wandb.on:
         return
 
     if not getattr(self, "wandb", None):
