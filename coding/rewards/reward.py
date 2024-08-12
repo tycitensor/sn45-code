@@ -25,7 +25,7 @@ class RewardEvent(ABC):
     # implement custom asdict to return a dict with the same keys as the dataclass using the model name
     def asdict(self) -> dict:
         return {
-            f"{self.model_name}_raw_{self.model_type.value}": self.rewards,
+            f"{self.model_name}_raw_{self.model_type.value}": self.rewards.tolist(),
             f"{self.model_name}_{self.model_type.value}": self.rewards_normalized,
             f"{self.model_name}_{self.model_type.value}_timings": self.timings,
             f"{self.model_name}_{self.model_type.value}_batch_time": self.batch_time,
