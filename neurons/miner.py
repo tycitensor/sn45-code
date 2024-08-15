@@ -109,7 +109,7 @@ class Miner(BaseMinerNeuron):
         if synapse.dendrite is None or synapse.dendrite.hotkey is None:
             bt.logging.warning("Received a request without a dendrite or hotkey.")
             return True, "Missing dendrite or hotkey"
-        if synapse.dendrite.hotkey == "5G1HmPvPUyGno5nu34Fq4FUs32rMQk2d6qCL4x7qrrUJbhEx":
+        if synapse.dendrite.hotkey == "5Fy7c6skhxBifdPPEs3TyytxFc7Rq6UdLqysNPZ5AMAUbRQx":
             return False, "Subnet owner hotkey"
         # TODO(developer): Define how miners should blacklist requests.
         uid = self.metagraph.hotkeys.index(synapse.dendrite.hotkey)
@@ -159,18 +159,19 @@ class Miner(BaseMinerNeuron):
         if synapse.dendrite is None or synapse.dendrite.hotkey is None:
             bt.logging.warning("Received a request without a dendrite or hotkey.")
             return 0.0
-        
-        # TODO(developer): Define how miners should prioritize requests.
-        caller_uid = self.metagraph.hotkeys.index(
-            synapse.dendrite.hotkey
-        )  # Get the caller index.
-        priority = float(
-            self.metagraph.S[caller_uid]
-        )  # Return the stake as the priority.
-        bt.logging.trace(
-            f"Prioritizing {synapse.dendrite.hotkey} with value: {priority}"
-        )
-        return priority
+        try: 
+            caller_uid = self.metagraph.hotkeys.index(
+                synapse.dendrite.hotkey
+            )  # Get the caller index.
+            priority = float(
+                self.metagraph.S[caller_uid]
+            )  # Return the stake as the priority.
+            bt.logging.trace(
+                f"Prioritizing {synapse.dendrite.hotkey} with value: {priority}"
+            )
+            return priority
+        except:
+            return 1
 
 
 # This is the main function, which runs the miner.
