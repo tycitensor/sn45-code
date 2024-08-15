@@ -33,6 +33,7 @@ class Task(ABC):
     query_prompt: str = ""
     llm: Callable = None
     repl: REPLClient = None
+    code_scorer: Callable = None
     extra_info: Dict = field(default_factory=dict)
 
     def __str__(self):

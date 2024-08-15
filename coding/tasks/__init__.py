@@ -1,18 +1,22 @@
 import random
+from typing import Callable
+
 from .task import Task
+from .swe import SWETask
+# from .debug import DebugTask
 from .fim import FillInMiddleTask
-from .completion import CompletionTask
-from .repo import RepoCompletionTask
 from .repofile import RepoFileTask
-from .debug import DebugTask
+from .repo import RepoCompletionTask
+from .completion import CompletionTask
 from .organic_convo import OrganicConvoTask
 
 TASKS = {
+    RepoCompletionTask.name: RepoCompletionTask,
     FillInMiddleTask.name: FillInMiddleTask,
     CompletionTask.name: CompletionTask,
-    RepoCompletionTask.name: RepoCompletionTask,
     RepoFileTask.name: RepoFileTask,
-    DebugTask.name: DebugTask,
+    # DebugTask.name: DebugTask,
+    SWETask.name: SWETask,
 }
 
 from coding.repl import REPLClient
@@ -20,14 +24,15 @@ from coding.schemas import Context
 from coding.helpers import Selector
 from coding.datasets import DATASET_MANAGER
 from coding.protocol import StreamCodeSynapse
-from coding.datasets import GithubDataset, PipDataset
+from coding.datasets import GithubDataset, PipDataset, SWEDataset
 
 TASK_REGISTRY = {
+    RepoCompletionTask.name: [GithubDataset.name],
     FillInMiddleTask.name: [GithubDataset.name],
     CompletionTask.name: [GithubDataset.name],
-    RepoCompletionTask.name: [GithubDataset.name],
     RepoFileTask.name: [GithubDataset.name],
-    DebugTask.name: [PipDataset.name]
+    # DebugTask.name: [PipDataset.name],
+    SWETask.name: [SWEDataset.name],
 }
 
 
@@ -35,7 +40,8 @@ def create_task(
     llm,
     task_name: str,
     selector: Selector = random.choice,
-    repl: REPLClient = REPLClient()
+    repl: REPLClient = REPLClient(),
+    code_scorer: Callable = None
 ) -> Task:
     """Create a task from the given task name and LLM pipeline.
 
@@ -63,19 +69,19 @@ def create_task(
     dataset = DATASET_MANAGER.datasets.get(dataset_name, None)
     if dataset is None:
         raise ValueError(f"Dataset {dataset_name} not found")
-    return task(
-        llm=llm,
-        context=dataset.next(**dict(task.dataset_options)),
-        repl=repl
-    )
-    
+    return task(llm=llm, context=dataset.next(**dict(task.dataset_options)), repl=repl, code_scorer=code_scorer)
+
+
 def create_organic_task(
     llm,
     synapse: StreamCodeSynapse,
     repl: REPLClient = REPLClient(),
 ) -> Task:
     """Create a task from the given synapse and LLM pipeline."""
-    
-    return OrganicConvoTask(llm=llm, context=Context(messages=synapse.messages, files=synapse.files), repl=repl)
-    
-    
+
+    return OrganicConvoTask(
+        llm=llm,
+        context=Context(messages=synapse.messages, files=synapse.files),
+        repl=repl,
+    )
+ 
