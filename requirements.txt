@@ -10,3 +10,4 @@ cachetools
 strenum
 detect-secrets
 wandb
+swebench
