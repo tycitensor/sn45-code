@@ -1,6 +1,5 @@
-
-import time
 import os
+import time
 import bittensor as bt
 from starlette.types import Send
 from functools import partial
