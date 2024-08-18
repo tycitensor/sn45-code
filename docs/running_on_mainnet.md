@@ -132,13 +132,13 @@ This step registers your subnet validator and subnet miner keys to the subnet gi
 Register your miner key to the subnet:
 
 ```bash
-btcli subnet recycle_register --netuid 1 --subtensor.network finney --wallet.name miner --wallet.hotkey default
+btcli subnet recycle_register --netuid 45 --subtensor.network finney --wallet.name miner --wallet.hotkey default
 ```
 
 Follow the below prompts:
 
 ```bash
->> Enter netuid [1] (1): # Enter netuid 1 to specify the subnet you just created.
+>> Enter netuid [45] (45): # Enter netuid 1 to specify the subnet you just created.
 >> Continue Registration?
   hotkey:     ...
   coldkey:    ...
@@ -149,13 +149,13 @@ Follow the below prompts:
 Next, register your validator key to the subnet:
 
 ```bash
-btcli subnet recycle_register --netuid 1 --subtensor.network finney --wallet.name validator --wallet.hotkey default
+btcli subnet recycle_register --netuid 45 --subtensor.network finney --wallet.name validator --wallet.hotkey default
 ```
 
 Follow the below prompts:
 
 ```bash
->> Enter netuid [1] (1): # Enter netuid 1 to specify the subnet you just created.
+>> Enter netuid [45] (45): # Enter netuid 1 to specify the subnet you just created.
 >> Continue Registration?
   hotkey:     ...
   coldkey:    ...
@@ -202,13 +202,13 @@ miner    default  1      True   0.00000  0.00000  0.00000    0.00000    0.00000 
 Run the subnet miner:
 
 ```bash
-python neurons/miner.py --netuid 1  --wallet.name miner --wallet.hotkey default --logging.debug
+python neurons/miner.py --netuid 45  --wallet.name miner --wallet.hotkey default --logging.debug
 ```
 
 You will see the below terminal output:
 
 ```bash
->> 2023-08-08 16:58:11.223 |       INFO       | Running miner for subnet: 1 on network: wss://entrypoint-finney.opentensor.ai:443 with config: ...
+>> 2023-08-08 16:58:11.223 |       INFO       | Running miner for subnet: 45 on network: wss://entrypoint-finney.opentensor.ai:443 with config: ...
 ```
 
 Run the subnet validator:
@@ -220,7 +220,7 @@ python neurons/validator.py --netuid 1  --wallet.name validator --wallet.hotkey 
 You will see the below terminal output:
 
 ```bash
->> 2023-08-08 16:58:11.223 |       INFO       | Running validator for subnet: 1 on network: wss://entrypoint-finney.opentensor.ai:443 with config: ...
+>> 2023-08-08 16:58:11.223 |       INFO       | Running validator for subnet: 45 on network: wss://entrypoint-finney.opentensor.ai:443 with config: ...
 ```
 
 ## 8. Get emissions flowing

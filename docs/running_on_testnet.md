@@ -129,7 +129,7 @@ This step registers your subnet validator and subnet miner keys to the subnet, g
 Register your miner key to the subnet:
 
 ```bash
-btcli subnet recycle_register --netuid 13 --subtensor.network test --wallet.name miner --wallet.hotkey default
+btcli subnet recycle_register --netuid 171 --subtensor.network test --wallet.name miner --wallet.hotkey default
 ```
 
 Follow the below prompts:
@@ -146,13 +146,13 @@ Follow the below prompts:
 Next, register your validator key to the subnet:
 
 ```bash
-btcli subnet recycle_register --netuid 13 --subtensor.network test --wallet.name validator --wallet.hotkey default
+btcli subnet recycle_register --netuid 171 --subtensor.network test --wallet.name validator --wallet.hotkey default
 ```
 
 Follow the prompts:
 
 ```bash
->> Enter netuid [1] (1): # Enter netuid 1 to specify the subnet you just created.
+>> Enter netuid [171] (171): # Enter netuid 1 to specify the subnet you just created.
 >> Continue Registration?
   hotkey:     ...
   coldkey:    ...
@@ -201,25 +201,25 @@ miner    default  1      True   0.00000  0.00000  0.00000    0.00000    0.00000 
 Run the subnet miner:
 
 ```bash
-python neurons/miner.py --netuid 1 --subtensor.network test --wallet.name miner --wallet.hotkey default --logging.debug
+python neurons/miner.py --netuid 171 --subtensor.network test --wallet.name miner --wallet.hotkey default --logging.debug
 ```
 
 You will see the below terminal output:
 
 ```bash
->> 2023-08-08 16:58:11.223 |       INFO       | Running miner for subnet: 1 on network: ws://127.0.0.1:9946 with config: ...
+>> 2023-08-08 16:58:11.223 |       INFO       | Running miner for subnet: 171 on network: ws://127.0.0.1:9946 with config: ...
 ```
 
 Next, run the subnet validator:
 
 ```bash
-python neurons/validator.py --netuid 1 --subtensor.network test --wallet.name validator --wallet.hotkey default --logging.debug
+python neurons/validator.py --netuid 171 --subtensor.network test --wallet.name validator --wallet.hotkey default --logging.debug
 ```
 
 You will see the below terminal output:
 
 ```bash
->> 2023-08-08 16:58:11.223 |       INFO       | Running validator for subnet: 1 on network: ws://127.0.0.1:9946 with config: ...
+>> 2023-08-08 16:58:11.223 |       INFO       | Running validator for subnet: 171 on network: ws://127.0.0.1:9946 with config: ...
 ```
 
 
