@@ -25,7 +25,7 @@ from coding.protocol import StreamCodeSynapse
 class CodeAPI(SubnetsAPI):
     def __init__(self, wallet: "bt.wallet"):
         super().__init__(wallet)
-        self.netuid = 1
+        self.netuid = 45
         self.name = "code"
 
     def prepare_synapse(self, query: str, documents: List[Any]) -> StreamCodeSynapse:

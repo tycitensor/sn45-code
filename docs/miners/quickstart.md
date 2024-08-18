@@ -46,7 +46,7 @@ pm2 start neurons/miner.py --interpreter python3 --name miner -- --netuid XY  --
 ## Subnet Wallet Registration
 Register your wallet on the subnet: 
 ```
-btcli s register --subtensor.network finney --netuid 42
+btcli s register --subtensor.network finney --netuid 45
 ```
 
 Testnet: 
