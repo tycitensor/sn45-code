@@ -48,6 +48,21 @@ This is optional, but recommended make sure you login
 wandb login
 ```
 
+
+#### Setup your dotenv
+
+Copy `.env.example` to `.env` - `cp .env.example .env`. Then edit the `.env` file with the github token you get below
+
+#### Get a Github Token
+
+We require github tokens, to get one follow the instructions [here](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens), or below.
+
+1. Go to [Github](http://Github.com)
+2. Open the top right menu and select `Settings`
+3. Go to the bottom left and select `Developer Settings`
+4. Go to either `Tokens (classic)` or `Fine-grained tokens`
+5. Generate a new token and place it in the .env
+
 #### Start the validator
 
 ```bash
