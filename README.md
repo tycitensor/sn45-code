@@ -48,3 +48,8 @@ To get started as a validator, follow the [Validator Quickstart Guide](./docs/va
 
 To begin mining, refer to the [Miner Quickstart Guide](./docs/miners/quickstart.md).
 
+
+
+##### Disclaimer
+
+This repo is a fork off Subnet 1, [Prompting](https://github.com/macrocosm-os/prompting/tree/main). Credit for the amazing code goes to them, they did a wonderful job.
