@@ -113,7 +113,7 @@ def reinit_wandb(self):
 
 
 def log_event(self, event):
-    if self.config.netuid != 42:
+    if self.config.netuid != 45:
         return
     
     if not self.config.wandb.on:

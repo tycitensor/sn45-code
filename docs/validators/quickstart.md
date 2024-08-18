@@ -52,7 +52,7 @@ wandb login
 
 ```bash
 python neurons/validator.py
-    --netuid 42
+    --netuid 45
     --subtensor.network <finney/local/test>
     --neuron.device cuda
     --wallet.name <your wallet> # Must be created using the bittensor-cli

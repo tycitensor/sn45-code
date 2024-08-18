@@ -48,11 +48,6 @@ HOTKEY_NAME = args.hotkey
 NETWORK = args.network
 NETUID = args.netuid
 
-# NETWORK = "finney"
-# NETUID = 42
-# WALLET_NAME = "shared2"
-# HOTKEY_NAME = "default"
-
 STAT_API_URL = os.getenv("STAT_API_URL", args.stat_api_url)
 STAT_API_KEY = os.getenv("STAT_API_KEY", args.stat_api_key)
 CALL_COUNTER = None
