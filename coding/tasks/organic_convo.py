@@ -44,7 +44,6 @@ class OrganicConvoTask(Task):
         self.query = None
         self.messages = context.messages
         self.files = context.files
-        print("Complete conversation 🍌🍌🍌🍌🍌🍌🍌🍌🍌🍌🍌🍌🍌🍌🍌🍌🍌🍌🍌", flush=True)
         self.reference = complete_conversation(llm, self.messages, self.files)
 
         self.topic = context.title

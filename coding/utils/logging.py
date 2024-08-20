@@ -2,7 +2,7 @@
 # Copyright © 2024 Yuma Rao
 # Copyright © 2023 Opentensor Foundation
 # Copyright © 2024 Macrocosmos
-# Copyright © 2024 Broke
+# Copyright © 2024 Brokespace
 
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
