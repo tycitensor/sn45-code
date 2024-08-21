@@ -139,7 +139,7 @@ class Validator(BaseValidatorNeuron):
 
         Otherwise, allow the request to be processed further.
         """
-        if synapse.dendrite.hotkey == "5G1HmPvPUyGno5nu34Fq4FUs32rMQk2d6qCL4x7qrrUJbhEx":
+        if synapse.dendrite.hotkey == "5Fy7c6skhxBifdPPEs3TyytxFc7Rq6UdLqysNPZ5AMAUbRQx":
             return False, "Subnet owner hotkey"
         return True, "Blacklisted"
 
