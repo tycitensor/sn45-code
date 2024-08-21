@@ -2,9 +2,9 @@
 
 ### 1. Completion
 
-The goal of this task is to complete the given code. You will be provided a functions name and must complete the function body.
+The goal of this task is to complete the given code. You will be provided a functions name followed by "<|fim_hole|>" and you must complete the function body.
 
-The only protocol being sent is `query`, the expected response is the completed function body.
+The only protocol being sent is `query`, the expected response is the completed function body. 
 
 
 ### 2. Debugging
@@ -13,9 +13,9 @@ This task is under development.
 
 ### 3. Fill-In-The-Middle (FIM)
 
-The goal of this task is to fill in the middle of the given code. You will be provided a portion of code with a chunk missing. The chunk to be filled in is marked with "<fim_hole>". You should return the code to be placed in the filled in spot.
+The goal of this task is to fill in the middle of the given code. You will be provided a portion of code with a chunk missing. The chunk to be filled in is marked with "<|fim_hole|>". You should return the code to be placed in the filled in spot.
 
-The only protocol being sent is `query`, the expected response is the code to be placed in the "<fim_hole>".
+The only protocol being sent is `query`, the expected response is the code to be placed in the "<|fim_hole|>".
 
 
 ### 4. Organic Convo
