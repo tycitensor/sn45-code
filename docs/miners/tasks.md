@@ -33,3 +33,59 @@ In this task you will be sent a `query` containing a majority of the code from a
 ### 6. Repo File 
 
 In this task you will be given a `query` containing a summary of what a python file did, and `files` containing some other files that came from the same repo. You are to write the entire python file given the summary and files. 
+
+### 7. SWE Task
+
+In this task you are given a `query` of the style:
+
+```
+Given the following issue and files, please return a patch file that would fix the issue. An example of what you should return is
+<patch> diff --git a/example.txt b/example.txt
+index e69de29..d95f3ad 100644
+--- a/example.txt
++++ b/example.txt
+@@ -1,3 +1,3 @@
+-Hello, world!
++Hello, universe!
+ 
+ This is a simple text file.
+-The end.
++Goodbye, world! </patch>
+The following issue is:\n\n
+
+<INSERT ISSUE HERE>
+```
+
+You must return a jsonified dictionary where the key is the filename and the value is the patch for that file. It does not have to be perfect as it will be parsed out and specific line numbers will be compared. 
+
+The above prompt when fed into an LLM should be parsable and returnable immediately with the following code:
+
+```python
+def parse_diff(diff_string):
+    lines = diff_string.splitlines()
+    file_diffs = {}
+    current_file = None
+    diff_content = []
+    is_diff_block = False
+
+    for line in lines:
+        if "diff --git" in line:
+            if current_file and diff_content:
+                file_diffs[current_file] = "\n".join(diff_content)
+            current_file = line.split()[-1]
+            diff_content = []
+            is_diff_block = False
+        elif line.startswith("---") or line.startswith("+++"):
+            # Ignore these lines, as they indicate the old/new file path
+            continue
+        elif line.startswith("@@"):
+            is_diff_block = True
+            continue
+        elif is_diff_block:
+            diff_content.append(line)
+
+    if current_file and diff_content:
+        file_diffs[current_file] = "\n".join(diff_content)
+
+    return file_diffs
+```
