@@ -178,6 +178,7 @@ The following issue is:\n\n
         for diff in self.diffs:
             if diff.file not in completion.keys():
                 points -= 1
+                continue
 
             miner_diff = parse_diff(completion[diff.file], no_title=True)[0]
             total_line_points = len(diff.edited_lines)
