@@ -36,7 +36,7 @@ In this task you will be given a `query` containing a summary of what a python f
 
 ### 7. SWE Task
 
-In this task you are given a `query` of the style:
+In this task you are given `files` and a `query` of the style:
 
 ```
 Given the following issue and files, please return a patch file that would fix the issue. An example of what you should return is
@@ -58,7 +58,7 @@ The following issue is:\n\n
 
 You must return a jsonified dictionary where the key is the filename and the value is the patch for that file. It does not have to be perfect as it will be parsed out and specific line numbers will be compared. 
 
-The above prompt when fed into an LLM should be parsable and returnable immediately with the following code:
+The above prompt when fed into an LLM alonsigde the files should be parsable and returnable immediately with the following code:
 
 ```python
 def parse_diff(diff_string):
