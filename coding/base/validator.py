@@ -126,12 +126,15 @@ class BaseValidatorNeuron(BaseNeuron):
         # Check that validator is registered on the network.
         self.sync()
         if not self.config.neuron.axon_off:
-            bt.logging.info(
-                f"Running validator {self.axon} on network: {self.config.subtensor.chain_endpoint} with netuid: {self.config.netuid}"
-            )
-            # serve the axon
-            self.axon.serve(netuid=self.config.netuid, subtensor=self.subtensor)
-            self.axon.start()
+            try:
+                bt.logging.info(
+                    f"Running validator {self.axon} on network: {self.config.subtensor.chain_endpoint} with netuid: {self.config.netuid}"
+                )
+                # serve the axon
+                self.axon.serve(netuid=self.config.netuid, subtensor=self.subtensor)
+                self.axon.start()
+            except Exception as e:
+                bt.logging.error(f"Failed to serve and then start Axon with exception: {e}")
         else:
             bt.logging.info(
                 f"Running validator on network: {self.config.subtensor.chain_endpoint} with netuid: {self.config.netuid}"
