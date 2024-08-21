@@ -78,8 +78,7 @@ class SWEDataset(Dataset):
 
     def get(self, n=100, selector: Selector = None) -> dict:
         random.seed(self.seed)
-        # package_name = selector(get_top_pip_packages())
-        package_name = "boto3"
+        package_name = selector(get_top_pip_packages())
         package_info = get_package_stats(package_name)
         token = os.environ.get("GITHUB_TOKEN", None)
         if not token:
