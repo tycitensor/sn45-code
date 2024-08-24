@@ -22,7 +22,7 @@ class RepoFileTask(Task):
         self.context = context
 
         self.query = (
-            llm.invoke(f'Summarize what is happening in this python module: {context.content}').content
+            "write code to" + llm.invoke(f'Summarize what is happening in this python module: {context.content}').content
         )
         self.files = [File(path=cont.title, content=cont.content) for cont in context.extras['sibling_docs']] # Filter the info sent to the miners
         self.reference = context.content

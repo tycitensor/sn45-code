@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-
-import logging
 import re
 import requests
 import time
@@ -11,11 +9,6 @@ from ghapi.core import GhApi
 from fastcore.net import HTTP404NotFoundError, HTTP403ForbiddenError
 from typing import Callable, Iterator, Optional
 from unidiff import PatchSet
-
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
 
 
 class Repo:

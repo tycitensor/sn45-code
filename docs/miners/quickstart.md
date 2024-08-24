@@ -74,6 +74,11 @@ pm2 start neurons/miner.py --interpreter python3 --name miner -- --netuid 171  -
 
 A list of the provided tasks can be seen [here](./tasks.md). Tasks are scored equally based on speed and similarity to the answer.
 
+## Sample Miners
+
+There are some sample miners you can use check them out [here](./sample-miners.md). 
+
+
 ## Helpful Tips
 
 It is suggested that you play around with mining on Testnet before going to Mainnet.

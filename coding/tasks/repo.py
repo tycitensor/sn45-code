@@ -73,7 +73,7 @@ class RepoCompletionTask(Task):
 
         mod_code, correct_body = delete_function_body_and_following(context.content)
         self.query = (
-            mod_code
+            mod_code + "<|fim_hole|>"
         )
         self.files = [File(path=cont.title, content=cont.content) for cont in context.extras['sibling_docs']] # Filter the info sent to the miners
         self.reference = correct_body
