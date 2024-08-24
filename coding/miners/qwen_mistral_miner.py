@@ -43,7 +43,7 @@ def miner_init(self):
     """
 
     def model_factory(
-        api_base="http://localhost:8011/v1",
+        api_base="http://localhost:8000/v1",
         model_name=self.config.neuron.model_id,
         max_tokens=4096,
         temperature=0.7,
@@ -74,7 +74,7 @@ def miner_init(self):
 
     self.model = model_factory(chat=True)
     self.mistral = model_factory(
-        api_base="http://localhost:8028/v1",
+        api_base="http://localhost:8001/v1",
         model_name="thesven/Mistral-7B-Instruct-v0.3-GPTQ",
         chat=True,
     )
@@ -97,7 +97,6 @@ def miner_process(self, synapse: StreamCodeSynapse) -> Awaitable:
     bt.logging.debug(f"📧 Query received, forwarding synapse: {synapse}")
 
     if "<|fim_hole|>" in synapse.query and not synapse.files:
-        print("==================================================")
         chain = self.model_factory(chat=False)
         chain_formatter = f"<fim_prefix>{synapse.query.replace('<|fim_hole|>', '<fim_suffix>')}<fim_middle>"
         stop = [
