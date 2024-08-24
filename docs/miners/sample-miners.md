@@ -18,7 +18,7 @@ pm2 start --name "mistral" "vllm serve thesven/Mistral-7B-Instruct-v0.3-GPTQ  --
 ```
 
 ```
-pm2 start --name "qwen" "vllm serve Qwen/CodeQwen1.5-7B-AWQ  --max-model-len 4096 --quantization gptq --dtype half --gpu-memory-utilization 0.40 --port 8000"
+pm2 start --name "qwen" "vllm serve Qwen/CodeQwen1.5-7B-AWQ  --max-model-len 4096 --quantization awq --dtype half --gpu-memory-utilization 0.40 --port 8000"
 ```
 
 
