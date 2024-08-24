@@ -1,8 +1,10 @@
 import json
 import time
+import traceback
 import bittensor as bt
 from typing import Awaitable
 from functools import partial
+from langchain.prompts import PromptTemplate
 from langchain_openai import OpenAI, ChatOpenAI
 from coding.protocol import StreamCodeSynapse
 from coding.helpers import chain_forward, string_forward
@@ -92,10 +94,9 @@ def miner_process(self, synapse: StreamCodeSynapse) -> Awaitable:
     stop = None
     chain = None
     chain_formatter = None
-    prompt = synapse.query
+    query = synapse.query
 
     bt.logging.debug(f"📧 Query received, forwarding synapse: {synapse}")
-
     if "<|fim_hole|>" in synapse.query and not synapse.files:
         chain = self.model_factory(chat=False)
         chain_formatter = f"<fim_prefix>{synapse.query.replace('<|fim_hole|>', '<fim_suffix>')}<fim_middle>"
@@ -131,9 +132,7 @@ def miner_process(self, synapse: StreamCodeSynapse) -> Awaitable:
         prompt = synapse.query + "\n"
         for file in synapse.files:
             prompt += f"#Filename: {file.path}\n{file.content}\n"
-        prompt += (
-            "Respond only with the patch, only modify the files you have been provided."
-        )
+        prompt += "Respond only with the patch, only modify the files you have been provided."
         model_res = (
             self.mistral.invoke([{"role": "user", "content": prompt[0:15000]}])
             .content.replace("<patch>", "")
@@ -145,14 +144,18 @@ def miner_process(self, synapse: StreamCodeSynapse) -> Awaitable:
             model_res = model_res.split("```")[1]
         model_res = json.dumps(parse_diff(model_res))
         return synapse.create_streaming_response(partial(string_forward, model_res))
-    elif synapse.files and "<|fim_hole|>" in synapse.query: 
+    elif synapse.files and "<|fim_hole|>" in synapse.query:
         chain = self.model_factory(chat=False)
         string = ""
         for file in synapse.files:
             if "path" not in file:
                 file.path = ""
             string += f"<file_sep>{file.path}\n{file.content}\n"
-        chain_formatter = string + "<fim_prefix>" + synapse.query.replace("<|fim_hole|>", "<fim_middle>")
+        chain_formatter = (
+            string
+            + "<fim_prefix>"
+            + synapse.query.replace("<|fim_hole|>", "<fim_middle>")
+        )
     elif "write code to" in synapse.query:
         string = ""
         chain = self.mistral
@@ -163,10 +166,13 @@ def miner_process(self, synapse: StreamCodeSynapse) -> Awaitable:
         if string:
             "Using the above files, and responding only with python code \n"
         chain_formatter = string + synapse.query
+    else:
+        chain = self.model
+        chain_formatter = synapse.query
     if stop:
         self.model = self.model.bind(stop=stop)
-
     if not chain:
+        prompt = PromptTemplate.from_template("{query}")
         chain = prompt | self.model
 
     init_time = time.time()

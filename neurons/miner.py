@@ -18,6 +18,7 @@
 
 import time
 import typing
+import traceback
 import importlib
 import bittensor as bt
 
@@ -68,7 +69,10 @@ class Miner(BaseMinerNeuron):
         The 'forward' function is a placeholder and should be overridden with logic that is appropriate for
         the miner's intended operation. This method demonstrates a basic transformation of input data.
         """
-        response = self.miner_process(self, synapse)
+        try:
+            response = self.miner_process(self, synapse)
+        except:
+            bt.logging.error("An error occurred while processing the synapse: ", traceback.format_exc())
         return response
         
 
