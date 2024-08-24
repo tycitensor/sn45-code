@@ -164,6 +164,7 @@ class BaseValidatorNeuron(BaseNeuron):
                 except Exception as e: # TODO this wasnt here previously, but any errors were cancelling the forward loop so i added it
                     bt.logging.error("Error during validation", str(e))
                     bt.logging.debug(print_exception(type(e), e, e.__traceback__))
+                    sys.exit(1)
 
                 # Check if we should exit.
                 if self.should_exit:
