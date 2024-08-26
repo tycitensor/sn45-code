@@ -173,11 +173,10 @@ The following issue is:\n\n
             return 0
         
         total_points = len(self.diffs)  # one point per file
-        points = total_points
+        points = 0
         # check if the diff file names match the ones in the github issue
         for diff in self.diffs:
             if diff.file not in completion.keys():
-                points -= 1
                 continue
 
             miner_diff = parse_diff(completion[diff.file], no_title=True)[0]

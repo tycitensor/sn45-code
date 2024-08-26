@@ -44,14 +44,9 @@ class Repo:
             except HTTP403ForbiddenError as e:
                 for _ in range(10):
                     rl = self.api.rate_limit.get()
-                    logger.info(
-                        f"[{self.owner}/{self.name}] Rate limit exceeded for token {self.token[:10]}, "
-                        f"remaining calls: {rl.resources.core.remaining}"
-                    )
                     if rl.resources.core.remaining > 0:
                         break
             except HTTP404NotFoundError as e:
-                logger.info(f"[{self.owner}/{self.name}] Resource not found {kwargs}")
                 return None
 
     def extract_resolved_issues(self, pull: dict) -> list[str]:
@@ -133,30 +128,15 @@ class Repo:
                     break
                 if not quiet:
                     rl = self.api.rate_limit.get()
-                    logger.info(
-                        f"[{self.owner}/{self.name}] Processed page {page} ({per_page} values per page). "
-                        f"Remaining calls: {rl.resources.core.remaining}"
-                    )
                 if num_pages is not None and page >= num_pages:
                     break
                 page += 1
             except Exception as e:
                 # Rate limit handling
-                logger.error(
-                    f"[{self.owner}/{self.name}] Error processing page {page} "
-                    f"w/ token {self.token[:10]} - {e}"
-                )
                 for _ in range(10):
                     rl = self.api.rate_limit.get()
                     if rl.resources.core.remaining > 0:
                         break
-                    logger.info(
-                        f"[{self.owner}/{self.name}] Waiting for rate limit reset "
-                    )
-        if not quiet:
-            logger.info(
-                f"[{self.owner}/{self.name}] Processed {(page-1)*per_page + len(values)} values"
-            )
 
     def get_all_issues(
         self,

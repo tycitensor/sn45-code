@@ -76,7 +76,7 @@ class SWEDataset(Dataset):
             seed = random.randint(0, 1000)
         self.seed = seed
 
-    def get(self, n=100, selector: Selector = None) -> dict:
+    def get(self, n=100, selector: Selector = Selector()) -> dict:
         random.seed(self.seed)
         package_name = selector(get_top_pip_packages())
         package_info = get_package_stats(package_name)
