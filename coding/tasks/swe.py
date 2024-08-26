@@ -136,6 +136,7 @@ class SWETask(Task):
             for diff in self.diffs
         ]
 
+        # TODO uncomment if want to rename
         # renaming the files
         # for idx, file in enumerate(self.diffs):
         #     id = str(uuid.uuid4())[0:5]
@@ -162,6 +163,11 @@ The following issue is:\n\n
         )  # problem statement
         # TODO potentially dont initiate CodeSimModel and instead just move the cosim function out and just import that
         self.codesim = CodeSimModel(code_scorer=code_scorer)
+        
+        self.topic = context.title
+        self.subtopic = context.topic
+        self.tags = context.tags
+        
 
     def score(self, completion):
         try:
