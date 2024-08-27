@@ -271,6 +271,12 @@ def add_validator_args(cls, parser):
         default="http://localhost:8028/v1",
     )
 
+    parser.add_argument(
+        "--neuron.forward_max_time",
+        type=int,
+        help="Max time to wait for a forward call to complete in seconds.",
+        default=120,
+    )
 
 
 
