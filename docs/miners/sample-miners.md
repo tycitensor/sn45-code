@@ -35,7 +35,7 @@ pm2 start --name "qwen" "vllm serve Qwen/CodeQwen1.5-7B-AWQ  --max-model-len 409
 The commands below will run VLLM on device=0 (gpu0), be sure to modify that if you want to run on a different gpu
 
 ```bash
-sudo docker run -d -p 8000:8000 --gpus device=0 --ipc host --name codeqwen docker.io/vllm/vllm-openai:latest --model Qwen/CodeQwen1.5-7B-AWQ --max-model-len 8096 -dtype half  --gpu-memory-utilization 0.4
+sudo docker run -d -p 8000:8000 --gpus device=0 --ipc host --name codeqwen docker.io/vllm/vllm-openai:latest --model Qwen/CodeQwen1.5-7B-AWQ --max-model-len 8096 --dtype half  --gpu-memory-utilization 0.4
 ```
 
 ```bash
