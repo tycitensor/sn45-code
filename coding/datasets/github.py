@@ -22,6 +22,7 @@ import os
 import random
 import lib2to3
 import itertools
+import numpy as np
 import bittensor as bt
 from io import StringIO
 from datasets import load_dataset, Dataset, load_from_disk
@@ -610,7 +611,7 @@ class GithubDataset(Dataset):
                 # languages=languages, # TODO: Uncomment if using large git repo
             ).sort("path").shard(8, random.choice([0, 1, 2, 3, 4, 5, 6, 7])).shuffle(seed=seed)
         self.iterset = iter(self.dataset)
-
+    
     def random(self, min_lines=10, max_lines=3000, selector: Selector = None, include_sibling_docs=False, min_sibling_docs=1, **kwargs):
         return self.get(min_lines, max_lines, selector, include_sibling_docs, min_sibling_docs, **kwargs)
     
@@ -667,7 +668,8 @@ class GithubDataset(Dataset):
         selector: Selector = None,
         **kwargs,
     ):
-        filtered_dataset = iter(self.dataset.filter(lambda row: row[column] == query))
+        mask = np.array(self.dataset[column]) == query
+        filtered_dataset = iter(self.dataset.select(np.where(mask)[0]))
         return [
             {
                 "title": row["repo_name"],  # name of the repo
@@ -682,9 +684,6 @@ class GithubDataset(Dataset):
             }
             for row in filtered_dataset
         ]
-
-    def random(self, min_lines=5, max_lines=100, selector: Selector = None, **kwargs):
-        return self.get(min_lines, max_lines, selector)
 
     def extract_keywords(self, code, language, field):
         matches = set()
@@ -704,5 +703,3 @@ class GithubDataset(Dataset):
         present_keywords = self.extract_keywords(code, language, "keywords")
 
         return present_keywords, present_libraries
-    
-    
