@@ -95,7 +95,7 @@ def init_wandb(self, reinit=False):
     self.wandb = wandb.init(
         anonymous="allow",
         reinit=reinit,
-        project=self.config.wandb.project_name,
+        project=self.config.wandb.project_name if self.config.netuid == 45 else self.config.wandb.project_name + "testnet",
         entity=self.config.wandb.entity,
         config=wandb_config,
         mode="offline" if self.config.wandb.offline else "online",
@@ -113,9 +113,6 @@ def reinit_wandb(self):
 
 
 def log_event(self, event):
-    if self.config.netuid != 45:
-        return
-    
     if not self.config.wandb.on:
         return
 
