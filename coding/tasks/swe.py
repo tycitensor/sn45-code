@@ -185,7 +185,11 @@ The following issue is:\n\n
             if diff.file not in completion.keys():
                 continue
 
-            miner_diff = parse_diff(completion[diff.file], no_title=True)[0]
+            miner_diffs = parse_diff(completion[diff.file], no_title=True)
+            if not miner_diffs:
+                return
+            else:
+                miner_diff = miner_diffs[0]
             total_line_points = len(diff.edited_lines)
             line_points = 0
             for edit, line_num, content in diff.edited_lines:
@@ -217,7 +221,10 @@ The following issue is:\n\n
 
         for completion in completions:
             t0 = time.time()
-            rewards.append(self.score(completion))
+            try:
+                rewards.append(self.score(completion))
+            except:
+                rewards.append(0)
             timings.append(time.time() - t0)
         output = BatchRewardOutput(rewards=rewards, timings=timings, extra_info={})
 
