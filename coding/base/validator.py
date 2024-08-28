@@ -124,7 +124,13 @@ class BaseValidatorNeuron(BaseNeuron):
         """
 
         # Check that validator is registered on the network.
-        self.sync()
+        
+        try:
+            self.sync()
+        except Exception as e: # Broken pipe handling 
+            bt.logging.error("Error while syncing, killing self to restart", str(e))
+            bt.logging.debug(print_exception(type(e), e, e.__traceback__))
+            sys.exit(1)
         if not self.config.neuron.axon_off:
             try:
                 bt.logging.info(
