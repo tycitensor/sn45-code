@@ -131,7 +131,7 @@ class RewardResult:
         for event in self.penalty_events:
             for reward_info in filter(lambda x: x["name"] == event.model_name, self.task_penalties):
                 rewards *= 1 - reward_info["weight"] * event.rewards
-        # print(f"rewards: {rewards}",flush=True)
+        
         return rewards
 
     def __str__(self):
