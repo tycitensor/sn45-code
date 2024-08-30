@@ -180,7 +180,7 @@ async def forward(self, synapse: StreamCodeSynapse):
             )[0]
             bt.logging.info(f"📋 Creating {task_name} task... ")
             try:
-                task = create_task(llm=self.llm, task_name=task_name, repl=self.repl)
+                task = create_task(llm=self.llm, task_name=task_name, repl=self.repl, code_scorer=self.code_scorer)
                 synapse = StreamCodeSynapse(
                     query=task.query,
                     files=task.files,
@@ -203,7 +203,6 @@ async def forward(self, synapse: StreamCodeSynapse):
 
     uids = get_random_uids(self, k=self.config.neuron.sample_size)
     uids_cpu = uids.tolist()
-    print(f"uids_cpu: {uids_cpu}")
     axons = [self.metagraph.axons[uid] for uid in uids]
     # The dendrite client queries the network.
     streams_responses = await self.dendrite(
