@@ -20,7 +20,7 @@ class Diff:
     )  # +/- , line number , line content
 
 
-def parse_diff(diff_text: str, no_title=False) -> List[Diff]:
+def parse_diff(diff_text: str, no_title=False):
     diff_pattern = r"^diff --git a\/(.+?) b\/(.+?)$"
     line_change_pattern = r"^@@ -\d+,\d+ \+(\d+),(\d+) @@"
     diff_objects = []
@@ -29,15 +29,15 @@ def parse_diff(diff_text: str, no_title=False) -> List[Diff]:
     current_line_num = 0
 
     for line in diff_text.splitlines():
+        # Handle the case where no_title is True and there is no diff header
+        if no_title and current_diff is None:
+            current_diff = Diff(file="")
+        
         diff_match = re.match(diff_pattern, line)
-        if diff_match:
+        if diff_match and not no_title:
             if current_diff:
                 diff_objects.append(current_diff)
             current_diff = Diff(file=diff_match.group(2))
-            current_line_num = 0
-            continue
-        elif no_title:
-            current_diff = Diff(file="")
             current_line_num = 0
             continue
 
@@ -59,9 +59,6 @@ def parse_diff(diff_text: str, no_title=False) -> List[Diff]:
         diff_objects.append(current_diff)
 
     return diff_objects
-
-
-import requests
 
 
 def download_git_file(repo_name, pull_number, file_path):
