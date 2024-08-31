@@ -270,6 +270,13 @@ def add_validator_args(cls, parser):
         help="The openai compatible model url to be used for the validator",
         default="http://localhost:8028/v1",
     )
+    
+    parser.add_argument(
+        "--neuron.vllm_api_key",
+        type=str,
+        help="The openai compatible model url to be used for the validator",
+        default="EMPTY",
+    )
 
     parser.add_argument(
         "--neuron.forward_max_time",

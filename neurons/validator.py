@@ -59,7 +59,7 @@ class Validator(BaseValidatorNeuron):
         self.llm = ChatOpenAI(
             base_url=self.config.neuron.model_url,
             model_name=self.config.neuron.model_id,
-            api_key="NONE",
+            api_key=self.config.neuron.vllm_api_key,
         ) 
         self.repl = REPLClient()
         self.code_scorer = BERTScorer(lang="python")
