@@ -26,7 +26,7 @@ class FillInMiddleTask(Task):
     goal: str = "to fill in the blanks in the code"
     reward_definition: str = [
         dict(name="codesim", weight=0.8),
-        dict(name="speed", weight=0.2, ideal_time=0.5)
+        dict(name="speed", weight=0.2, ideal_time=1.5)
     ]
     penalty_definition: List = []
     cleaning_pipeline: List = [

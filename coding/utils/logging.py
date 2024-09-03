@@ -25,7 +25,6 @@ import wandb
 import coding
 import logging
 import bittensor as bt
-from pydantic import BaseModel
 from logging.handlers import RotatingFileHandler
 
 
@@ -72,6 +71,8 @@ def should_reinit_wandb(self):
 
 def init_wandb(self, reinit=False):
     """Starts a new wandb run."""
+    uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
+    spec_version = str(coding.__spec_version__)
     tags = [
         self.wallet.hotkey.ss58_address,
         coding.__version__,
@@ -102,6 +103,7 @@ def init_wandb(self, reinit=False):
         dir=self.config.neuron.full_path,
         tags=tags,
         notes=self.config.wandb.notes,
+        name=f"{uid}-{spec_version}",
     )
     bt.logging.success(f"Started a new wandb run <blue> {self.wandb.name} </blue>")
 

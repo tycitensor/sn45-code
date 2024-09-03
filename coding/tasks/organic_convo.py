@@ -27,7 +27,7 @@ class OrganicConvoTask(Task):
     goal: str = "respond correctly to the conversation"
     reward_definition: List[dict] = [
         dict(name="codesim", weight=0.8), # TODO using code similarity might not work for responses, but it should be fine? maybe do rogue or difflib 
-        dict(name="speed", weight=0.2, ideal_time=0.5)
+        dict(name="speed", weight=0.2, ideal_time=2.5)
     ]
     penalty_definition: List = []
     cleaning_pipeline: List = [

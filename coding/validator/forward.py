@@ -47,14 +47,15 @@ class StreamResult:
 async def process_response(uid: int, async_generator: Awaitable):
     """Process a single response asynchronously."""
     try:
+        buffer = ""
         chunk = None  # Initialize chunk with a default value
         async for (
             chunk
         ) in (
             async_generator
         ):  # most important loop, as this is where we acquire the final synapse.
-            # bt.logging.debug(f"\nchunk for uid {uid}: {chunk}")
-            pass
+            if isinstance(chunk, str):
+                buffer += chunk
 
         if chunk is not None:
             synapse = chunk  # last object yielded is the synapse itself with completion filled
@@ -78,6 +79,10 @@ async def process_response(uid: int, async_generator: Awaitable):
         )
 
         return failed_synapse
+    finally:
+        return StreamCodeSynapse(
+            completion=buffer
+        )
 
 
 async def handle_response(responses: Dict[int, Awaitable]) -> List[StreamResult]:
@@ -238,7 +243,7 @@ async def forward(self, synapse: StreamCodeSynapse):
         self,
         {
             "step": self.step,
-            **reward_result.__state_dict__(full=self.config.neuron.log_full),
+            **reward_result.__state_dict__(),
             **response_event.__state_dict__(),
         },
     )

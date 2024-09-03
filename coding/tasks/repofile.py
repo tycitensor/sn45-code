@@ -9,7 +9,7 @@ class RepoFileTask(Task):
     goal: str = "write the python module that completes the code"
     reward_definition: List[dict] = [
         dict(name="codesim", weight=0.8), # TODO compare functions and objects to the closest as they might be out of order
-        dict(name="speed", weight=0.2, ideal_time=1)
+        dict(name="speed", weight=0.2, ideal_time=3)
     ]
     penalty_definition: List = []
     cleaning_pipeline: List = [] # TODO remove markdown wrappings

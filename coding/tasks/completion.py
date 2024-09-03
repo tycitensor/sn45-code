@@ -4,6 +4,7 @@ from typing import Callable, List, Dict
 
 from .task import Task
 from coding.schemas import Context
+from coding.helpers.fim import insert_fim_hole
 
 def extract_random_function(code):
     """
@@ -20,12 +21,12 @@ def extract_random_function(code):
     try:
         tree = ast.parse(code)
     except SyntaxError as e:
-        raise ValueError("Invalid Python code provided.") from e
+        return None, None
 
     functions = [node for node in tree.body if isinstance(node, ast.FunctionDef)]
 
     if not functions:
-        raise ValueError("No functions found in the provided code.")
+        return None, None
 
     selected_function = random.choice(functions)
 
@@ -47,7 +48,7 @@ class CompletionTask(Task):
     goal: str = "complete the code "
     reward_definition: List[dict] = [
         dict(name="codesim", weight=0.8),
-        dict(name="speed", weight=0.2, ideal_time=0.5)
+        dict(name="speed", weight=0.2, ideal_time=1.5)
     ]
     penalty_definition: List = []
     cleaning_pipeline: List = [
@@ -61,11 +62,14 @@ class CompletionTask(Task):
         self.context = context
 
         func_signature, func_body = extract_random_function(context.content) # TODO handle comments
-        self.query = (
-            func_signature + "<|fim_hole|>" # we want them to complete that area, pretending its a hole
-        )
-        self.reference = func_body
-
+        if func_signature is None or func_body is None:
+            self.query, self.reference = insert_fim_hole(context.content)
+        else:
+            self.query = (
+                func_signature + "<|fim_hole|>" # we want them to complete that area, pretending its a hole
+            )
+            self.reference = func_body
+        
         self.topic = context.title
         self.subtopic = context.topic
         self.tags = context.tags
