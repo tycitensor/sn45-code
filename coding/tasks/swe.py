@@ -184,7 +184,7 @@ The following issue is:\n\n
 
             miner_diffs = parse_diff(completion[diff.file], no_title=True)
             if not miner_diffs:
-                return
+                return 0
             else:
                 miner_diff = miner_diffs[0]
             total_line_points = len(diff.edited_lines)
