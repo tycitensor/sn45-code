@@ -21,13 +21,32 @@ Ensure that you have Docker with GPU support, you can choose to follow either of
 
 
 
-This repository requires python3.9 or higher. To install it, simply clone this repository and run the [install.sh](./install.sh) script.
+This repository requires python3.11, follow the commands below to install it if you do not already have it.
+
+ONLY RUN THE FOLLOWING COMMANDS IF YOU DO NOT HAVE PYTHON INSTALLED
+```bash
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt update
+sudo apt install python3.11 python3.11-venv
+```
+
+Ensure that your python version is 3.11 before continuing:
+```bash
+python3 --version
+```
+
+If the above doesnt return `python3.11` try using the command `python3.11` instead. If the cmd `python3.11` works, use that in place of every python command below. 
+
+
+After ensuring you have python run the following commands:
 ```bash
 git clone https://github.com/brokespace/code
 cd code
-python -m pip install -r requirements.txt
-python -m pip install -e .
-python -m pip uninstall uvloop # b/c it causes issues with threading/loops
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -r requirements.txt
+python3 -m pip install -e .
+python3 -m pip uninstall uvloop # b/c it causes issues with threading/loops
 ```
 
 
@@ -65,8 +84,11 @@ We require github tokens, to get one follow the instructions [here](https://docs
 
 #### Start the validator
 
+
+
 ```bash
-python neurons/validator.py
+source .venv/bin/activate
+python3 neurons/validator.py
     --netuid 45
     --subtensor.network <finney/local/test>
     --neuron.device cuda
