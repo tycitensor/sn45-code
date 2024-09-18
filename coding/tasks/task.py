@@ -38,6 +38,7 @@ class Task(ABC):
     tags: List[str]
     context: Context
     reward_definition: List[dict]
+    timeout: int = 12
     attachments: List[Any] = field(default_factory=[])
     files: List[File] = field(default_factory=[])
     penalty_definition: List[dict] = None
