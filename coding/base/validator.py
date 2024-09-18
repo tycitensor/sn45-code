@@ -155,9 +155,9 @@ class BaseValidatorNeuron(BaseNeuron):
 
                 forward_timeout = self.config.neuron.forward_max_time 
                 try:
-                    task = self.loop.create_task(asyncio.run(self.forward(synapse=None)))
+                    tasks = [self.loop.create_task(asyncio.run(self.forward(synapse=None))) for _ in range(self.config.neuron.num_concurrent_forwards)]
                     self.loop.run_until_complete(
-                        asyncio.wait_for(task, timeout=forward_timeout)
+                        asyncio.wait_for(asyncio.gather(*tasks), timeout=forward_timeout)
                     )
                 except MaxRetryError as e:
                     bt.logging.error(f"MaxRetryError: {e}")
