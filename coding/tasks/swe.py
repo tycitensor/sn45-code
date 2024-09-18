@@ -20,84 +20,83 @@ class Diff:
     )  # +/- , line number , line content
 
 
-def parse_diff(diff_text: str, no_title=False):
+def parse_diff(diff_text: str, no_title=False) -> List[Diff]:
     diff_pattern = r"^diff --git a\/(.+?) b\/(.+?)$"
-    line_change_pattern = r"^@@ -\d+,\d+ \+(\d+),(\d+) @@"
+    line_change_pattern = r"^@@ -(\d+),\d+ \+(\d+),\d+ @@"
     diff_objects = []
 
     current_diff = None
-    current_line_num = 0
-
+    old_file_line_num = 0
+    new_file_line_num = 0
+    
     for line in diff_text.splitlines():
-        # Handle the case where no_title is True and there is no diff header
-        if no_title and current_diff is None:
-            current_diff = Diff(file="")
-        
         diff_match = re.match(diff_pattern, line)
-        if diff_match and not no_title:
+        if diff_match:
+            # When we encounter a new file diff, add the previous diff object
             if current_diff:
                 diff_objects.append(current_diff)
             current_diff = Diff(file=diff_match.group(2))
-            current_line_num = 0
+            old_file_line_num = 0
+            new_file_line_num = 0
+            continue
+        elif no_title and not current_diff:
+            # Handle case where title (file name) is not provided
+            current_diff = Diff(file="")
+            old_file_line_num = 0
+            new_file_line_num = 0
             continue
 
         line_change_match = re.match(line_change_pattern, line)
+        
         if line_change_match:
-            current_line_num = int(line_change_match.group(1))
+            # Capture the starting line numbers for old and new files
+            old_file_line_num = int(line_change_match.group(1))
+            new_file_line_num = int(line_change_match.group(2))
             continue
 
         if line.startswith("+") and not line.startswith("+++"):
-            current_diff.edited_lines.append(("+", current_line_num, line[1:]))
-            current_line_num += 1
+            # Line added in new file
+            current_diff.edited_lines.append(("+", new_file_line_num, line[1:].strip()))
+            new_file_line_num += 1  # Increment only the new file line number
         elif line.startswith("-") and not line.startswith("---"):
-            current_diff.edited_lines.append(("-", current_line_num, line[1:]))
-            # The line number does not increase for deleted lines
-        elif not line.startswith((" ", "-", "+", "@@", "diff")):
-            current_line_num += 1
+            # Line removed from old file
+            current_diff.edited_lines.append(("-", old_file_line_num, line[1:].strip()))
+            old_file_line_num += 1  # Increment only the old file line number
+        elif line.startswith(" "):
+            # Context lines (lines present in both old and new files)
+            old_file_line_num += 1
+            new_file_line_num += 1
 
+    # Append the last diff object if exists
     if current_diff:
         diff_objects.append(current_diff)
 
     return diff_objects
 
 
-def download_git_file(repo_name, pull_number, file_path):
-    # Construct the base URL for the GitHub repository's pulls
-    pulls_url = f"https://api.github.com/repos/{repo_name}/pulls/{pull_number}"
+def download_git_file(repo_name, commit_sha, file_path):
+    # Construct the URL for the file in the specific commit
+    file_url = f"https://api.github.com/repos/{repo_name}/contents/{file_path}?ref={commit_sha}"
+    file_response = requests.get(file_url)
 
-    # Get the pull request info to extract the commit SHA
-    pull_response = requests.get(pulls_url)
+    if file_response.status_code == 200:
+        # The response is JSON containing file info, including the download URL
+        file_info = file_response.json()
+        download_url = file_info["download_url"]
 
-    if pull_response.status_code == 200:
-        pull_info = pull_response.json()
-        commit_sha = pull_info["head"]["sha"]
+        # Fetch the file content
+        content_response = requests.get(download_url)
 
-        # Construct the URL for the file in the specific commit
-        file_url = f"https://api.github.com/repos/{repo_name}/contents/{file_path}?ref={commit_sha}"
-        file_response = requests.get(file_url)
-
-        if file_response.status_code == 200:
-            # The response is JSON containing file info, including the download URL
-            file_info = file_response.json()
-            download_url = file_info["download_url"]
-
-            # Fetch the file content
-            content_response = requests.get(download_url)
-
-            if content_response.status_code == 200:
-                # Return the file content
-                return content_response.content
-            else:
-                raise Exception(
-                    f"Failed to download {file_path} from commit {commit_sha}. HTTP Status Code: {content_response.status_code}"
-                )
+        if content_response.status_code == 200:
+            # Return the file content
+            return content_response.content
         else:
             raise Exception(
-                f"Failed to get file info for {file_path} from commit {commit_sha}. HTTP Status Code: {file_response.status_code}"
+                f"Failed to download {file_path} from commit {commit_sha}. HTTP Status Code: {content_response.status_code}"
             )
     else:
         raise Exception(
-            f"Failed to get pull request info for #{pull_number} from {repo_name}. HTTP Status Code: {pull_response.status_code}"
+            f"Failed to get file info for {file_path} from commit {commit_sha}. HTTP Status Code: {file_response.status_code}"
         )
 
 
@@ -106,9 +105,10 @@ class SWETask(Task):
     desc: str = "given a github issue corrrectly solve it"
     goal: str = "return the valid patch"
     reward_definition: str = [
-        dict(name="speed", weight=0.1, ideal_time=10),
+        dict(name="speed", weight=0.1, ideal_time=25),
         dict(name="self", weight=0.9),
     ]
+    timeout: int = 35
     penalty_definition: List = []
     cleaning_pipeline: List = []  # TODO remove markdown wrappings
     dataset_options: Dict = {}
@@ -127,7 +127,7 @@ class SWETask(Task):
             File(
                 path=diff.file,
                 content=download_git_file(
-                    context.title, context.extras["pull_number"], diff.file
+                    context.title, context.extras["base_commit"], diff.file
                 ),
             )
             for diff in self.diffs
@@ -193,19 +193,17 @@ The following issue is:\n\n
                 if line_num not in [line[1] for line in miner_diff.edited_lines]:
                     continue
                 # find the miners edited line that has the same line number
-                miner_edit, mine_line_num, miner_content = [
-                    miner_line
-                    for miner_line in miner_diff.edited_lines
-                    if miner_line[1] == line_num
-                ][0]
-                if (
-                    miner_edit == "-"
-                    and miner_content == content
-                    and miner_edit == edit
-                ):
-                    line_points += 1
-                if miner_edit == "+" and miner_edit == edit:
-                    line_points += 1 * self.codesim.similarity(content, miner_content)
+                for miner_line in miner_diff.edited_lines:
+                    miner_edit, miner_line_num, miner_content = miner_line
+                    if miner_line_num == line_num:
+                        if (
+                            miner_edit == "-"
+                            and miner_content == content
+                            and miner_edit == edit
+                        ):
+                            line_points += 1
+                        if miner_edit == "+" and miner_edit == edit:
+                            line_points += 1 * self.codesim.similarity(content, miner_content)
             if line_points != 0:
                 points += 1 * (line_points / total_line_points)
         if points == 0:

@@ -71,6 +71,11 @@ class Repo:
             "resolve",
             "resolves",
             "resolved",
+            "complete",
+            "completed",
+            "finish",
+            "finishes",
+            "finished",
         }
 
         # Construct text to search over for issue numbers from PR body and commit messages

@@ -104,14 +104,14 @@ class SWEDataset(Dataset):
                 err_count += 1
 
         if not valid_pull:
-            raise Exception("Could not get a valid SWE pull")
+            raise Exception(f"Could not get a valid SWE pull for {package_info['github']}")
         pull_data = create_instance(repo, valid_pull)
         diff_text = pull_data["patch"]
         return {
             "topic": pull_data["problem_statement"],
             "title": f'{package_info["github"].split("/")[-2]}/{package_info["github"].split("/")[-1]}',
             "content": diff_text,
-            "extras": dict(pull_number=pull_data["pull_number"]),
+            "extras": dict(pull_number=pull_data["pull_number"], base_commit=pull_data["base_commit"]),
         }
 
     def search(self, query, selector: Selector = None, **kwargs):
