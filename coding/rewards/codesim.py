@@ -27,17 +27,41 @@ class CodeSimModel(BaseRewardModel):
         score = F1.tolist()[0]
         return normalize_cosim(score)
     
+    def similarity_batch(self, reference: str, completions: List[str]) -> List[float]:
+        if not reference or not completions:
+            return [0] * len(completions)
+
+        # Filter out None or empty strings and keep track of their indices
+        valid_completions = [(idx, comp) for idx, comp in enumerate(completions) if comp]
+        if not valid_completions:
+            return [0] * len(completions)
+
+        # Unzip the indices and valid completions
+        indices, filtered_completions = zip(*valid_completions)
+
+        # Score only the valid completions
+        P, R, F1 = self.code_scorer.score(filtered_completions, [reference] * len(filtered_completions))
+        scores = F1.tolist()
+
+        # Initialize a result list with zeros for all completions
+        result_scores = [0] * len(completions)
+
+        # Place the normalized scores back in their original positions
+        for idx, score in zip(indices, scores):
+            result_scores[idx] = normalize_cosim(score)
+
+        return result_scores
+
     def reward(self, reference: str, completions: List[str]) -> BatchRewardOutput:
         """
-        Get the score between two strings.
+        Get the score between a reference string and a list of completion strings.
         """
 
-        rewards = []
-        timings = []
-        for completion in completions:
-            t0 = time.time()
-            rewards.append(self.similarity(reference, completion))
-            timings.append(time.time() - t0)
+        t0 = time.time()
+        rewards = self.similarity_batch(reference, completions)
+        total_time = time.time() - t0
+        timings = [total_time] * len(completions)  # Assuming equal distribution of time for each completion
+
         output = BatchRewardOutput(
             rewards=rewards,
             timings=timings,
