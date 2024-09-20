@@ -20,12 +20,12 @@
 # DEALINGS IN THE SOFTWARE.
 
 import bittensor as bt
-from typing import List
+from typing import List, Any
 
 
 class DendriteResponseEvent:
     def __init__(
-        self, responses: List[bt.Synapse], uids, timeout: float
+        self, responses: List[bt.Synapse], uids, timeout: float, axons: List[Any]
     ):
         self.uids = uids
         self.completions = []
@@ -33,7 +33,7 @@ class DendriteResponseEvent:
         self.status_codes = []
         self.timings = []
         self.hotkeys = []
-
+        self.axons = axons
         for synapse in responses:
             self.completions.append(synapse.completion)
             self.status_messages.append(synapse.dendrite.status_message)
@@ -62,7 +62,7 @@ class DendriteResponseEvent:
         ]
         self.status_codes = [synapse.dendrite.status_code for synapse in responses]
 
-        self.miner_hotkeys = [synapse.axon.hotkey for synapse in responses]
+        self.miner_hotkeys = [axon.hotkey for axon in axons]
         
     def __state_dict__(self):
         return {

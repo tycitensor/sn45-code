@@ -228,7 +228,7 @@ async def forward(self, synapse: StreamCodeSynapse):
         return
 
     response_event = DendriteResponseEvent(
-        responses=all_synapses_results, uids=uids, timeout=task.timeout
+        responses=all_synapses_results, uids=uids, timeout=task.timeout, axons=axons
     )
     reward_result = RewardResult(
         self.reward_pipeline,
