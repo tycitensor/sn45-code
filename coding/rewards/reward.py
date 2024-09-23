@@ -74,11 +74,13 @@ class RewardResult:
             reference=task.reference,
             models=self.task_rewards,
             reward_type=RewardModelTypeEnum.WEIGHTED_REWARD,
+            task=task,
         )
         self.penalty_events = self.reward_responses(
             reference=task.reference,
             models=self.task_penalties,
             reward_type=RewardModelTypeEnum.PENALTY,
+            task=task,
         )
         self.rewards = self.total_reward()
             
@@ -89,7 +91,7 @@ class RewardResult:
         return state
 
     def reward_responses(
-        self, reference: Union[str, List[str], Dict], models: List[dict], reward_type: RewardModelTypeEnum
+        self, reference: Union[str, List[str], Dict], models: List[dict], reward_type: RewardModelTypeEnum, task
     ) -> List[RewardEvent]:
         """Calculates the rewards for the responses given the task and returns a RewardEvent for each reward model
         reward_events: List[RewardEvent] = [
@@ -114,7 +116,7 @@ class RewardResult:
             else:
                 # Compute the rewards for the responses given the prompt
                 reward_event = reward_model.apply(
-                    ref, self.response_event, reward_type=reward_type
+                    ref, self.response_event, reward_type=reward_type, task=task
                 )
             reward_events.append(reward_event)
 
@@ -171,10 +173,15 @@ class BaseRewardModel(ABC):
     def reward(self, reference: str, completions: List[str]) -> BatchRewardOutput:
         pass
     
-    def apply(self, reference: str, response_event, reward_type) -> RewardEvent:
+    def apply(self, reference: str, response_event, reward_type, task) -> RewardEvent:
         t0 = time.time()
         if self.name == "speed":
             batch_rewards_output = self.reward(response_event.timings)
+        elif self.name == "validcode":
+            if "<|fim_hole|>" in task.query:
+                batch_rewards_output = self.reward(task.context.content, [task.query.replace("<|fim_hole|>", completion) for completion in response_event.completions])
+            else:
+                batch_rewards_output = self.reward(task.context.content, response_event.completions)
         # elif self.name == "debugrun": #TODO remove 
             # batch_rewards_output = self.reward(task, response_event)
         else:

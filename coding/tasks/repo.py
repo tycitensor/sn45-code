@@ -74,7 +74,9 @@ class RepoCompletionTask(Task):
         dict(name="codesim", weight=0.8),
         dict(name="speed", weight=0.2, ideal_time=2.5)
     ]
-    penalty_definition: List = []
+    penalty_definition: List = [
+        dict(name="validcode", weight=1) 
+    ]
     cleaning_pipeline: List = [
     ] # TODO remove markdown wrappings
     dataset_options: Dict = dict(include_sibling_docs=True)

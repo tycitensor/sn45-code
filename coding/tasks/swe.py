@@ -108,7 +108,6 @@ class SWETask(Task):
         dict(name="speed", weight=0.1, ideal_time=25),
         dict(name="self", weight=0.9),
     ]
-    timeout: int = 35
     penalty_definition: List = []
     cleaning_pipeline: List = []  # TODO remove markdown wrappings
     dataset_options: Dict = {}
@@ -132,6 +131,7 @@ class SWETask(Task):
             )
             for diff in self.diffs
         ]
+        self.timeout = 20 + 20*len(self.context.files)
 
         # TODO uncomment if want to rename
         # renaming the files

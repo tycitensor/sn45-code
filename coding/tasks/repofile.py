@@ -11,7 +11,9 @@ class RepoFileTask(Task):
         dict(name="codesim", weight=0.8), # TODO compare functions and objects to the closest as they might be out of order
         dict(name="speed", weight=0.2, ideal_time=3)
     ]
-    penalty_definition: List = []
+    penalty_definition: List = [
+        dict(name="validcode", weight=1) 
+    ]
     cleaning_pipeline: List = [] # TODO remove markdown wrappings
     dataset_options: Dict = dict(include_sibling_docs=True)
     attachments = []

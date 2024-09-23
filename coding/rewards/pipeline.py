@@ -26,11 +26,13 @@ from .reward import BaseRewardModel
 from .codesim import CodeSimModel
 from .speed import SpeedModel
 from .diffsim import DiffSimModel
+from .validcode import ValidCodeModel
 
 REWARD_MODELS = {
     CodeSimModel().name: CodeSimModel,
     DiffSimModel().name: DiffSimModel,
     SpeedModel().name: SpeedModel, 
+    ValidCodeModel().name: ValidCodeModel,
     "self": None
 }
 

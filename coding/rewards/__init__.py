@@ -9,3 +9,4 @@ from .reward import (
 from .diffsim import DiffSimModel
 from .codesim import CodeSimModel
 from .speed import SpeedModel
+from .validcode import ValidCodeModel

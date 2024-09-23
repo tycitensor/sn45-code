@@ -11,3 +11,4 @@ strenum
 detect-secrets
 wandb
 swebench
+autopep8
