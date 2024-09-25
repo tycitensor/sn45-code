@@ -9,7 +9,10 @@ from .reward import (
 )
 
 def fix_python_spacing(code_str):
-    fixed_code = autopep8.fix_code(code_str)
+    try:
+        fixed_code = autopep8.fix_code(code_str)
+    except Exception as e:
+        return code_str
     return fixed_code
 
 
