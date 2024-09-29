@@ -19,6 +19,7 @@ import dotenv
 
 dotenv.load_dotenv()
 
+import sys
 import time
 import random
 import asyncio
@@ -187,5 +188,8 @@ class Validator(BaseValidatorNeuron):
 if __name__ == "__main__":
     with Validator() as validator:
         while True:
+            if not validator.thread.is_alive():
+                bt.logging.error("Child thread has exited, terminating parent thread.")
+                sys.exit(1)  # Exit the parent thread if the child thread dies
             bt.logging.info(f"Validator running... {time.time()}")
             time.sleep(5)
