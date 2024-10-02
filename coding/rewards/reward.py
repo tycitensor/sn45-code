@@ -85,7 +85,7 @@ class RewardResult:
         self.rewards = self.total_reward()
             
     def __state_dict__(self):
-        state = {"rewards": self.rewards, "highest_reward": self.rewards.max(), "average_reward": self.rewards.mean(), "task_name": self.task.name}
+        state = {"rewards": self.rewards.tolist(), "highest_reward": self.rewards.max(), "average_reward": self.rewards.mean(), "task_name": self.task.name}
         for event in self.reward_events + self.penalty_events:
             state.update(event.asdict())
         return state
