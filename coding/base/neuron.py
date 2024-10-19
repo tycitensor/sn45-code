@@ -100,7 +100,9 @@ class BaseNeuron(ABC):
         bt.logging.info(
             f"Running neuron on subnet: {self.config.netuid} with uid {self.uid} using network: {self.subtensor.chain_endpoint}"
         )
+        self.last_block_sync = self.block
         self.step = 0
+        
 
     @abstractmethod
     def forward(self, synapse: bt.Synapse) -> bt.Synapse:
@@ -143,7 +145,7 @@ class BaseNeuron(ABC):
         Check if enough epoch blocks have elapsed since the last checkpoint to sync.
         """
         return (
-            self.block - self.metagraph.last_update[self.uid]
+            self.block - self.last_block_sync
         ) > self.config.neuron.epoch_length
 
     def should_set_weights(self) -> bool:
