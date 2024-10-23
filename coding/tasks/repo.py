@@ -29,8 +29,11 @@ def delete_function_body_and_following(code: str) -> (str, str):
                 self.stop_processing = True  # Stop after we modify the targeted function
             return node
 
-    # Parse the code into an AST
-    tree = ast.parse(code)
+    # Parse the code into an ASTt
+    try:
+        tree = ast.parse(code)
+    except Exception as e:
+        return None, None
 
     # Randomly select a function to delete the body from
     functions = [node for node in tree.body if isinstance(node, ast.FunctionDef)]
