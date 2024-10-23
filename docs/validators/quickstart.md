@@ -116,7 +116,7 @@ Once you have access, get your huggingface token:
 The huggingface token should look like this within your `.env` file:
 
 ```
-HUGGINGFACE_TOKEN=<your huggingface token>
+HF_TOKEN=<your huggingface token>
 ```
 
 
