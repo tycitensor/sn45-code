@@ -1,6 +1,6 @@
 from .base import Dataset
 
-from .github import GithubDataset
+from .thestack import TheStackDataset
 from .pip import PipDataset
 from .swe import SWEDataset
 
@@ -12,7 +12,7 @@ class DatasetManager:
     def datasets(self):
         if self._datasets is None:
             self._datasets = {
-                GithubDataset.name: GithubDataset(),
+                TheStackDataset.name: TheStackDataset(),
                 PipDataset.name: PipDataset(),
                 SWEDataset.name: SWEDataset()
             }

@@ -90,14 +90,15 @@ class RepoCompletionTask(Task):
     def __init__(self, llm: Callable, context: Context, **kwargs):
         self.context = context
 
-        mod_code, correct_body = delete_function_body_and_following(context.content)
-        if mod_code is None or correct_body is None:
-            self.query, self.reference = insert_fim_hole(context.content)
+        if context.topic == "Python":
+            mod_code, correct_body = delete_function_body_and_following(context.content)
+            if mod_code is not None and correct_body is not None:
+                self.query = mod_code + "<|fim_hole|>"
+                self.reference = correct_body
+            else:
+                self.query, self.reference = insert_fim_hole(context.content)
         else:
-            self.query = (
-                mod_code + "<|fim_hole|>"
-            )
-            self.reference = correct_body
+            self.query, self.reference = insert_fim_hole(context.content)
         self.files = [File(path=cont.title, content=cont.content) for cont in context.extras['sibling_docs']] # Filter the info sent to the miners
 
         self.topic = context.title

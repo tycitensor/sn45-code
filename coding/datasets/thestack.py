@@ -17,16 +17,14 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import re
 import os
+import re
+import boto3
 import random
-import lib2to3
 import itertools
 import numpy as np
-import bittensor as bt
-from io import StringIO
-from datasets import load_dataset, Dataset, load_from_disk
-from lib2to3.refactor import RefactoringTool, get_fixers_from_package
+from smart_open import open
+from datasets import load_dataset, Dataset, interleave_datasets
 
 from .base import Dataset
 from coding.schemas import Context
@@ -131,7 +129,7 @@ LANGUAGES = {
             "vector",
         ],
         "comments": ["//", "/*", "*/"],
-        "multiline_comments": [("/*", "*/")]
+        "multiline_comments": [("/*", "*/")],
     },
     "Dockerfile": {
         "keywords": [
@@ -151,7 +149,7 @@ LANGUAGES = {
         ],
         "libraries": [],
         "comments": ["#"],
-        "multiline_comments": []
+        "multiline_comments": [],
     },
     "HTML": {
         "keywords": [
@@ -175,7 +173,7 @@ LANGUAGES = {
         ],
         "libraries": [],
         "comments": ["<!--", "-->"],
-        "multiline_comments": [("<!--", "-->")]
+        "multiline_comments": [("<!--", "-->")],
     },
     "Java": {
         "keywords": [
@@ -240,7 +238,7 @@ LANGUAGES = {
             "javax.swing",
         ],
         "comments": ["//", "/*", "*/", "*"],
-         "multiline_comments": [("/*", "*/")]
+        "multiline_comments": [("/*", "*/")],
     },
     "JavaScript": {
         "keywords": [
@@ -321,7 +319,7 @@ LANGUAGES = {
             "material-ui",
         ],
         "comments": ["//", "/*", "*/"],
-        "multiline_comments": [("/*", "*/")]
+        "multiline_comments": [("/*", "*/")],
     },
     "Python": {
         "keywords": [
@@ -380,7 +378,7 @@ LANGUAGES = {
             "pillow",
         ],
         "comments": ["#"],
-        "multiline_comments": [('"""', '"""'), ("'''", "'''")]
+        "multiline_comments": [('"""', '"""'), ("'''", "'''")],
     },
     "SQL": {
         "keywords": [
@@ -505,9 +503,10 @@ LANGUAGES = {
             "wait",
         ],
         "comments": ["#"],
-        "multiline_comments": [(':\'', '\'')]
+        "multiline_comments": [(":'", "'")],
     },
 }
+
 
 def convert_to_python3(code: str) -> str:
     """
@@ -519,56 +518,66 @@ def convert_to_python3(code: str) -> str:
     Returns:
     - str: A string containing Python 3 code.
     """
+
     def replace_print_statement(match):
-        return f'print({match.group(1)})'
-    
-    code = re.sub(r'print (.*)', replace_print_statement, code)
-    
+        return f"print({match.group(1)})"
+
+    code = re.sub(r"print (.*)", replace_print_statement, code)
+
     # Replace xrange with range
-    code = code.replace('xrange', 'range')
-    
+    code = code.replace("xrange", "range")
+
     return code
 
- 
-def cache_dataset(
-    dataset_id: str,
-    seed=None,
-    cache_dir="~/.cache/huggingface/datasets/github",
-    cache_file="github_dataset.arrow"
-):
-    # Expand user path
-    cache_dir = os.path.expanduser(cache_dir)
-    cache_path = os.path.join(cache_dir, cache_file)
-    shard = random.choice([0, 1, 2, 3, 4, 5, 6, 7])
-    # Check if cached dataset exists
-    if os.path.exists(f"{cache_path}.{shard}.{seed}"):
-        # Load cached dataset
-        bt.logging.info(f"Loading cached dataset from {cache_path}")
-        dataset = load_from_disk(f"{cache_path}.{shard}.{seed}")
-    else:
-        # Load, shuffle, and shard the dataset
-        bt.logging.info(f"Downloading and processing dataset {dataset_id}")
-        
-        dataset = load_dataset(
-            dataset_id,
-            split="train",
-            # languages=languages, # TODO: Uncomment if using large git repo
-        ).sort("path").shard(8, shard).shuffle(seed=seed) # buffer_size=buffer_size)
-        
-        # Ensure cache directory exists
-        os.makedirs(cache_dir, exist_ok=True)
-        
-        # Save processed dataset to disk
-        dataset.save_to_disk(f"{cache_path}.{shard}.{seed}")
-        bt.logging.info(f"Dataset cached at {cache_path}")
 
-    return dataset
+def process_repo_row(row):
+    for file in row["files"]:
+        blob_id = file["blob_id"]
+        src_encoding = file["src_encoding"]
+        session = boto3.Session(
+            aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+            aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
+        )
+        s3 = session.client("s3")
+        s3_url = f"s3://softwareheritage/content/{blob_id}"
+
+        with open(
+            s3_url, "rb", compression=".gz", transport_params={"client": s3}
+        ) as fin:
+            file["content"] = fin.read().decode(src_encoding)
+
+    return row
+
+
+def process_row(row):
+    blob_id = row["blob_id"]
+    src_encoding = row["src_encoding"]
+    session = boto3.Session(
+        aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+        aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
+    )
+    s3 = session.client("s3")
+    s3_url = f"s3://softwareheritage/content/{blob_id}"
+
+    with open(s3_url, "rb", compression=".gz", transport_params={"client": s3}) as fin:
+        content = fin.read().decode(src_encoding)
+
+    row["code"] = content
+    return row
+
 
 def filter_comments(code, language):
+    if language not in LANGUAGES:
+        return code
     # Filter out multiline comments
     if "multiline_comments" in LANGUAGES[language]:
-        for start_tag, end_tag in LANGUAGES[language]['multiline_comments']:
-            code = re.sub(rf'{re.escape(start_tag)}.*?{re.escape(end_tag)}', '', code, flags=re.DOTALL)
+        for start_tag, end_tag in LANGUAGES[language]["multiline_comments"]:
+            code = re.sub(
+                rf"{re.escape(start_tag)}.*?{re.escape(end_tag)}",
+                "",
+                code,
+                flags=re.DOTALL,
+            )
 
     # Filter out single-line comments
     lines = []
@@ -582,18 +591,16 @@ def filter_comments(code, language):
 
     return "\n".join(lines)
 
-# TODO python_to_python3 function should only be called when python code is used
-class GithubDataset(Dataset):
-    name = "github"
+
+class TheStackDataset(Dataset):
+    name = "thestack"
 
     def __init__(
         self,
-        # dataset_id="codeparrot/github-code",
-        dataset_id="angie-chen55/python-github-code",
         seed=None,
         languages=None,
     ):
-        
+
         if seed is None:
             seed = random.randint(0, 1000)
         self.seed = seed
@@ -602,59 +609,117 @@ class GithubDataset(Dataset):
             languages = list(LANGUAGES.keys())
         self.languages = languages
 
-        self.dataset_id = dataset_id
-
         # self.dataset = cache_dataset(dataset_id=dataset_id, seed=seed)
-        self.dataset = load_dataset(
-                dataset_id,
-                split="train",
-                # languages=languages, # TODO: Uncomment if using large git repo
-            ).sort("path").shard(8, random.choice([0, 1, 2, 3, 4, 5, 6, 7])).shuffle(seed=seed)
-        self.iterset = iter(self.dataset)
-    
-    def random(self, min_lines=10, max_lines=3000, selector: Selector = None, include_sibling_docs=False, min_sibling_docs=1, **kwargs):
-        return self.get(min_lines, max_lines, selector, include_sibling_docs, min_sibling_docs, **kwargs)
-    
-    def get(self, min_lines=10, max_lines=3000, selector: Selector = None, include_sibling_docs=False, min_sibling_docs=1, **kwargs):
-        row = next(self.iterset)
-        if not (min_lines <= len(row["code"].splitlines()) <= max_lines):
-            return None
+        datasets = []
+        for language in [
+            "Python",
+            "JavaScript",
+            "TypeScript",
+            "Go",
+            "Java",
+            "C++",
+            "C",
+            "SQL",
+            "Shell",
+        ]:
+            datasets.append(
+                load_dataset(
+                    "bigcode/the-stack-v2",
+                    language,
+                    split="train",
+                    streaming=True,
+                )
+            )
+        self.stack_dataset = interleave_datasets(datasets)
+        self.stack_dataset = self.stack_dataset.map(lambda row: process_row(row))
+        self.stack_iterset = iter(self.stack_dataset)
 
-        present_keywords, present_libraries = self.get_special_contents(
-            row["code"], row["language"]
+        self.stack_repo_dataset = load_dataset(
+            "bigcode/the-stack-v2-train-full-ids", split="train", streaming=True
         )
-        keywords = list(present_keywords) + list(present_libraries)
-        code_words = [
-            "code",
-            "programming",
-            "coding",
-            "code reference",
-            "programming technique",
-        ]
-        external_links = []
-        for bigram in itertools.combinations(keywords, 2):
-            words = list(bigram) + [selector(code_words) + row["language"]]
-            # shuffle the words e.g. ['react', 'promise', 'code reference'] -> 'code reference promise react'
-            external_links.append(" ".join(random.sample(words, len(words))))
+        self.stack_repo_iterset = iter(self.stack_repo_dataset)
+
+    def random(
+        self,
+        min_lines=10,
+        max_lines=3000,
+        selector: Selector = None,
+        include_sibling_docs=False,
+        min_sibling_docs=1,
+        **kwargs,
+    ):
+        return self.get(
+            min_lines,
+            max_lines,
+            selector,
+            include_sibling_docs,
+            min_sibling_docs,
+            **kwargs,
+        )
+
+    def get(
+        self,
+        min_lines=10,
+        max_lines=3000,
+        selector: Selector = None,
+        include_sibling_docs=False,
+        min_sibling_docs=1,
+        **kwargs,
+    ):
+        content = None
+        if include_sibling_docs:
+            row = next(self.stack_repo_iterset)
+            if not row["gha_language"]:
+                row["gha_language"] = ""
+        else:
+            row = next(self.stack_iterset)
+            if not (min_lines <= len(row["code"].splitlines()) <= max_lines):
+                return None
+            content = row["code"]
+
         sibling_docs = []
         if include_sibling_docs:
-            sibling_docs = [Context(**row) for row in self.search(row["path"])]
-            if len(sibling_docs) < min_sibling_docs:
-                raise Exception(
-                    f"Could not find some code with atleast {min_sibling_docs} sibling documents"
+            if (
+                row["num_files"] < min_sibling_docs
+                or row["num_files"] > 15  # TODO modify this eventually to be different
+                or len(row["files"]) < 2
+            ):
+                return None
+            row = process_repo_row(row)
+            randindex = random.randint(1, len(row["files"]) - 1)
+            # choose all but the random index
+            for file in row["files"][:randindex] + row["files"][randindex + 1 :]:
+                sibling_docs.append(
+                    Context(
+                        title=file["path"],
+                        content=file["content"],
+                        topic=row["gha_language"],
+                    )
                 )
+            content = row["files"][randindex]["content"]
+
+        if ("language" in row and row["language"] == "Python") or (
+            "gha_language" in row and row["gha_language"] == "Python"
+        ):
+            content = convert_to_python3(content)
         return {
             "title": row["repo_name"],  # name of the repo
-            "topic": row["language"],  # language of the code
-            "subtopic": row["path"],
-            "content": convert_to_python3(filter_comments(row["code"], row["language"])),
-            "internal_links": [row["repo_name"], row["path"], row["language"]],
-            "external_links": external_links,
+            "topic": (
+                row["language"] if "language" in row else row["gha_language"]
+            ),  # language of the code
+            "subtopic": "",
+            "content": filter_comments(
+                content, row["language"] if "language" in row else row["gha_language"]
+            ),
+            "internal_links": [row["repo_name"]],
+            "external_links": [],
             "source": "GitHub",
-            "tags": [row["language"], row["repo_name"], row["path"]],
+            "tags": [
+                row["language"] if "language" in row else row["gha_language"],
+                row["repo_name"],
+                "",
+            ],
             "extras": {
-                "size": row["size"],
-                "license": row["license"],
                 "sibling_docs": sibling_docs,
             },
         }
@@ -670,12 +735,17 @@ class GithubDataset(Dataset):
     ):
         mask = np.array(self.dataset[column]) == query
         filtered_dataset = iter(self.dataset.select(np.where(mask)[0]))
+
         return [
             {
                 "title": row["repo_name"],  # name of the repo
                 "topic": row["language"],  # language of the code
                 "subtopic": row["path"],
-                "content": convert_to_python3(filter_comments(row["code"], row["language"])),
+                "content": (
+                    convert_to_python3(filter_comments(row["code"], row["language"]))
+                    if row["language"] == "Python"
+                    else filter_comments(row["code"], row["language"])
+                ),
                 "internal_links": [row["repo_name"], row["path"], row["language"]],
                 "external_links": [],  # TODO complete
                 "source": "GitHub",

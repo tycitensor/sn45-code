@@ -179,9 +179,9 @@ class BaseRewardModel(ABC):
             batch_rewards_output = self.reward(response_event.timings)
         elif self.name == "validcode":
             if "<|fim_hole|>" in task.query:
-                batch_rewards_output = self.reward(task.context.content, [task.query.replace("<|fim_hole|>", completion) for completion in response_event.completions])
+                batch_rewards_output = self.reward(task.context.content, [task.query.replace("<|fim_hole|>", completion) for completion in response_event.completions], task.context.topic)
             else:
-                batch_rewards_output = self.reward(task.context.content, response_event.completions)
+                batch_rewards_output = self.reward(task.context.content, response_event.completions, task.context.topic)
         # elif self.name == "debugrun": #TODO remove 
             # batch_rewards_output = self.reward(task, response_event)
         else:

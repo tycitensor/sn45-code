@@ -45,13 +45,13 @@ from coding.schemas import Context
 from coding.helpers import Selector
 from coding.datasets import DATASET_MANAGER
 from coding.protocol import StreamCodeSynapse
-from coding.datasets import GithubDataset, PipDataset, SWEDataset
+from coding.datasets import TheStackDataset, PipDataset, SWEDataset
 
 TASK_REGISTRY = {
-    RepoCompletionTask.name: [GithubDataset.name],
-    FillInMiddleTask.name: [GithubDataset.name],
-    CompletionTask.name: [GithubDataset.name],
-    RepoFileTask.name: [GithubDataset.name],
+    RepoCompletionTask.name: [TheStackDataset.name],
+    FillInMiddleTask.name: [TheStackDataset.name],
+    CompletionTask.name: [TheStackDataset.name],
+    RepoFileTask.name: [TheStackDataset.name],
     # DebugTask.name: [PipDataset.name],
     SWETask.name: [SWEDataset.name],
 }

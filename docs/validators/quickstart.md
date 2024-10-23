@@ -82,6 +82,43 @@ We require github tokens, to get one follow the instructions [here](https://docs
 4. Go to either `Tokens (classic)` or `Fine-grained tokens`
 5. Generate a new token and place it in the .env
 
+#### Setup AWS
+
+We use AWS to download the github dataset. Follow the steps below to setup your AWS credentials.
+
+Ensure that your account is setup correctly, you need to have a billing method on file.
+
+1. Go to the [AWS Console](https://aws.amazon.com/console/)
+2. Click on your username or avatar in the top right corner and select `Security Credentials`
+3. Click on `Create access key`
+4. Click on `Access key ID` and `Secret access key` and place them in the `.env` file
+
+The access key id and secret access key should look like this within your `.env` file:
+
+```
+AWS_ACCESS_KEY_ID=<your access key id>
+AWS_SECRET_ACCESS_KEY=<your secret access key>
+```
+
+#### Setup huggingface 
+
+You must get access to the stack v2 datasets, to do so go [here](https://huggingface.co/bigcode/the-stack-v2), and [here](https://huggingface.co/datasets/bigcode/the-stack-v2-train-full-ids).
+
+Once you have access, get your huggingface token:
+
+1. Go to [huggingface](https://huggingface.co/)
+2. Click on your avatar in the top right corner and select `Settings`
+3. Go to the bottom left and select `Access Tokens`
+4. Click on `New token`
+5. Copy the token and place it in the `.env` file
+
+The huggingface token should look like this within your `.env` file:
+
+```
+HUGGINGFACE_TOKEN=<your huggingface token>
+```
+
+
 #### Start the validator
 
 
