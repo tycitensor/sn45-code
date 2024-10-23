@@ -9,10 +9,7 @@ from .reward import (
 )
 
 def fix_python_spacing(code_str):
-    try:
-        fixed_code = autopep8.fix_code(code_str)
-    except Exception as e:
-        return code_str
+    fixed_code = autopep8.fix_code(code_str)
     return fixed_code
 
 
@@ -24,11 +21,13 @@ class ValidCodeModel(BaseRewardModel):
     def __init__(self, **kwargs):
         super().__init__()
 
-    def score(self, reference: str, completions: List[str]) -> List[float]:
+    def score(self, reference: str, completions: List[str], language: str) -> List[float]:
         """
         Get the score between a reference string and a list of completion strings.
         """
         scores = []
+        if language != "Python":
+            return [0] * len(completions)
         for completion in completions:
             # Check if reference is valid python code
             try: 
@@ -43,13 +42,13 @@ class ValidCodeModel(BaseRewardModel):
                 scores.append(0.6)  # Invalid Python code
         return scores
 
-    def reward(self, reference: str, completions: List[str]) -> BatchRewardOutput:
+    def reward(self, reference: str, completions: List[str], language: str) -> BatchRewardOutput:
         """
         Get the score between a reference string and a list of completion strings.
         """
 
         t0 = time.time()
-        rewards = self.score(reference, completions)
+        rewards = self.score(reference, completions, language)
         total_time = time.time() - t0
         timings = [total_time] * len(
             completions
