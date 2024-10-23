@@ -84,15 +84,32 @@ We require github tokens, to get one follow the instructions [here](https://docs
 
 #### Setup AWS
 
+
+
 We use AWS to download the github dataset. Follow the steps below to setup your AWS credentials.
 
-Ensure that your account is setup correctly, you need to have a billing method on file.
+##### 1. Sign In to AWS Management Console
+Go to the [AWS Management Console](https://aws.amazon.com/console/) and sign in with your AWS credentials.
 
-1. Go to the [AWS Console](https://aws.amazon.com/console/)
-2. Click on your username or avatar in the top right corner and select `Security Credentials`
-3. Click on `Create access key`
-4. Click on `Access key ID` and `Secret access key` and place them in the `.env` file
+##### 2. Navigate to My Security Credentials
+- Click on your account name at the top right corner of the AWS Management Console.
+- Select "Security Credentials" from the dropdown menu.
 
+##### 3. Create New Access Key
+- In the "My Security Credentials" page, go to the "Access keys" section.
+- Click on "Create Access Key".
+- A pop-up will appear showing your new Access Key ID and Secret Access Key.
+
+##### 4. Download Credentials
+- Download the `.csv` file containing these credentials or copy them to a secure location.
+  - **Important**: This is the only time you will be able to view the secret access key. If you lose it, you will need to create new credentials.
+
+##### 5. Alternative - create dedicated user (more secure)
+- Navigate to IAM
+- Create New User - name the user `sn-45` or similar
+- Attach `AmazonS3FullAccess` policy to user or apply the following permissions
+
+##### 6. Place the credentials in your .env file
 The access key id and secret access key should look like this within your `.env` file:
 
 ```
