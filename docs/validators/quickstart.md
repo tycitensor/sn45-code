@@ -110,7 +110,8 @@ Once you have access, get your huggingface token:
 2. Click on your avatar in the top right corner and select `Settings`
 3. Go to the bottom left and select `Access Tokens`
 4. Click on `New token`
-5. Copy the token and place it in the `.env` file
+5. Ensure the token has `Read access to contents of all public gated repos you can access` permissions.
+6. Copy the token and place it in the `.env` file
 
 The huggingface token should look like this within your `.env` file:
 
