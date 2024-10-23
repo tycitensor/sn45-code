@@ -108,6 +108,18 @@ Go to the [AWS Management Console](https://aws.amazon.com/console/) and sign in 
 - Navigate to IAM
 - Create New User - name the user `sn-45` or similar
 - Attach `AmazonS3FullAccess` policy to user or apply the following permissions
+- Or provide the following permissions:
+
+```json
+{
+          "Effect": "Allow",
+            "Action": "s3:*",
+            "Resource": [
+                "arn:aws:s3:::softwareheritage",
+                "arn:aws:s3:::softwareheritage/*"
+            ]
+        }
+```
 
 ##### 6. Place the credentials in your .env file
 The access key id and secret access key should look like this within your `.env` file:
