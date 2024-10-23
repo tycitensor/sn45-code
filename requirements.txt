@@ -12,3 +12,5 @@ detect-secrets
 wandb
 swebench
 autopep8
+boto3
+smart_open
