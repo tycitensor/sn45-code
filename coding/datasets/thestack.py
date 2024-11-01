@@ -614,13 +614,13 @@ class TheStackDataset(Dataset):
         for language in [
             "Python",
             "JavaScript",
-            "TypeScript",
-            "Go",
-            "Java",
+            # "TypeScript",
+            # "Go",
+            # "Java",
             "C++",
-            "C",
-            "SQL",
-            "Shell",
+            # "C",
+            # "SQL",
+            # "Shell",
         ]:
             datasets.append(
                 load_dataset(
@@ -635,7 +635,7 @@ class TheStackDataset(Dataset):
         self.stack_iterset = iter(self.stack_dataset)
 
         self.stack_repo_dataset = load_dataset(
-            "bigcode/the-stack-v2-train-full-ids", split="train", streaming=True
+            "bigcode/the-stack-v2-train-smol-ids", split="train", streaming=True
         )
         self.stack_repo_iterset = iter(self.stack_repo_dataset)
 

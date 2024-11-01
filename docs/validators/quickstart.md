@@ -131,7 +131,7 @@ AWS_SECRET_ACCESS_KEY=<your secret access key>
 
 #### Setup huggingface 
 
-You must get access to the stack v2 datasets, to do so go [here](https://huggingface.co/datasets/bigcode/the-stack-v2), and [here](https://huggingface.co/datasets/bigcode/the-stack-v2-train-full-ids).
+You must get access to the stack v2 datasets, to do so go [here](https://huggingface.co/datasets/bigcode/the-stack-v2), and [here](https://huggingface.co/datasets/bigcode/the-stack-v2-train-smol-ids).
 
 Once you have access, get your huggingface token:
 
