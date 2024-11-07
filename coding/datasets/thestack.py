@@ -630,6 +630,9 @@ class TheStackDataset(Dataset):
                     streaming=True,
                 )
             )
+        # shuffle the datasets
+        for dataset in datasets:
+            dataset = dataset.shuffle()
         self.stack_dataset = interleave_datasets(datasets)
         self.stack_dataset = self.stack_dataset.map(lambda row: process_row(row))
         self.stack_iterset = iter(self.stack_dataset)
@@ -637,6 +640,7 @@ class TheStackDataset(Dataset):
         self.stack_repo_dataset = load_dataset(
             "bigcode/the-stack-v2-train-smol-ids", split="train", streaming=True
         )
+        self.stack_repo_dataset = self.stack_repo_dataset.shuffle()
         self.stack_repo_iterset = iter(self.stack_repo_dataset)
 
     def random(
