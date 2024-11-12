@@ -40,6 +40,12 @@ TASKS = {
     SWETask.name: SWETask,
 }
 
+FINETUNE_TASKS = {
+    RepoCompletionTask.name: RepoCompletionTask,
+    FillInMiddleTask.name: FillInMiddleTask,
+    CompletionTask.name: CompletionTask,
+}
+
 from coding.repl import REPLClient
 from coding.schemas import Context
 from coding.helpers import Selector

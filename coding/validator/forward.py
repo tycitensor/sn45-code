@@ -38,7 +38,7 @@ from coding.protocol import StreamCodeSynapse
 from coding.rewards.codesim import CodeSimModel
 from coding.dendrite import DendriteResponseEvent
 from coding.constants import COMPETITION_END_DATE
-from coding.tasks import create_task, create_organic_task
+from coding.tasks import create_task, create_organic_task, FINETUNE_TASKS
 
 @dataclass
 class StreamResult:
@@ -182,7 +182,10 @@ async def forward(self, synapse: StreamCodeSynapse):
     bt.logging.info("🚀 Starting forward loop...")
     
     if len(self.executor_futures) < self.config.neuron.future_limit and len(self.finetune_tasks) < self.config.neuron.finetune_limit:
-        self.executor_futures.append(self.executor.submit(forward_organic_synapse, self, synapse))
+        task_name = random.choices(
+            FINETUNE_TASKS.keys(), [1]*len(FINETUNE_TASKS)
+        )[0]
+        self.executor_futures.append(self.executor.submit(create_task, llm=self.llm, task_name=task_name, repl=self.repl, code_scorer=self.code_scorer))
     
     for future in self.executor_futures:
         if future.done():

@@ -44,10 +44,10 @@ def get_config():
     )
 
     parser.add_argument(
-        "--chat_template",
-        type=str,
-        default="vicuna",
-        help="The chat template for the model.",
+        "--prompt_tokens",
+        type=dict,
+        default={"prefix": "<|fim_prefix|>", "middle": "<|fim_middle|>", "suffix": "<|fim_suffix|>"},
+        help="The tokens for the FIM prompts",
     )
 
     parser.add_argument(
@@ -78,8 +78,8 @@ def get_config():
     return config
 
 
-def regenerate_hash(namespace, name, chat_template, competition_id):
-    s = " ".join([namespace, name, chat_template, competition_id])
+def regenerate_hash(namespace, name, prompt_tokens, competition_id):
+    s = " ".join([namespace, name, prompt_tokens, competition_id])
     hash_output = hashlib.sha256(s.encode("utf-8")).hexdigest()
     return int(hash_output[:16], 16)  # Returns a 64-bit integer from the first 16 hexadecimal characters
 
@@ -142,10 +142,10 @@ async def main(config: bt.config):
 
     model = Model(
         model_name=config.hf_repo_id,
-        chat_template=config.chat_template,
+        prompt_tokens=config.prompt_tokens,
         competition_id=config.competition_id,
         commit=config.model_commit_id,
-        hash=str(regenerate_hash(config.hf_repo_id, config.chat_template, config.competition_id)),
+        hash=str(regenerate_hash(config.hf_repo_id, config.prompt_tokens, config.competition_id)),
         hotkey=wallet.hotkey,
     )
 
