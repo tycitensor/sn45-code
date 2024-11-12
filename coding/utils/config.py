@@ -284,6 +284,28 @@ def add_validator_args(cls, parser):
         help="Max time to wait for a forward call to complete in seconds.",
         default=120,
     )
+    
+    parser.add_argument(
+        "--finetune_gpu_id",
+        type=int,
+        help="The gpu to use for finetuning.",
+        default=0,
+    )
+    
+    parser.add_argument(
+        "--neuron.future_limit",
+        type=int,
+        help="The number of futures to run at any time.",
+        default=10,
+    )
+    
+    parser.add_argument(
+        "--neuron.finetune_limit",
+        type=int,
+        help="The number of finetune tasks to generate and score with.",
+        default=200,
+    )
+    
 
 
 

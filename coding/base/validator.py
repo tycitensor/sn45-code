@@ -243,6 +243,30 @@ class BaseValidatorNeuron(BaseNeuron):
             self.is_running = False
             bt.logging.debug("Stopped")
 
+    def combine_scores(self) -> np.ndarray:
+        """Combine the scores from the finetune results with the scores from the forward pass.
+        
+        Each accounts for 50% of the final score. The top finetuned model gets 50% of the finetune score. 2nd best gets 30%, 3rd best gets 20%.
+        """
+        finetune_results = self.finetune_results
+        forward_scores = self.scores
+
+        # Sort finetune results by score in descending order
+        sorted_results = sorted(finetune_results, key=lambda x: x.score, reverse=True)
+
+        # Initialize finetune weights array with zeros
+        finetune_weights = np.zeros_like(forward_scores)
+
+        # Assign weights to top 3 models (50%, 30%, 20%)
+        weights = [0.5, 0.3, 0.2]
+        for i, result in enumerate(sorted_results[:3]):
+            if i < len(weights):
+                finetune_weights[result.model.uid] = weights[i]
+
+        # Combine scores - 50% from forward pass, 50% from finetune results
+        return 0.5 * forward_scores + 0.5 * finetune_weights
+        
+    
     def set_weights(self):
         """
         Sets the validator weights to the metagraph hotkeys based on the scores it has received from the miners. The weights determine the trust and incentive level the validator assigns to miner nodes on the network.
@@ -252,7 +276,8 @@ class BaseValidatorNeuron(BaseNeuron):
         for _ in range(10):
             # Calculate the average reward for each uid across non-zero values.
             # Replace any NaN values with 0.
-            raw_weights = np.divide(self.scores, np.sum(self.scores, axis=0))
+            combined_scores = self.combine_scores()
+            raw_weights = np.divide(combined_scores, np.sum(combined_scores, axis=0))
 
             # Process the raw weights to final_weights via subtensor limitations.
             (

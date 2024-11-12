@@ -24,18 +24,21 @@ import random
 import asyncio
 import traceback
 import bittensor as bt
+from datetime import datetime
 from functools import partial
 from starlette.types import Send
 from dataclasses import dataclass
 from typing import Awaitable, List, Dict
 
 from coding.rewards import RewardResult
+from coding.utils.logging import log_event
+from coding.finetune import FinetunePipeline
 from coding.utils.uids import get_random_uids
 from coding.protocol import StreamCodeSynapse
+from coding.rewards.codesim import CodeSimModel
 from coding.dendrite import DendriteResponseEvent
-from coding.utils.logging import log_event
+from coding.constants import COMPETITION_END_DATE
 from coding.tasks import create_task, create_organic_task
-
 
 @dataclass
 class StreamResult:
@@ -177,6 +180,26 @@ async def forward(self, synapse: StreamCodeSynapse):
 
     """
     bt.logging.info("🚀 Starting forward loop...")
+    
+    if len(self.executor_futures) < self.config.neuron.future_limit and len(self.finetune_tasks) < self.config.neuron.finetune_limit:
+        self.executor_futures.append(self.executor.submit(forward_organic_synapse, self, synapse))
+    
+    for future in self.executor_futures:
+        if future.done():
+            self.executor_futures.remove(future)
+            self.finetune_tasks.append(future.result())
+    
+    #check if the competition has ended
+    if datetime.now() > datetime.strptime(COMPETITION_END_DATE, "%Y-%m-%d"):
+        finetune_pipeline = FinetunePipeline(
+            validator=self,
+            tasks=self.finetune_tasks,
+            code_sim_model=CodeSimModel(code_scorer=self.code_scorer),
+        )
+        self.finetune_results = finetune_pipeline.evaluate()
+        self.finetune_tasks = []
+        
+    
     if not synapse:
         while True:
             # Create a specific task

@@ -99,3 +99,16 @@ def get_random_uids(
         )
     uids = np.array(random.sample(available_uids, k))
     return uids
+
+def get_miner_hotkeys(metagraph: bt.metagraph.Metagraph, vpermit_tao_limit: int = 4096) -> List[str]:
+    hotkeys = []
+    for uid in range(metagraph.n.item()):
+        if check_uid_availability(metagraph, uid, vpermit_tao_limit):
+            hotkeys.append(metagraph.axons[uid].hotkey)
+    return hotkeys
+
+def get_uid_from_hotkey(metagraph: bt.metagraph.Metagraph, hotkey: str) -> int:
+    for uid in range(metagraph.n.item()):
+        if metagraph.axons[uid].hotkey == hotkey:
+            return uid
+    return None

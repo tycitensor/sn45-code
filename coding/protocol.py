@@ -23,46 +23,25 @@ import json
 import pydantic
 import bittensor as bt
 
-from typing import List, AsyncIterator, Any, Dict
 from starlette.responses import StreamingResponse
+from typing import List, AsyncIterator, Any, Optional
 
 from coding.schemas import ChatMessage, File
 
-# class CodeSynapse(bt.Synapse):
-#     """
-#     """
-
-#     class Config:
-#         """
-#         Pydantic model configuration class for CodeSynapse. This class sets validation of attribute assignment as True.
-#         validate_assignment set to True means the pydantic model will validate attribute assignments on the class.
-#         """
-
-#         validate_assignment = True
-
-#     def deserialize(self) -> "CodeSynapse":
-#         """
-#         """
-#         return self
-
-#     query: str = pydantic.Field(
-#         "",
-#         title="query",
-#         description="The query",
-#     )
+class GetHFDetails(bt.Synapse):
+    """
+    GetHFModelName is a Synapse that is used to get the HF model name that this miner hosts on HF
     
-#     attachments: List[Any] = pydantic.Field(
-#         [],
-#         title="attachments",
-#         description="Attachments to be sent alongside the query",
-#     )
-
-#     completion: str = pydantic.Field(
-#         "",
-#         title="Completion",
-#         description="Completion status of the current CodeSynapse object. This attribute is mutable and can be updated.",
-#     )
-
+    Attributes:
+        model_name (Optional[str]): The HF model name that this miner hosts on HF
+        prompt_tokens (Optional[dict]): Dictionary containing FIM prompt tokens:
+            - "prefix": the prefix of the prompt
+            - "middle": the middle of the prompt
+            - "suffix": the suffix of the prompt
+        
+    """
+    model_name: Optional[str] = None
+    prompt_tokens: Optional[dict] = None
 
 
 class StreamCodeSynapse(bt.StreamingSynapse):
