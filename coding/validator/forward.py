@@ -28,6 +28,7 @@ from datetime import datetime
 from functools import partial
 from starlette.types import Send
 from dataclasses import dataclass
+from joblib import Parallel, delayed
 from typing import Awaitable, List, Dict
 
 from coding.rewards import RewardResult
@@ -181,26 +182,13 @@ async def forward(self, synapse: StreamCodeSynapse):
     """
     bt.logging.info("🚀 Starting forward loop...")
     
-    if len(self.executor_futures) < self.config.neuron.future_limit and len(self.finetune_tasks) < self.config.neuron.finetune_limit:
-        task_name = random.choices(
-            FINETUNE_TASKS.keys(), [1]*len(FINETUNE_TASKS)
-        )[0]
-        self.executor_futures.append(self.executor.submit(create_task, llm=self.llm, task_name=task_name, repl=self.repl, code_scorer=self.code_scorer))
-    
-    for future in self.executor_futures:
-        if future.done():
-            self.executor_futures.remove(future)
-            self.finetune_tasks.append(future.result())
-    
     #check if the competition has ended and evaluation not started
     if datetime.now() > datetime.strptime(COMPETITION_END_DATE, "%Y-%m-%d") and not hasattr(self, 'finetune_eval_future'):
         finetune_pipeline = FinetunePipeline(
             validator=self,
-            tasks=self.finetune_tasks,
             code_sim_model=CodeSimModel(code_scorer=self.code_scorer),
         )
         self.finetune_eval_future = self.executor.submit(finetune_pipeline.evaluate)
-        self.finetune_tasks = []
         
     # Check if evaluation is complete
     if hasattr(self, 'finetune_eval_future') and self.finetune_eval_future.done():

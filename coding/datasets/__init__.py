@@ -1,5 +1,6 @@
 from .base import Dataset
 
+from .bigcodebench import BigcodeBenchDataset
 from .thestack import TheStackDataset
 from .pip import PipDataset
 from .swe import SWEDataset
