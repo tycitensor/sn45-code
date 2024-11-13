@@ -45,13 +45,14 @@ class Miner(BaseMinerNeuron):
     def __init__(self, config=None):
         if not config:
             config = util_config(self)
-        super().__init__(config=config)
-        miner_name = f"coding.miners.{config.miner.name}_miner"  # if config and config.miner else "bitagent.miners.t5_miner"
-        miner_module = importlib.import_module(miner_name)
         self.forward_capabilities = [
             {'forward': self.forward, 'blacklist': self.blacklist, 'priority': self.priority},
             {'forward': self.forward_hf_model, 'blacklist': self.blacklist_hf_model, 'priority': self.priority_hf_model},
         ]
+        super().__init__(config=config)
+        miner_name = f"coding.miners.{config.miner.name}_miner"  # if config and config.miner else "bitagent.miners.t5_miner"
+        miner_module = importlib.import_module(miner_name)
+        
         self.miner_init = miner_module.miner_init
         self.miner_process = miner_module.miner_process
 
@@ -59,7 +60,7 @@ class Miner(BaseMinerNeuron):
 
     def forward_hf_model(
         self, synapse: HFModelSynapse
-    ) -> Awaitable:
+    ) -> HFModelSynapse:
         return miner_process_fine_tuning(self, synapse)
     
     def blacklist_hf_model(
@@ -74,7 +75,7 @@ class Miner(BaseMinerNeuron):
     
     def forward(
         self, synapse: StreamCodeSynapse
-    ) -> Awaitable:
+    ) -> StreamCodeSynapse:
         """
         Processes the incoming 'Dummy' synapse by performing a predefined operation on the input data.
         This method should be replaced with actual logic relevant to the miner's purpose.
