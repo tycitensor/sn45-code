@@ -20,12 +20,12 @@ import argparse
 import asyncio
 import threading
 import bittensor as bt
-
 from typing import Union
-from coding.protocol import StreamCodeSynapse
+from traceback import print_exception
+
 from coding.base.neuron import BaseNeuron
 from coding.utils.config import add_miner_args
-from traceback import print_exception
+from coding.protocol import StreamCodeSynapse, HFModelSynapse
 
 
 class BaseMinerNeuron(BaseNeuron):
@@ -193,7 +193,7 @@ class BaseMinerNeuron(BaseNeuron):
         self.metagraph.sync(subtensor=self.subtensor)
         self.last_block_sync = self.block
 
-    def _forward(self, synapse: StreamCodeSynapse) -> StreamCodeSynapse:
+    def _forward(self, synapse: Union[StreamCodeSynapse, HFModelSynapse]) -> Union[StreamCodeSynapse, HFModelSynapse]:
         """
         A wrapper method around the `forward` method that will be defined by the subclass.
 

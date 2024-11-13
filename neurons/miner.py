@@ -30,6 +30,8 @@ import coding
 # import base miner class which takes care of most of the boilerplate
 from coding.base.miner import BaseMinerNeuron
 from coding.utils.config import config as util_config
+from coding.protocol import StreamCodeSynapse, HFModelSynapse
+
 
 class Miner(BaseMinerNeuron):
     """
@@ -44,7 +46,7 @@ class Miner(BaseMinerNeuron):
         if not config:
             config = util_config(self)
         super().__init__(config=config)
-        miner_name = f"coding.miners.{config.miner.name}_miner" # if config and config.miner else "bitagent.miners.t5_miner"
+        miner_name = f"coding.miners.{config.miner.name}_miner"  # if config and config.miner else "bitagent.miners.t5_miner"
         miner_module = importlib.import_module(miner_name)
 
         self.miner_init = miner_module.miner_init
@@ -52,9 +54,8 @@ class Miner(BaseMinerNeuron):
 
         self.miner_init(self)
 
-         
     def forward(
-        self, synapse
+        self, synapse: typing.Union[StreamCodeSynapse, HFModelSynapse]
     ) -> Awaitable:
         """
         Processes the incoming 'Dummy' synapse by performing a predefined operation on the input data.
@@ -72,12 +73,14 @@ class Miner(BaseMinerNeuron):
         try:
             response = self.miner_process(self, synapse)
         except:
-            bt.logging.error("An error occurred while processing the synapse: ", traceback.format_exc())
+            bt.logging.error(
+                "An error occurred while processing the synapse: ",
+                traceback.format_exc(),
+            )
         return response
-        
 
     async def blacklist(
-        self, synapse
+        self, synapse: typing.Union[StreamCodeSynapse, HFModelSynapse]
     ) -> typing.Tuple[bool, str]:
         """
         Determines whether an incoming request should be blacklisted and thus ignored. Your implementation should
@@ -112,7 +115,10 @@ class Miner(BaseMinerNeuron):
             if synapse.dendrite is None or synapse.dendrite.hotkey is None:
                 bt.logging.warning("Received a request without a dendrite or hotkey.")
                 return True, "Missing dendrite or hotkey"
-            if synapse.dendrite.hotkey == "5Fy7c6skhxBifdPPEs3TyytxFc7Rq6UdLqysNPZ5AMAUbRQx":
+            if (
+                synapse.dendrite.hotkey
+                == "5Fy7c6skhxBifdPPEs3TyytxFc7Rq6UdLqysNPZ5AMAUbRQx"
+            ):
                 return False, "Subnet owner hotkey"
             # TODO(developer): Define how miners should blacklist requests.
             uid = self.metagraph.hotkeys.index(synapse.dendrite.hotkey)
@@ -141,7 +147,9 @@ class Miner(BaseMinerNeuron):
         except:
             return True, "Errored out the blacklist function, blacklisting the hotkey"
 
-    async def priority(self, synapse) -> float:
+    async def priority(
+        self, synapse: typing.Union[StreamCodeSynapse, HFModelSynapse]
+    ) -> float:
         """
         The priority function determines the order in which requests are handled. More valuable or higher-priority
         requests are processed before others. You should design your own priority mechanism with care.
@@ -164,7 +172,7 @@ class Miner(BaseMinerNeuron):
         if synapse.dendrite is None or synapse.dendrite.hotkey is None:
             bt.logging.warning("Received a request without a dendrite or hotkey.")
             return 0.0
-        try: 
+        try:
             caller_uid = self.metagraph.hotkeys.index(
                 synapse.dendrite.hotkey
             )  # Get the caller index.
