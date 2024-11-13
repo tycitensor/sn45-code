@@ -5,9 +5,16 @@
 
 You must have the following things:
 
-- System with at least 24gb of VRAM
+- System with at least 48gb of VRAM
 - Python >=3.10
 - Docker with [gpu support](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
+- OpenAI API key: This will be used very rarely to handle the finetuning. Expect about ~1000 gpt4o calls per month.
+- Github Token
+- Wandb account
+- AWS credentials
+- Huggingface token
+
+We recommend using two GPUs, most preferably two A6000s. Furthermore, we recommend running on the same box as SN20, as both subnets when on the same box only need 2 gpus total.
 
 ## Getting started
 
@@ -82,9 +89,24 @@ We require github tokens, to get one follow the instructions [here](https://docs
 4. Go to either `Tokens (classic)` or `Fine-grained tokens`
 5. Generate a new token and place it in the .env
 
+#### Get an OpenAI Key
+
+To use OpenAI's services, you need to obtain an API key. Follow the steps below to get your OpenAI API key:
+
+1. Go to the [OpenAI website](https://www.openai.com/).
+2. Sign up for an account if you don't already have one, or log in if you do.
+3. Navigate to the API section of your account.
+4. Generate a new API key.
+5. Copy the API key and store it in a secure location.
+
+Once you have your OpenAI API key, add it to your `.env` file like this:
+
+```
+OPENAI_API_KEY=<your openai api key>
+```
+
+
 #### Setup AWS
-
-
 
 We use AWS to download the github dataset. Follow the steps below to setup your AWS credentials.
 
@@ -155,7 +177,7 @@ HF_TOKEN=<your huggingface token>
 
 ```bash
 source .venv/bin/activate
-python3 neurons/validator.py
+python3 scripts/start_validator.py
     --netuid 45
     --subtensor.network <finney/local/test>
     --neuron.device cuda
@@ -166,5 +188,6 @@ python3 neurons/validator.py
     --neuron.model_url # OPTIONAL, if you are hosting the model somewhere else other then port 8028
     --neuron.vllm_api_key # OPTIONAL, only use if your vllm instance has an api key requirement
     --wandb.on True # default is true but you can disable
+    --neuron.finetune_gpu_id 0 # Defaults to 0, if using two gpu's set to 1
 ```
 

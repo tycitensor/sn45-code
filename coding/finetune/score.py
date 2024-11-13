@@ -28,7 +28,7 @@ def score(validator, model_name: str, tasks: List[Task], codesim: CodeSimModel) 
     4. Returns mean score across all tasks
     """
     try:
-        model, tokenizer, renderer = load_model_and_tokenizer(model_name, validator.config.finetune_gpu_id)
+        model, tokenizer, renderer = load_model_and_tokenizer(model_name, validator.config.neuron.finetune_gpu_id)
     except Exception as e:
         print(f"Error loading model {model_name}: {e}") # TODO change to logging
         return 0.0

@@ -30,6 +30,7 @@ from .repofile import RepoFileTask
 from .repo import RepoCompletionTask
 from .completion import CompletionTask
 from .organic_convo import OrganicConvoTask
+from .bigcodebench import BigcodeBenchTask
 
 TASKS = {
     RepoCompletionTask.name: RepoCompletionTask,
@@ -38,12 +39,6 @@ TASKS = {
     RepoFileTask.name: RepoFileTask,
     # DebugTask.name: DebugTask,
     SWETask.name: SWETask,
-}
-
-FINETUNE_TASKS = {
-    RepoCompletionTask.name: RepoCompletionTask,
-    FillInMiddleTask.name: FillInMiddleTask,
-    CompletionTask.name: CompletionTask,
 }
 
 from coding.repl import REPLClient

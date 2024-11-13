@@ -286,24 +286,17 @@ def add_validator_args(cls, parser):
     )
     
     parser.add_argument(
-        "--finetune_gpu_id",
+        "--neuron.finetune_gpu_id",
         type=int,
         help="The gpu to use for finetuning.",
         default=0,
     )
     
     parser.add_argument(
-        "--neuron.future_limit",
-        type=int,
-        help="The number of futures to run at any time.",
-        default=10,
-    )
-    
-    parser.add_argument(
-        "--neuron.finetune_limit",
+        "--neuron.finetune_test_size",
         type=int,
         help="The number of finetune tasks to generate and score with.",
-        default=200,
+        default=1000,
     )
     
 

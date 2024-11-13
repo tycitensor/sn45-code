@@ -269,8 +269,8 @@ class BaseValidatorNeuron(BaseNeuron):
             if i < len(weights):
                 finetune_weights[result.tracking_info.uid] = weights[i]
 
-        # Combine scores - 50% from forward pass, 50% from finetune results
-        return 0.5 * forward_scores + 0.5 * finetune_weights
+        # Combine scores - 75% from forward pass, 25% from finetune results
+        return 0.75 * forward_scores + 0.25 * finetune_weights
     
     def set_weights(self):
         """
@@ -383,6 +383,7 @@ class BaseValidatorNeuron(BaseNeuron):
             step=self.step,
             scores=self.scores,
             hotkeys=self.hotkeys,
+            finetune_results=self.finetune_results,
         )
 
     def load_state(self):
@@ -406,7 +407,7 @@ class BaseValidatorNeuron(BaseNeuron):
         self.step = state["step"].item() if "step" in state else None
         self.scores = state["scores"] if "scores" in state else None
         self.hotkeys = state["hotkeys"] if "hotkeys" in state else None
-    
+        self.finetune_results = state["finetune_results"] if "finetune_results" in state else None
     
     
     
