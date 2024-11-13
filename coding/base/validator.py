@@ -247,9 +247,15 @@ class BaseValidatorNeuron(BaseNeuron):
         """Combine the scores from the finetune results with the scores from the forward pass.
         
         Each accounts for 50% of the final score. The top finetuned model gets 50% of the finetune score. 2nd best gets 30%, 3rd best gets 20%.
+        If no finetune results exist yet, returns just the forward scores.
         """
-        finetune_results = self.finetune_results
         forward_scores = self.scores
+
+        # If no finetune results yet, return just forward scores
+        if not hasattr(self, 'finetune_results') or not self.finetune_results:
+            return forward_scores * 0.5
+
+        finetune_results = self.finetune_results
 
         # Sort finetune results by score in descending order
         sorted_results = sorted(finetune_results, key=lambda x: x.score, reverse=True)
@@ -265,7 +271,6 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # Combine scores - 50% from forward pass, 50% from finetune results
         return 0.5 * forward_scores + 0.5 * finetune_weights
-        
     
     def set_weights(self):
         """
