@@ -49,7 +49,7 @@ class Miner(BaseMinerNeuron):
         miner_name = f"coding.miners.{config.miner.name}_miner"  # if config and config.miner else "bitagent.miners.t5_miner"
         miner_module = importlib.import_module(miner_name)
         self.forward_capabilities = [
-            {'forward': self.forward_code, 'blacklist': self.blacklist_code, 'priority': self.priority_code},
+            {'forward': self.forward, 'blacklist': self.blacklist, 'priority': self.priority},
             {'forward': self.forward_hf_model, 'blacklist': self.blacklist_hf_model, 'priority': self.priority_hf_model},
         ]
         self.miner_init = miner_module.miner_init
@@ -65,14 +65,14 @@ class Miner(BaseMinerNeuron):
     def blacklist_hf_model(
         self, synapse: HFModelSynapse
     ) -> typing.Tuple[bool, str]:
-        return self.blacklist_code(synapse)
+        return self.blacklist(synapse)
     
     def priority_hf_model(
         self, synapse: HFModelSynapse
     ) -> float:
-        return self.priority_code(synapse)
+        return self.priority(synapse)
     
-    def forward_code(
+    def forward(
         self, synapse: StreamCodeSynapse
     ) -> Awaitable:
         """
@@ -97,7 +97,7 @@ class Miner(BaseMinerNeuron):
             )
         return response
 
-    async def blacklist_code(
+    async def blacklist(
         self, synapse: StreamCodeSynapse
     ) -> typing.Tuple[bool, str]:
         """
@@ -165,7 +165,7 @@ class Miner(BaseMinerNeuron):
         except:
             return True, "Errored out the blacklist function, blacklisting the hotkey"
 
-    async def priority_code(
+    async def priority(
         self, synapse: StreamCodeSynapse
     ) -> float:
         """
