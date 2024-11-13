@@ -20,9 +20,9 @@ import argparse
 import asyncio
 import threading
 import bittensor as bt
+
 from typing import Union
 from traceback import print_exception
-
 from coding.base.neuron import BaseNeuron
 from coding.utils.config import add_miner_args
 from coding.protocol import StreamCodeSynapse, HFModelSynapse
@@ -56,11 +56,15 @@ class BaseMinerNeuron(BaseNeuron):
 
         # Attach determiners which functions are called when servicing a request.
         bt.logging.info(f"Attaching forward function to miner axon.")
-        self.axon.attach(
-            forward_fn=self._forward,
-            blacklist_fn=self.blacklist,
-            priority_fn=self.priority,
-        )
+        for forward_capability in self.forward_capabilities:
+            forward_fn = forward_capability['forward']
+            blacklist_fn = forward_capability['blacklist']
+            priority_fn = forward_capability['priority']
+            self.axon.attach(
+                forward_fn=forward_fn,
+                blacklist_fn=blacklist_fn,
+                priority_fn=priority_fn,
+            )
         bt.logging.info(f"Axon created: {self.axon}")
 
         # Instantiate runners
@@ -193,7 +197,7 @@ class BaseMinerNeuron(BaseNeuron):
         self.metagraph.sync(subtensor=self.subtensor)
         self.last_block_sync = self.block
 
-    def _forward(self, synapse) -> Union[StreamCodeSynapse, HFModelSynapse]:
+    def _forward(self, synapse: tuple[StreamCodeSynapse, ) -> StreamCodeSynapse:
         """
         A wrapper method around the `forward` method that will be defined by the subclass.
 

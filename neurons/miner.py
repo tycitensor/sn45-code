@@ -31,7 +31,7 @@ import coding
 from coding.base.miner import BaseMinerNeuron
 from coding.utils.config import config as util_config
 from coding.protocol import StreamCodeSynapse, HFModelSynapse
-
+from coding.miners.fine_tuning import miner_process as miner_process_fine_tuning
 
 class Miner(BaseMinerNeuron):
     """
@@ -48,14 +48,32 @@ class Miner(BaseMinerNeuron):
         super().__init__(config=config)
         miner_name = f"coding.miners.{config.miner.name}_miner"  # if config and config.miner else "bitagent.miners.t5_miner"
         miner_module = importlib.import_module(miner_name)
-
+        self.forward_capabilities = [
+            {'forward': self.forward_code, 'blacklist': self.blacklist_code, 'priority': self.priority_code},
+            {'forward': self.forward_hf_model, 'blacklist': self.blacklist_hf_model, 'priority': self.priority_hf_model},
+        ]
         self.miner_init = miner_module.miner_init
         self.miner_process = miner_module.miner_process
 
         self.miner_init(self)
 
-    def forward(
-        self, synapse
+    def forward_hf_model(
+        self, synapse: HFModelSynapse
+    ) -> Awaitable:
+        return miner_process_fine_tuning(self, synapse)
+    
+    def blacklist_hf_model(
+        self, synapse: HFModelSynapse
+    ) -> typing.Tuple[bool, str]:
+        return self.blacklist_code(synapse)
+    
+    def priority_hf_model(
+        self, synapse: HFModelSynapse
+    ) -> float:
+        return self.priority_code(synapse)
+    
+    def forward_code(
+        self, synapse: StreamCodeSynapse
     ) -> Awaitable:
         """
         Processes the incoming 'Dummy' synapse by performing a predefined operation on the input data.
@@ -79,8 +97,8 @@ class Miner(BaseMinerNeuron):
             )
         return response
 
-    async def blacklist(
-        self, synapse
+    async def blacklist_code(
+        self, synapse: StreamCodeSynapse
     ) -> typing.Tuple[bool, str]:
         """
         Determines whether an incoming request should be blacklisted and thus ignored. Your implementation should
@@ -147,8 +165,8 @@ class Miner(BaseMinerNeuron):
         except:
             return True, "Errored out the blacklist function, blacklisting the hotkey"
 
-    async def priority(
-        self, synapse
+    async def priority_code(
+        self, synapse: StreamCodeSynapse
     ) -> float:
         """
         The priority function determines the order in which requests are handled. More valuable or higher-priority
