@@ -192,16 +192,20 @@ async def forward(self, synapse: StreamCodeSynapse):
             self.executor_futures.remove(future)
             self.finetune_tasks.append(future.result())
     
-    #check if the competition has ended
-    if datetime.now() > datetime.strptime(COMPETITION_END_DATE, "%Y-%m-%d"):
+    #check if the competition has ended and evaluation not started
+    if datetime.now() > datetime.strptime(COMPETITION_END_DATE, "%Y-%m-%d") and not hasattr(self, 'finetune_eval_future'):
         finetune_pipeline = FinetunePipeline(
             validator=self,
             tasks=self.finetune_tasks,
             code_sim_model=CodeSimModel(code_scorer=self.code_scorer),
         )
-        self.finetune_results = finetune_pipeline.evaluate()
+        self.finetune_eval_future = self.executor.submit(finetune_pipeline.evaluate)
         self.finetune_tasks = []
         
+    # Check if evaluation is complete
+    if hasattr(self, 'finetune_eval_future') and self.finetune_eval_future.done():
+        self.finetune_results = self.finetune_eval_future.result()
+        delattr(self, 'finetune_eval_future')  # Remove the future after getting results
     
     if not synapse:
         while True:
