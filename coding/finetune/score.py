@@ -1,7 +1,8 @@
 from typing import List
 from coding.tasks.task import Task
-from coding.finetune.model import load_model_and_tokenizer, evaluate, cleanup
+from coding.finetune.evaluate import evaluate
 from coding.rewards.codesim import CodeSimModel
+from coding.finetune.model import load_model_and_tokenizer, cleanup
 
 def score(validator, model_name: str, prompt_tokens: dict, tasks: List[Task], codesim: CodeSimModel) -> float:
     """
