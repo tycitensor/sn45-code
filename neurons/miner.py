@@ -31,7 +31,7 @@ import coding
 from coding.base.miner import BaseMinerNeuron
 from coding.utils.config import config as util_config
 from coding.protocol import StreamCodeSynapse, HFModelSynapse
-from coding.miners.fine_tuning import miner_process as miner_process_fine_tuning
+from coding.miners.finetune import miner_process as miner_process_fine_tuning
 
 class Miner(BaseMinerNeuron):
     """
