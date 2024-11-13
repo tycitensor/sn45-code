@@ -1,6 +1,6 @@
 from typing import List
 
-from coding.protocol import GetHFModel
+from coding.protocol import HFModelSynapse
 from coding.schemas.tracking import TrackingInfo
 from coding.utils.uids import get_miner_uids, get_hotkey_from_uid
 
@@ -8,8 +8,8 @@ from coding.utils.uids import get_miner_uids, get_hotkey_from_uid
 def gather_all_models(validator) -> List[TrackingInfo]:
     uids = get_miner_uids(validator)
     axons = [validator.metagraph.axons[uid] for uid in uids]
-    synapse = GetHFModel()
-    responses = validator.dendrite(axons=axons, synapse=synapse, timeout=45)
+    synapse = HFModelSynapse()
+    responses = validator.dendrite.foward(axons=axons, synapse=synapse, timeout=45, deserialize=False)
     return [
         TrackingInfo(
             model=response.synapse.model,

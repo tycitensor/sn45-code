@@ -28,9 +28,9 @@ from typing import List, AsyncIterator, Any, Optional
 
 from coding.schemas import ChatMessage, File
 
-class GetHFModel(bt.Synapse):
+class HFModelSynapse(bt.Synapse):
     """
-    GetHFModel is a Synapse that is used to get the HF model name that this miner published to HF
+    HFModelSynapse is a Synapse that is used to get the HF model name that this miner published to HF
     
     Attributes:
         model_name (Optional[str]): The HF model name that this miner published to HF
