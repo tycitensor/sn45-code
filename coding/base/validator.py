@@ -261,7 +261,7 @@ class BaseValidatorNeuron(BaseNeuron):
         weights = [0.5, 0.3, 0.2]
         for i, result in enumerate(sorted_results[:3]):
             if i < len(weights):
-                finetune_weights[result.model.uid] = weights[i]
+                finetune_weights[result.tracking_info.uid] = weights[i]
 
         # Combine scores - 50% from forward pass, 50% from finetune results
         return 0.5 * forward_scores + 0.5 * finetune_weights

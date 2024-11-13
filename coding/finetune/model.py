@@ -1,8 +1,8 @@
 import os
-import shutil
 import torch
-from transformers import AutoTokenizer, BitsAndBytesConfig, AutoModelForCausalLM
+import shutil
 from accelerate.utils import release_memory
+from transformers import AutoTokenizer, BitsAndBytesConfig, AutoModelForCausalLM
 
 
 def load_model_and_tokenizer(model_name: str, finetune_gpu_id: int) -> tuple[AutoModelForCausalLM, AutoTokenizer]:

@@ -6,7 +6,6 @@ class Model(BaseModel):
     hash: str
     competition_id: str
     block: int
-    hotkey: str
     
     
     def to_compressed_str(self) -> str:

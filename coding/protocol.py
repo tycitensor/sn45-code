@@ -28,12 +28,12 @@ from typing import List, AsyncIterator, Any, Optional
 
 from coding.schemas import ChatMessage, File
 
-class GetHFDetails(bt.Synapse):
+class GetHFModel(bt.Synapse):
     """
-    GetHFModelName is a Synapse that is used to get the HF model name that this miner hosts on HF
+    GetHFModel is a Synapse that is used to get the HF model name that this miner published to HF
     
     Attributes:
-        model_name (Optional[str]): The HF model name that this miner hosts on HF
+        model_name (Optional[str]): The HF model name that this miner published to HF
         prompt_tokens (Optional[dict]): Dictionary containing FIM prompt tokens:
             - "prefix": the prefix of the prompt
             - "middle": the middle of the prompt
