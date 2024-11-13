@@ -55,7 +55,7 @@ class Miner(BaseMinerNeuron):
         self.miner_init(self)
 
     def forward(
-        self, synapse: typing.Union[StreamCodeSynapse, HFModelSynapse]
+        self, synapse
     ) -> Awaitable:
         """
         Processes the incoming 'Dummy' synapse by performing a predefined operation on the input data.
@@ -80,7 +80,7 @@ class Miner(BaseMinerNeuron):
         return response
 
     async def blacklist(
-        self, synapse: typing.Union[StreamCodeSynapse, HFModelSynapse]
+        self, synapse
     ) -> typing.Tuple[bool, str]:
         """
         Determines whether an incoming request should be blacklisted and thus ignored. Your implementation should
@@ -148,7 +148,7 @@ class Miner(BaseMinerNeuron):
             return True, "Errored out the blacklist function, blacklisting the hotkey"
 
     async def priority(
-        self, synapse: typing.Union[StreamCodeSynapse, HFModelSynapse]
+        self, synapse
     ) -> float:
         """
         The priority function determines the order in which requests are handled. More valuable or higher-priority

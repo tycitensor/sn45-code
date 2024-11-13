@@ -193,7 +193,7 @@ class BaseMinerNeuron(BaseNeuron):
         self.metagraph.sync(subtensor=self.subtensor)
         self.last_block_sync = self.block
 
-    def _forward(self, synapse: Union[StreamCodeSynapse, HFModelSynapse]) -> Union[StreamCodeSynapse, HFModelSynapse]:
+    def _forward(self, synapse) -> Union[StreamCodeSynapse, HFModelSynapse]:
         """
         A wrapper method around the `forward` method that will be defined by the subclass.
 
