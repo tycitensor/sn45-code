@@ -41,7 +41,8 @@ class HFModelSynapse(bt.Synapse):
         
     """
     model_name: Optional[str] = None
-    prompt_tokens: Optional[dict] = None
+    competition_id: Optional[str] = None
+    # prompt_tokens: Optional[dict] = None
 
 
 class StreamCodeSynapse(bt.StreamingSynapse):

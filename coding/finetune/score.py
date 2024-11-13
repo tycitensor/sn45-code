@@ -4,7 +4,7 @@ from coding.finetune.evaluate import evaluate
 from coding.rewards.codesim import CodeSimModel
 from coding.finetune.model import load_model_and_tokenizer, cleanup
 
-def score(validator, model_name: str, prompt_tokens: dict, tasks: List[Task], codesim: CodeSimModel) -> float:
+def score(validator, model_name: str, tasks: List[Task], codesim: CodeSimModel) -> float:
     """
     Calculate the average score across multiple tasks for a given model.
 
@@ -28,14 +28,14 @@ def score(validator, model_name: str, prompt_tokens: dict, tasks: List[Task], co
     4. Returns mean score across all tasks
     """
     try:
-        model, tokenizer = load_model_and_tokenizer(model_name, validator.config.finetune_gpu_id)
+        model, tokenizer, renderer = load_model_and_tokenizer(model_name, validator.config.finetune_gpu_id)
     except Exception as e:
         print(f"Error loading model {model_name}: {e}") # TODO change to logging
         return 0.0
     scores = []
-    responses = [evaluate(model, tokenizer, prompt_tokens, task.query) for task in tasks]
+    responses = [evaluate(model, tokenizer, renderer, task.query) for task in tasks]
     references = [task.reference for task in tasks]
-    scores = codesim.batch_similarity(references, responses)
+    scores = codesim.similarity_batch(references, responses)
     cleanup(model, tokenizer)
     return sum(scores) / len(scores)
 

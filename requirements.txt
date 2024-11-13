@@ -16,3 +16,5 @@ boto3
 smart_open
 accelerate
 transformers
+bitsandbytes
+flash_attn 

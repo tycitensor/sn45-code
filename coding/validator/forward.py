@@ -184,6 +184,7 @@ async def forward(self, synapse: StreamCodeSynapse):
     
     #check if the competition has ended and evaluation not started
     if datetime.now() > datetime.strptime(COMPETITION_END_DATE, "%Y-%m-%d") and not hasattr(self, 'finetune_eval_future'):
+        self.finetune_results = []
         finetune_pipeline = FinetunePipeline(
             validator=self,
             code_sim_model=CodeSimModel(code_scorer=self.code_scorer),

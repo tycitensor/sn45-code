@@ -14,6 +14,7 @@ class BigCodeInstruction(BaseModel):
     example: str
     requirements: list[str]
     signature: str
+    code: str
     
     @property
     def prompt(self) -> str:

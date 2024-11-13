@@ -278,7 +278,7 @@ class BaseValidatorNeuron(BaseNeuron):
         """
 
         # Check if self.scores contains any NaN values and log a warning if it does.
-        for _ in range(10):
+        for _ in range(1):
             # Calculate the average reward for each uid across non-zero values.
             # Replace any NaN values with 0.
             combined_scores = self.combine_scores()

@@ -1,6 +1,8 @@
 import time
 import numpy as np
 from typing import List
+from code_bert_score import BERTScorer
+
 from .reward import (
     BaseRewardModel,
     BatchRewardOutput,
@@ -14,7 +16,7 @@ class CodeSimModel(BaseRewardModel):
     def name(self) -> str:
         return "codesim"
 
-    def __init__(self, code_scorer=None, **kwargs):
+    def __init__(self, code_scorer=BERTScorer(lang="python"), **kwargs):
         super().__init__()
         self.code_scorer = code_scorer
 

@@ -1,11 +1,29 @@
 import os
+import json
 import torch
 import shutil
+from jinja2 import Template
 from accelerate.utils import release_memory
 from transformers import AutoTokenizer, BitsAndBytesConfig, AutoModelForCausalLM
 
+def get_renderer(template_str: str):
+    """
+    Renders a Jinja2 template string with a list of dictionaries and additional context.
 
-def load_model_and_tokenizer(model_name: str, finetune_gpu_id: int) -> tuple[AutoModelForCausalLM, AutoTokenizer]:
+    Parameters:
+        data (list): A list of dictionaries with data to render the template.
+        template_str (str): A Jinja2 template string.
+        kwargs (dict): Additional context for the template rendering.
+
+    Returns:
+        str: The rendered template as a string.
+    """
+    template = Template(template_str)
+    def render(messages):
+        return template.render(messages=messages)
+    return render
+
+def load_model_and_tokenizer(model_name: str, finetune_gpu_id: int) -> tuple[AutoModelForCausalLM, AutoTokenizer, callable]:
     # Replace any forward slashes with dashes in model name
     safe_model_name = model_name.replace('/', '-')
     
@@ -26,6 +44,27 @@ def load_model_and_tokenizer(model_name: str, finetune_gpu_id: int) -> tuple[Aut
         cache_dir=f"model_cache_dir/{cache_path}",
     )
     
+    input_tokenizer = AutoTokenizer.from_pretrained(
+        model_name,
+        padding_side="left",
+        force_download=True,
+    )
+    output_tokenizer = AutoTokenizer.from_pretrained(
+        model_name,
+        padding_side="right",
+        force_download=True,
+    )
+    if input_tokenizer.pad_token is None:
+        input_tokenizer.pad_token = input_tokenizer.eos_token  # add a pad token if not present
+        input_tokenizer.pad_token_id = input_tokenizer.eos_token_id
+        output_tokenizer.pad_token = output_tokenizer.eos_token  # add a pad token if not present
+        output_tokenizer.pad_token_id = output_tokenizer.eos_token_id
+    # Load tokenizer config to get chat_template
+    
+    tokenizer_config = tokenizer.init_kwargs
+    # Extract the chat template if it exists
+    chat_template = tokenizer_config.get("chat_template")
+    renderer = get_renderer(chat_template)
     try:
         model = AutoModelForCausalLM.from_pretrained(
             model_name,
@@ -36,10 +75,10 @@ def load_model_and_tokenizer(model_name: str, finetune_gpu_id: int) -> tuple[Aut
             cache_dir=f"model_cache_dir/{cache_path}",
         )
 
-    except Exception as e:
+    except Exception as err:
         try:
             print(
-                f"Error loading model in 4 bit quant with flash attention.: {e}. Trying vanilla load. This might cause OOM."
+                f"Error loading model in 4 bit quant with flash attention.: {err}. Trying vanilla load. This might cause OOM."
             )
             model = AutoModelForCausalLM.from_pretrained(
                 model_name,
@@ -50,7 +89,7 @@ def load_model_and_tokenizer(model_name: str, finetune_gpu_id: int) -> tuple[Aut
         except Exception as e:
             raise Exception(f"Error loading model: {str(e)}")
     
-    return model, tokenizer
+    return model, tokenizer, renderer
 
 def cleanup(model: AutoModelForCausalLM, tokenizer: AutoTokenizer):
     # Release VRAM

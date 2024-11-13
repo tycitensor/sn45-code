@@ -58,20 +58,20 @@ class Miner(BaseMinerNeuron):
 
         self.miner_init(self)
 
-    def forward_hf_model(
+    async def forward_hf_model(
         self, synapse: HFModelSynapse
     ) -> HFModelSynapse:
         return miner_process_fine_tuning(self, synapse)
     
-    def blacklist_hf_model(
+    async def blacklist_hf_model(
         self, synapse: HFModelSynapse
     ) -> typing.Tuple[bool, str]:
-        return self.blacklist(synapse)
+        return await self.blacklist(synapse)
     
-    def priority_hf_model(
+    async def priority_hf_model(
         self, synapse: HFModelSynapse
     ) -> float:
-        return self.priority(synapse)
+        return await self.priority(synapse)
     
     def forward(
         self, synapse: StreamCodeSynapse

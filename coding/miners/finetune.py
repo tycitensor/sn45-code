@@ -8,11 +8,7 @@ def miner_process(self, synapse: HFModelSynapse) -> HFModelSynapse:
     """
     The miner process function is called every time the miner receives a request. This function should contain the main logic of the miner.
     """
-    synapse.model_name = "deepseek-ai/deepseek-coder-1.3b-base"
-    synapse.prompt_tokens = {
-        "prefix": "<｜fim▁begin｜>",
-        "middle": "<｜fim▁hole｜>",
-        "suffix": "<｜fim▁end｜>",
-    }
+    synapse.model_name = "microsoft/Phi-3-mini-128k-instruct"
+    synapse.competition_id = "1"
 
     return synapse
