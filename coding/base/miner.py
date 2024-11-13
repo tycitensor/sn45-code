@@ -196,28 +196,3 @@ class BaseMinerNeuron(BaseNeuron):
         # Sync the metagraph.
         self.metagraph.sync(subtensor=self.subtensor)
         self.last_block_sync = self.block
-
-    def _forward(self, synapse: tuple[StreamCodeSynapse, ) -> StreamCodeSynapse:
-        """
-        A wrapper method around the `forward` method that will be defined by the subclass.
-
-        This method acts as an intermediary layer to perform pre-processing before calling the
-        actual `forward` method implemented in the subclass. Specifically, it checks whether a
-        prompt is in cache to avoid reprocessing recent requests. If the prompt is not in the
-        cache, the subclass `forward` method is called.
-
-        Args:
-            synapse (StreamCodeSynapse): The incoming request object encapsulating the details of the request.
-
-        Returns:
-            StreamCodeSynapse: The response object to be sent back in reply to the incoming request, essentially
-            the filled synapse request object.
-
-        Raises:
-            ValueError: If the prompt is found in the cache indicating it was sent recently.
-
-        Example:
-            This method is not meant to be called directly but is invoked internally when a request
-            is received, and it subsequently calls the `forward` method of the subclass.
-        """
-        return self.forward(synapse=synapse)
