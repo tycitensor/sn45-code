@@ -97,14 +97,14 @@ class FinetunePipeline:
             model_score = score(
                 self, tracking_info.model.model_name, self.tasks, self.code_sim_model
             )
-            bt.logging.info(f"Model score: {model_score}")
+            bt.logging.info(f"Model score from FinetunePipeline: {model_score}")
             scores.append(model_score)
             
             # Save intermediate results after each model evaluation
             self.scores = scores
             self.store_results()
 
-        bt.logging.info(f"All scores: {self.scores}")
+        bt.logging.info(f"All scores from FinetunePipeline: {self.scores}")
         return self.results
     
     def get_top_model(self) -> TrackingInfo:
