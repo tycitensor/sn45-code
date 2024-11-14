@@ -28,7 +28,7 @@ class FinetuneEventResults(BaseModel):
         }
 
 
-def generate_bigcode_tasks(ds: BigcodeBenchDataset, n: int = 1) -> List[BigCodeBenchTask]:
+def generate_bigcode_tasks(ds: BigcodeBenchDataset, n: int = 1000) -> List[BigCodeBenchTask]:
     tasks = []
     for _ in range(n):
         tasks.append(BigCodeBenchTask(context=Context(**ds.get())))
