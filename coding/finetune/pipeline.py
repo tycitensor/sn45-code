@@ -1,3 +1,7 @@
+import os
+import pickle
+import atexit
+import weakref
 import bittensor as bt
 from typing import List
 from pydantic import BaseModel
@@ -36,17 +40,38 @@ def bittensor_injector(self):
     self.subtensor = bt.subtensor(config=self.config)
     self.metagraph = self.subtensor.metagraph(self.config.netuid)
 
+
 class FinetunePipeline:
-    def __init__(self, config, code_sim_model: CodeSimModel = CodeSimModel()):
+    def __init__(self, config, competition_id: str, code_sim_model: CodeSimModel = CodeSimModel()):
         self.config = config
         bittensor_injector(self)
+        self.competition_id = competition_id
         self.code_sim_model = code_sim_model
         self.scores = []
         self.tracking_models: List[TrackingInfo] = []
         self.dataset = BigcodeBenchDataset()
-        self.tasks = generate_bigcode_tasks(self.dataset, self.config.finetune_test_size)
-    
-    
+        self.load_tasks()
+        self.load_results()
+
+        # Register cleanup to be called when the object is deleted
+        self._finalizer = weakref.finalize(self, self.cleanup)
+
+    def load_tasks(self):
+        if os.path.exists(f"tasks_{self.competition_id}.pkl"):
+            with open(f"tasks_{self.competition_id}.pkl", "rb") as f:
+                self.tasks = pickle.load(f)
+        else:
+            self.tasks = generate_bigcode_tasks(self.dataset, self.config.finetune_test_size)
+            self.store_tasks()
+            
+    def load_results(self):
+        results_file = f"results_{self.competition_id}.pkl"
+        if os.path.exists(results_file):
+            with open(results_file, "rb") as f:
+                saved_results = pickle.load(f)
+                self.scores = saved_results.get("scores", [])
+                self.tracking_models = saved_results.get("tracking_models", [])
+            
     @property
     def results(self) -> FinetuneEventResults:
         return FinetuneEventResults(scores=self.scores, tracking_infos=self.tracking_models)
@@ -59,7 +84,11 @@ class FinetunePipeline:
         
         # evaluate all models
         scores = []
-        for tracking_info in self.tracking_models:
+        evaluated_models = {model.model_dump() for model in self.tracking_models}
+        for i, tracking_info in enumerate(self.tracking_models):
+            if tracking_info.model_dump() in evaluated_models:
+                bt.logging.info(f"Skipping already evaluated model: {tracking_info.model}")
+                continue
             bt.logging.info(f"Evaluating model: {tracking_info.model}")
             # ensure competition_id is equal to current competition_id
             if tracking_info.model.competition_id != COMPETITION_ID:
@@ -70,8 +99,11 @@ class FinetunePipeline:
             )
             bt.logging.info(f"Model score: {model_score}")
             scores.append(model_score)
+            
+            # Save intermediate results after each model evaluation
+            self.scores = scores
+            self.store_results()
 
-        self.scores = scores
         bt.logging.info(f"All scores: {self.scores}")
         return self.results
     
@@ -94,5 +126,32 @@ class FinetunePipeline:
     @staticmethod
     def start(config, code_sim_model: CodeSimModel = CodeSimModel()) -> FinetuneEventResults:
         pipeline = FinetunePipeline(config, code_sim_model)
-        return pipeline.evaluate()
-        
+        result = pipeline.evaluate()
+        pipeline.cleanup()  # Ensure cleanup is called after evaluation
+        return result
+
+    def store_tasks(self):
+        with open(f"tasks_{self.competition_id}.pkl", "wb") as f:
+            pickle.dump(self.tasks, f)
+            
+    def store_results(self):
+        with open(f"results_{self.competition_id}.pkl", "wb") as f:
+            pickle.dump({
+                "scores": self.scores,
+                "tracking_models": self.tracking_models
+            }, f)
+    
+    def cleanup(self):
+        """
+        Delete the tasks file and any other task files
+        """
+        os.remove(f"tasks_{self.competition_id}.pkl")
+        # check if tasks_*.pkl exists and delete it if it does
+        for file in os.listdir("."):
+            if file.startswith("tasks_") and file.endswith(".pkl"):
+                os.remove(file)
+            if file.startswith("results_") and file.endswith(".pkl"):
+                os.remove(file)
+
+# Register cleanup to be called when the process exits
+atexit.register(FinetunePipeline.cleanup)

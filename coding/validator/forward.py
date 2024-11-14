@@ -38,7 +38,7 @@ from coding.utils.uids import get_random_uids
 from coding.protocol import StreamCodeSynapse
 from coding.rewards.codesim import CodeSimModel
 from coding.dendrite import DendriteResponseEvent
-from coding.constants import COMPETITION_END_DATE
+from coding.constants import COMPETITION_END_DATE, COMPETITION_ID
 from coding.tasks import create_task, create_organic_task, FINETUNE_TASKS
 
 @dataclass
@@ -182,15 +182,16 @@ async def forward(self, synapse: StreamCodeSynapse):
     """
     bt.logging.info("🚀 Starting forward loop...")
     
-    #check if the competition has ended and evaluation not started
-    if datetime.now() > datetime.strptime(COMPETITION_END_DATE, "%Y-%m-%d") and not hasattr(self, 'finetune_eval_future'):
-        self.finetune_result = None
-        finetune_pipeline = FinetunePipeline(
-            validator=self,
-            code_sim_model=CodeSimModel(code_scorer=self.code_scorer),
-        )
-        self.finetune_eval_future = self.executor.submit(finetune_pipeline.evaluate)
-        
+    # check if the competition has ended and evaluation not started
+    if datetime.now() > datetime.strptime(COMPETITION_END_DATE, "%Y-%m-%d"):
+        if not self.finetune_results and not hasattr(self, 'finetune_eval_future'):
+            self.finetune_result = None
+            finetune_pipeline = FinetunePipeline(
+                validator=self,
+                competition_id=COMPETITION_ID,
+                code_sim_model=CodeSimModel(code_scorer=self.code_scorer),
+            )
+            self.finetune_eval_future = self.executor.submit(finetune_pipeline.evaluate)
     # Check if evaluation is complete
     if hasattr(self, 'finetune_eval_future') and self.finetune_eval_future.done():
         self.finetune_results = self.finetune_eval_future.result()
