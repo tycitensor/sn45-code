@@ -264,7 +264,7 @@ class BaseValidatorNeuron(BaseNeuron):
         finetune_weights = np.zeros_like(forward_scores)
 
         # Assign weights to top 3 models (50%, 30%, 20%)
-        weights = [0.5, 0.3, 0.2]
+        weights = [1, 0.5, 0.2]
         for i, result in enumerate(sorted_results[:3]):
             if i < len(weights):
                 finetune_weights[result.tracking_info.uid] = weights[i]
