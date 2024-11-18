@@ -1,4 +1,4 @@
-bittensor==7.1.2
+bittensor==8.3.1
 langchain-openai
 sentence_transformers
 numpy
