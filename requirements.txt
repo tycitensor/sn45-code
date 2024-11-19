@@ -1,9 +1,9 @@
+langchain==0.3.7
 bittensor==8.3.1
 langchain-openai
 sentence_transformers
 numpy
 datasets
-langchain==0.3.7
 langchain-core==0.3.19
 python-dotenv
 code_bert_score

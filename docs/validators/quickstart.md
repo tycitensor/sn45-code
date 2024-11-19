@@ -44,7 +44,7 @@ git clone https://github.com/brokespace/code
 cd code
 python3 -m venv .venv
 source .venv/bin/activate
-python3 -m pip install -r requirements.txt
+python3 -m pip install --use-deprecated=legacy-resolver -r requirements.txt
 python3 -m pip install -e .
 python3 -m pip uninstall uvloop # b/c it causes issues with threading/loops
 ```
