@@ -175,8 +175,9 @@ def process_weights_for_netuid(
     bittensor.logging.debug("lowest_quantile", lowest_quantile)
 
     # Exclude all weights below the allowed quantile.
-    non_zero_weight_uids = non_zero_weight_uids[lowest_quantile <= non_zero_weights]
-    non_zero_weights = non_zero_weights[lowest_quantile <= non_zero_weights]
+    condition = non_zero_weights >= lowest_quantile
+    non_zero_weight_uids = non_zero_weight_uids[condition]
+    non_zero_weights = non_zero_weights[condition]
     bittensor.logging.debug("non_zero_weight_uids", non_zero_weight_uids)
     bittensor.logging.debug("non_zero_weights", non_zero_weights)
 
