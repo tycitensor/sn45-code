@@ -25,3 +25,13 @@ Edit `coding/utils/config.py` and remove line 301 `bt.debug()`.
 
 Edit `coding/utils/config.py` and remove line 300 `bt.trace()`.
 
+## How is scoring done?
+
+The scoring depends on the task, however primarily it is done in the following route:
+
+1. Get code from The Stack
+2. Rewrite the code with an LLM to ensure that lookups are not possible
+3. Grab a chunk from that code and erase it
+4. Provide the remaining code to the miner
+5. Compare the chunk to the miner's response using Cosine Similarity with CodeBERT
+6. Return the score
