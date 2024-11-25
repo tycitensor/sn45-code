@@ -117,7 +117,7 @@ def add_args(cls, parser):
         type=int,
         nargs="+",
         help="The weights for sampling of each task.",
-        default=[1,1,1,1,1]
+        default=[1,1,1,1,0,1]
     )
     
     parser.add_argument(
@@ -261,7 +261,7 @@ def add_validator_args(cls, parser):
         "--neuron.model_id",
         type=str,
         help="The name of the LLM to be used for the validator.",
-        default="thesven/Mistral-7B-Instruct-v0.3-GPTQ",
+        default="Qwen/Qwen2.5-14B-Instruct-GPTQ-Int4",
     )
     
     parser.add_argument(

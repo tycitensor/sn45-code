@@ -33,12 +33,12 @@ from langchain_openai import ChatOpenAI
 from coding.validator import forward, forward_organic_synapse
 from coding.rewards.pipeline import RewardPipeline
 from coding.protocol import StreamCodeSynapse
+from coding.datasets import DatasetManager
 from coding.repl import REPLClient
 
 # import base validator class which takes care of most of the boilerplate
 from coding.utils.config import config as util_config
 from coding.base.validator import BaseValidatorNeuron
-
 
 class Validator(BaseValidatorNeuron):
     """
@@ -64,7 +64,7 @@ class Validator(BaseValidatorNeuron):
         ) 
         self.repl = REPLClient()
         self.code_scorer = BERTScorer(lang="python")
-
+        self.dataset_manager = DatasetManager(self.config)
         self.active_tasks = [
             task
             for task, p in zip(

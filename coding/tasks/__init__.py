@@ -29,6 +29,7 @@ from .fim import FillInMiddleTask
 from .repofile import RepoFileTask
 from .repo import RepoCompletionTask
 from .completion import CompletionTask
+from .bigcodebench import BigCodeBenchTask
 from .organic_convo import OrganicConvoTask
 
 TASKS = {
@@ -38,14 +39,15 @@ TASKS = {
     RepoFileTask.name: RepoFileTask,
     # DebugTask.name: DebugTask,
     SWETask.name: SWETask,
+    BigCodeBenchTask.name: BigCodeBenchTask,
 }
 
 from coding.repl import REPLClient
 from coding.schemas import Context
 from coding.helpers import Selector
-from coding.datasets import DATASET_MANAGER
+from coding.datasets import DatasetManager
 from coding.protocol import StreamCodeSynapse
-from coding.datasets import TheStackDataset, PipDataset, SWEDataset
+from coding.datasets import TheStackDataset, PipDataset, SWEDataset, BigcodeBenchDataset
 
 TASK_REGISTRY = {
     RepoCompletionTask.name: [TheStackDataset.name],
@@ -54,6 +56,7 @@ TASK_REGISTRY = {
     RepoFileTask.name: [TheStackDataset.name],
     # DebugTask.name: [PipDataset.name],
     SWETask.name: [SWEDataset.name],
+    BigCodeBenchTask.name: [BigcodeBenchDataset.name],
 }
 
 
@@ -62,7 +65,8 @@ def create_task(
     task_name: str,
     selector: Selector = random.choice,
     repl: REPLClient = REPLClient(),
-    code_scorer: Callable = None
+    code_scorer: Callable = None,
+    dataset_manager: DatasetManager = DatasetManager()
 ) -> Task:
     """Create a task from the given task name and LLM pipeline.
 
@@ -87,7 +91,7 @@ def create_task(
     if len(dataset_choices) == 0:
         raise ValueError(f"No datasets available for task {task_name}")
     dataset_name = selector(dataset_choices)
-    dataset = DATASET_MANAGER.datasets.get(dataset_name, None)
+    dataset = dataset_manager.datasets.get(dataset_name, None)
     if dataset is None:
         raise ValueError(f"Dataset {dataset_name} not found")
     return task(llm=llm, context=dataset.next(**dict(task.dataset_options)), repl=repl, code_scorer=code_scorer)

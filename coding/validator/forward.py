@@ -185,7 +185,7 @@ async def forward(self, synapse: StreamCodeSynapse):
             )[0]
             bt.logging.info(f"📋 Creating {task_name} task... ")
             try:
-                task = create_task(llm=self.llm, task_name=task_name, repl=self.repl, code_scorer=self.code_scorer)
+                task = create_task(llm=self.llm, task_name=task_name, repl=self.repl, code_scorer=self.code_scorer, dataset_manager=self.dataset_manager)
                 synapse = StreamCodeSynapse(
                     query=task.query,
                     files=task.files,
