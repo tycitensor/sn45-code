@@ -664,7 +664,7 @@ class TheStackDataset(Dataset):
 
     def get(
         self,
-        min_lines=10,
+        min_lines=25,
         max_lines=3000,
         selector: Selector = None,
         include_sibling_docs=False,
@@ -707,6 +707,9 @@ class TheStackDataset(Dataset):
             "gha_language" in row and row["gha_language"] == "Python"
         ):
             content = convert_to_python3(content)
+        
+        if len(content.splitlines()) < min_lines:
+            return None
         return {
             "title": row["repo_name"],  # name of the repo
             "topic": (
