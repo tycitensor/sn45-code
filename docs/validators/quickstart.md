@@ -57,7 +57,7 @@ The following command will run vllm on gpu:0. The `--gpu-memory-utilization` fla
 
 
 ```bash
-sudo docker run -d -p 8028:8000  --gpus device=0 --ipc host --name qwen14b docker.io/vllm/vllm-openai:latest --model Qwen/Qwen2.5-14B-Instruct-GPTQ-Int4 --max-model-len 8912 --dtype half --gpu-memory-utilization 0.8
+sudo docker run -d -p 8028:8000  --gpus device=0 --ipc host --name qwen14b docker.io/vllm/vllm-openai:latest --model Qwen/Qwen2.5-14B-Instruct-GPTQ-Int4 --max-model-len 16384 --dtype half --gpu-memory-utilization 0.8
 ```
 
 #### Setup Wandb 

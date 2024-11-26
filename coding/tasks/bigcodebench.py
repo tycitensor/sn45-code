@@ -55,9 +55,9 @@ def bigcode_splitter(prompt: str) -> BigCodeInstruction:
     signature_match = re.search(r'def (.+?):', prompt)
     signature = f'def {signature_match.group(1)}' if signature_match else ""
 
-    # Extract the body of the code
-    code_body_match = re.search(r'def .+?:\s*(.+)', prompt, re.DOTALL)
-    code_body = code_body_match.group(1).strip() if code_body_match else ""
+    # Extract the full code including the definition
+    code_match = re.search(r'(def .+?:\s*.+)', prompt, re.DOTALL)
+    code = code_match.group(1).strip() if code_match else ""
 
     # Create the BigCodeInstruction instance
     instruction = BigCodeInstruction(
@@ -66,7 +66,7 @@ def bigcode_splitter(prompt: str) -> BigCodeInstruction:
         parameters=parameters,
         returns=returns,
         example=example,
-        code=code_body,
+        code=code,
         requirements=requirements,
         signature=signature
     )
@@ -111,6 +111,7 @@ class BigCodeBenchTask(Task):
         instruction = bigcode_splitter(context.content)
         self.query = instruction.prompt
         self.reference = instruction.code
+        print("query:\n", self.query)
         print("reference:\n", self.reference)
         self.topic = context.title
         self.subtopic = context.topic
