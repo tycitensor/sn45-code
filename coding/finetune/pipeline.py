@@ -15,7 +15,7 @@ from coding.rewards.codesim import CodeSimModel
 from coding.schemas.tracking import TrackingInfo
 
 from coding.tasks.bigcodebench import BigCodeBenchTask
-from coding.datasets.bigcodebench import BigcodeBenchDataset
+from coding.datasets.bigcodebench import BigCodeBenchDataset
 
 class FinetuneEventResults(BaseModel):
     scores: List[float]
@@ -28,7 +28,7 @@ class FinetuneEventResults(BaseModel):
         }
 
 
-def generate_bigcode_tasks(ds: BigcodeBenchDataset, n: int = 1000) -> List[BigCodeBenchTask]:
+def generate_bigcode_tasks(ds: BigCodeBenchDataset, n: int = 1000) -> List[BigCodeBenchTask]:
     tasks = []
     for _ in range(n):
         tasks.append(BigCodeBenchTask(context=Context(**ds.get())))
@@ -49,7 +49,7 @@ class FinetunePipeline:
         self.code_sim_model = code_sim_model
         self.scores = []
         self.tracking_models: List[TrackingInfo] = []
-        self.dataset = BigcodeBenchDataset()
+        self.dataset = BigCodeBenchDataset()
         self.load_tasks()
         self.load_results()
 
