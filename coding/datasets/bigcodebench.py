@@ -5,7 +5,7 @@ from datasets import load_dataset
 from langchain_openai import ChatOpenAI
 
 from .base import Dataset
-from .prompts.bigcodebench import DATA_SYNTH_PROMPT
+from coding.datasets.prompts.bigcodebench import DATA_SYNTH_PROMPT
 
 class BigCodeBenchDataset(Dataset):
     name = "bigcodebench"
