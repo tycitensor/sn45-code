@@ -639,7 +639,7 @@ class TheStackDataset(Dataset):
         self.stack_iterset = iter(self.stack_dataset)
 
         self.stack_repo_dataset = load_dataset(
-            "bigcode/the-stack-v2-train-smol-ids", "Python", split="train", streaming=True
+            "bigcode/the-stack-v2-train-smol-ids", split="train", streaming=True
         )
         self.stack_repo_dataset = self.stack_repo_dataset.shuffle()
         self.stack_repo_iterset = iter(self.stack_repo_dataset)
