@@ -613,11 +613,11 @@ class TheStackDataset(Dataset):
         datasets = []
         for language in [
             "Python",
-            "JavaScript",
+            # "JavaScript",
             # "TypeScript",
-            "Go",
+            # "Go",
             # "Java",
-            "C++",
+            # "C++",
             # "C",
             # "SQL",
             # "Shell",
@@ -639,7 +639,7 @@ class TheStackDataset(Dataset):
         self.stack_iterset = iter(self.stack_dataset)
 
         self.stack_repo_dataset = load_dataset(
-            "bigcode/the-stack-v2-train-smol-ids", split="train", streaming=True
+            "bigcode/the-stack-v2-train-smol-ids", "Python", split="train", streaming=True
         )
         self.stack_repo_dataset = self.stack_repo_dataset.shuffle()
         self.stack_repo_iterset = iter(self.stack_repo_dataset)
@@ -708,8 +708,13 @@ class TheStackDataset(Dataset):
         ):
             content = convert_to_python3(content)
         
-        if len(content.splitlines()) < min_lines:
+        if len(content.splitlines()) < min_lines or len(content.splitlines()) > max_lines:
             return None
+        
+        for sibling_doc in sibling_docs:
+            if len(sibling_doc.splitlines()) < min_lines or len(sibling_doc.splitlines()) > max_lines:
+                return None
+        
         return {
             "title": row["repo_name"],  # name of the repo
             "topic": (
