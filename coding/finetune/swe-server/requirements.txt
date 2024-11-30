@@ -12,3 +12,4 @@ ruamel.yaml
 json
 fastapi
 uvicorn
+langchain_openai

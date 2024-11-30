@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  swe-server:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      LLM_NAME: ""
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
