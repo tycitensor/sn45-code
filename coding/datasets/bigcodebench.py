@@ -25,7 +25,7 @@ class BigcodeBenchDataset(Dataset):
             model_name=self.config.neuron.model_id,
             api_key=self.config.neuron.vllm_api_key,
             temperature=0.7,
-            max_tokens=12000
+            # max_tokens=12000
         )
 
         self.buffer = []
