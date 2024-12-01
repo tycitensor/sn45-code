@@ -18,11 +18,11 @@ import argparse
 import logging
 import subprocess
 import sys
+import os
 import time
 from datetime import timedelta
 from shlex import split
 from typing import List
-import constants
 import datetime
 
 log = logging.getLogger(__name__)
@@ -35,7 +35,7 @@ def get_version() -> str:
         split("git rev-parse HEAD"),
         check=True,
         capture_output=True,
-        cwd=constants.ROOT_DIR,
+        cwd=os.getcwd(),
     )
     commit = result.stdout.decode().strip()
     assert len(commit) == 40, f"Invalid commit hash: {commit}"
@@ -61,26 +61,16 @@ def start_validator_process(pm2_name: str, args: List[str], current_version: str
             "neurons/validator.py",
             *args,
         ),
-        cwd=constants.ROOT_DIR,
+        cwd=os.getcwd(),
     )
     process.pm2_name = pm2_name
     log.info("Started validator process with pm2, name: %s, version: %s", pm2_name, current_version)
 
     return process
-import requests
-from typing import Dict, Any
-def _remote_log(payload: Dict[str, Any]):
-        event_report_endpoint = f"{constants.VALIDATION_SERVER}/event_report"
-        try:
-            response = requests.post(event_report_endpoint, json=payload)
-            response.raise_for_status()  # Raise an exception for HTTP errors
-            log.info(f"successfully sent event_report with payload {payload}")
-        except Exception as e:
-            log.error(f"could not remote log: {e}. This error is ok to ignore if you are a validator")
 
 def stop_validator_process(process: subprocess.Popen) -> None:
     """Stop the validator process"""
-    subprocess.run(("pm2", "delete", process.pm2_name), cwd=constants.ROOT_DIR, check=True)
+    subprocess.run(("pm2", "delete", process.pm2_name), cwd=os.getcwd(), check=True)
 
 
 def pull_latest_version() -> None:
@@ -94,12 +84,11 @@ def pull_latest_version() -> None:
     to be used as-is.
     """
     try:
-        subprocess.run(split("git pull --rebase --autostash"), check=True, cwd=constants.ROOT_DIR)
+        subprocess.run(split("git pull --rebase --autostash"), check=True, cwd=os.getcwd())
     except subprocess.CalledProcessError as exc:
         log.error("Failed to pull, reverting: %s", exc)
-        _remote_log({"error": str(exc), "message": "Failed to pull from git, reverting"})
         
-        subprocess.run(split("git rebase --abort"), check=True, cwd=constants.ROOT_DIR)
+        subprocess.run(split("git rebase --abort"), check=True, cwd=os.getcwd())
 
 
 def upgrade_packages() -> None:
@@ -113,7 +102,7 @@ def upgrade_packages() -> None:
         subprocess.run(
             split(f"{sys.executable} -m pip install -r requirements.txt"),
             check=True,
-            cwd=constants.ROOT_DIR,
+            cwd=os.getcwd(),
         )
     except subprocess.CalledProcessError as exc:
         log.error("Failed to upgrade packages, proceeding anyway. %s", exc)
@@ -123,7 +112,7 @@ def upgrade_packages() -> None:
         subprocess.run(
             split(f"{sys.executable} -m pip install -e ."),
             check=True,
-            cwd=constants.ROOT_DIR,
+            cwd=os.getcwd(),
         )
     except subprocess.CalledProcessError as exc:
         log.error("Failed to upgrade packages, proceeding anyway. %s", exc)
@@ -145,12 +134,7 @@ def main(pm2_name: str, args: List[str]) -> None:
         while True:
             pull_latest_version()
             latest_version = get_version()
-            log.info("Latest version: %s", latest_version)
-            _remote_log({
-                "current_version": str(current_version),
-                "latest_version": str(latest_version),
-                "message": "Checking for updates"
-            })
+            log.info("Latest version: %s", latest_version)  
 
             if latest_version != current_version:
                 log.info(
@@ -159,14 +143,7 @@ def main(pm2_name: str, args: List[str]) -> None:
                     latest_version,
                 )
                 upgrade_packages()
-                current_version = get_version()
-                _remote_log({
-                    "current_version": str(current_version),
-                    "latest_version": str(latest_version),
-                    "message": "Upgrading to new version",
-                    "upgrade_status": "started",
-                    "time": str(datetime.datetime.now(datetime.timezone.utc))
-                })
+                current_version = get_version() 
                 stop_validator_process(validator)
                 validator = start_validator_process(pm2_name, args, current_version)
                 current_version = latest_version
