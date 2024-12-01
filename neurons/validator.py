@@ -73,7 +73,7 @@ class Validator(BaseValidatorNeuron):
             if p > 0
         ]
         self.executor = ProcessPoolExecutor()
-        self.finetune_results = []
+        self.finetune_results = {}
         # Load the reward pipeline
         self.reward_pipeline = RewardPipeline(
             selected_tasks=self.active_tasks,

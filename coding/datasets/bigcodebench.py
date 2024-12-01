@@ -21,7 +21,7 @@ class BigCodeBenchDataset(Dataset):
         ).shuffle()
         self.instruct_iterset = iter(self.instruct_ds)
 
-        self.gpt4 = ChatOpenAI(model="gpt-4o", temperature=0.7, max_tokens=16384)
+        self.gpt4 = ChatOpenAI(model="gpt-4o", temperature=0.7)
 
         self.buffer = []
 

@@ -18,3 +18,4 @@ accelerate
 transformers
 bitsandbytes
 flash_attn 
+huggingface-hub

@@ -28,7 +28,6 @@ from datetime import datetime
 from functools import partial
 from starlette.types import Send
 from dataclasses import dataclass
-from joblib import Parallel, delayed
 from typing import Awaitable, List, Dict
 
 from coding.rewards import RewardResult
@@ -156,7 +155,7 @@ def forward_organic_synapse(self, synapse: StreamCodeSynapse):
                 )
 
         axon = self.metagraph.axons[synapse.uid]
-        bt.logging.info(f"🛈🛈🛈🛈🛈 Forwarding {synapse} request to axon: {axon}")
+        bt.logging.info(f"Forwarding {synapse} request to axon: {axon}")
         responses = self.dendrite.query(
             axons=[axon],
             synapse=synapse,
@@ -183,9 +182,8 @@ async def forward(self, synapse: StreamCodeSynapse):
     bt.logging.info("🚀 Starting forward loop...")
     
     # check if the competition has ended and evaluation not started
-    if datetime.now() > datetime.strptime(COMPETITION_END_DATE, "%Y-%m-%d"):
-        if not self.finetune_results and not hasattr(self, 'finetune_eval_future'):
-            self.finetune_result = None
+    if datetime.now(datetime.UTC) > datetime.strptime(COMPETITION_END_DATE, "%Y-%m-%d"):
+        if not COMPETITION_ID in self.finetune_results and not hasattr(self, 'finetune_eval_future'):
             finetune_pipeline = FinetunePipeline(
                 validator=self,
                 competition_id=COMPETITION_ID,
@@ -194,77 +192,78 @@ async def forward(self, synapse: StreamCodeSynapse):
             self.finetune_eval_future = self.executor.submit(finetune_pipeline.evaluate)
     # Check if evaluation is complete
     if hasattr(self, 'finetune_eval_future') and self.finetune_eval_future.done():
-        self.finetune_results = self.finetune_eval_future.result()
+        self.finetune_results[COMPETITION_ID] = self.finetune_eval_future.result()
         delattr(self, 'finetune_eval_future')  # Remove the future after getting results
     
-    if not synapse:
-        while True:
-            # Create a specific task
-            task_name = random.choices(
-                self.config.neuron.tasks, self.config.neuron.task_weights
-            )[0]
-            bt.logging.info(f"📋 Creating {task_name} task... ")
-            try:
-                task = create_task(llm=self.llm, task_name=task_name, repl=self.repl, code_scorer=self.code_scorer)
-                synapse = StreamCodeSynapse(
-                    query=task.query,
-                    files=task.files,
-                    attachments=task.attachments,
-                    messages=task.messages,
-                )
-                break
-            except Exception as e:
-                bt.logging.debug(
-                    f"Failed to create {task_name} task. {sys.exc_info()}. Skipping to next task."
-                )
-                bt.logging.debug(traceback.format_exc())
-                continue
-    else:
-        try:
-            task = create_organic_task(llm=self.llm, synapse=synapse)
-        except:
-            bt.logging.error(f"Failed to create organic task. {sys.exc_info()}")
-            return
+    # TODO remove this once we are sure that we only want to do finetuning
+    # if not synapse:
+    #     while True:
+    #         # Create a specific task
+    #         task_name = random.choices(
+    #             self.config.neuron.tasks, self.config.neuron.task_weights
+    #         )[0]
+    #         bt.logging.info(f"📋 Creating {task_name} task... ")
+    #         try:
+    #             task = create_task(llm=self.llm, task_name=task_name, repl=self.repl, code_scorer=self.code_scorer)
+    #             synapse = StreamCodeSynapse(
+    #                 query=task.query,
+    #                 files=task.files,
+    #                 attachments=task.attachments,
+    #                 messages=task.messages,
+    #             )
+    #             break
+    #         except Exception as e:
+    #             bt.logging.debug(
+    #                 f"Failed to create {task_name} task. {sys.exc_info()}. Skipping to next task."
+    #             )
+    #             bt.logging.debug(traceback.format_exc())
+    #             continue
+    # else:
+    #     try:
+    #         task = create_organic_task(llm=self.llm, synapse=synapse)
+    #     except:
+    #         bt.logging.error(f"Failed to create organic task. {sys.exc_info()}")
+    #         return
 
-    uids = get_random_uids(self, k=self.config.neuron.sample_size)
-    uids_cpu = uids.tolist()
-    axons = [self.metagraph.axons[uid] for uid in uids]
-    # The dendrite client queries the network.
-    streams_responses = await self.dendrite(
-        axons=axons,
-        synapse=synapse,
-        timeout=task.timeout,
-        deserialize=False,
-        streaming=True,
-    )
-    #  Prepare the task for handling stream responses
-    handle_stream_responses_task = asyncio.create_task(
-        handle_response(responses=dict(zip(uids_cpu, streams_responses)))
-    )
-    stream_results = await handle_stream_responses_task
-    all_synapses_results = [stream_result.synapse for stream_result in stream_results]
-    if len(all_synapses_results) == 0:
-        bt.logging.error(f"No synapse results were gotten")
-        return
+    # uids = get_random_uids(self, k=self.config.neuron.sample_size)
+    # uids_cpu = uids.tolist()
+    # axons = [self.metagraph.axons[uid] for uid in uids]
+    # # The dendrite client queries the network.
+    # streams_responses = await self.dendrite(
+    #     axons=axons,
+    #     synapse=synapse,
+    #     timeout=task.timeout,
+    #     deserialize=False,
+    #     streaming=True,
+    # )
+    # #  Prepare the task for handling stream responses
+    # handle_stream_responses_task = asyncio.create_task(
+    #     handle_response(responses=dict(zip(uids_cpu, streams_responses)))
+    # )
+    # stream_results = await handle_stream_responses_task
+    # all_synapses_results = [stream_result.synapse for stream_result in stream_results]
+    # if len(all_synapses_results) == 0:
+    #     bt.logging.error(f"No synapse results were gotten")
+    #     return
 
-    response_event = DendriteResponseEvent(
-        responses=all_synapses_results, uids=uids, timeout=task.timeout, axons=axons
-    )
-    reward_result = RewardResult(
-        self.reward_pipeline,
-        task=task,
-        response_event=response_event,
-        device=self.device,
-    )
+    # response_event = DendriteResponseEvent(
+    #     responses=all_synapses_results, uids=uids, timeout=task.timeout, axons=axons
+    # )
+    # reward_result = RewardResult(
+    #     self.reward_pipeline,
+    #     task=task,
+    #     response_event=response_event,
+    #     device=self.device,
+    # )
 
-    self.update_scores(reward_result.rewards, uids)
+    # self.update_scores(reward_result.rewards, uids)
 
     log_event(
         self,
         {
             "step": self.step,
-            **reward_result.__state_dict__(),
-            **response_event.__state_dict__(),
-            **(self.finetune_results.__state_dict__() if hasattr(self, 'finetune_results') else {}),
+            # **reward_result.__state_dict__(),
+            # **response_event.__state_dict__(),
+            **({"trackers": [tracker.model_dump() for tracker in self.finetune_results[COMPETITION_ID].trackers]} if hasattr(self, 'finetune_results') and COMPETITION_ID in self.finetune_results else {}),
         },
     )

@@ -246,31 +246,31 @@ class BaseValidatorNeuron(BaseNeuron):
     def combine_scores(self) -> np.ndarray:
         """Combine the scores from the finetune results with the scores from the forward pass.
         
-        Each accounts for 50% of the final score. The top finetuned model gets 50% of the finetune score. 2nd best gets 30%, 3rd best gets 20%.
         If no finetune results exist yet, returns just the forward scores.
         """
         forward_scores = self.scores
 
         # If no finetune results yet, return just forward scores
         if not hasattr(self, 'finetune_results') or not self.finetune_results:
-            return forward_scores * 0.5
-
-        finetune_results = self.finetune_results
+            return [0]*len(forward_scores)
+        # get latest finetune results 
+        latest_competition_id = max(self.finetune_results.keys())
+        finetune_trackers = self.finetune_results[latest_competition_id].trackers
 
         # Sort finetune results by score in descending order
-        sorted_results = sorted(finetune_results, key=lambda x: x.score, reverse=True)
+        sorted_results = sorted(finetune_trackers, key=lambda x: x.score, reverse=True)
 
         # Initialize finetune weights array with zeros
         finetune_weights = np.zeros_like(forward_scores)
 
-        # Assign weights to top 3 models (50%, 30%, 20%)
-        weights = [1, 0.5, 0.2]
-        for i, result in enumerate(sorted_results[:3]):
+        # Assign weights to top 4 models (100%, 50%, 20%, 10%)
+        weights = [1, 0.5, 0.2, 0.1]
+        for i, result in enumerate(sorted_results[:4]):
             if i < len(weights):
-                finetune_weights[result.tracking_info.uid] = weights[i]
+                finetune_weights[result.uid] = weights[i]
 
         # Combine scores - 75% from forward pass, 25% from finetune results
-        return 0.75 * forward_scores + 0.25 * finetune_weights
+        return finetune_weights
     
     def set_weights(self):
         """

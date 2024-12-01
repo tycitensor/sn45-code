@@ -5,7 +5,7 @@ from coding.protocol import HFModelSynapse
 from coding.schemas.tracking import TrackingInfo
 from coding.utils.uids import get_miner_uids, get_hotkey_from_uid
 
-def gather_all_models(validator) -> List[TrackingInfo]:
+def gather_all_trackers(validator) -> List[TrackingInfo]:
     uids = get_miner_uids(validator)
     axons = [validator.metagraph.axons[uid] for uid in uids]
     synapse = HFModelSynapse()
@@ -22,6 +22,7 @@ def gather_all_models(validator) -> List[TrackingInfo]:
             block=validator.metagraph.block,
             hotkey=get_hotkey_from_uid(validator, uids[i]),
             uid=uids[i],
+            score=0.0,
         )
         for i, synapse in enumerate(responses) if synapse.model_name is not None
     ]

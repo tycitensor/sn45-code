@@ -7,3 +7,4 @@ class TrackingInfo(BaseModel):
     block: int
     hotkey: str
     uid: int
+    score: float
