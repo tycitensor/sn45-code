@@ -712,7 +712,7 @@ class TheStackDataset(Dataset):
             return None
         
         for sibling_doc in sibling_docs:
-            if len(sibling_doc.splitlines()) < min_lines or len(sibling_doc.splitlines()) > max_lines:
+            if len(sibling_doc.content.splitlines()) < min_lines or len(sibling_doc.content.splitlines()) > max_lines:
                 return None
         
         return {
