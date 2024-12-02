@@ -111,8 +111,6 @@ class BigCodeBenchTask(Task):
         instruction = bigcode_splitter(context.content)
         self.query = instruction.prompt
         self.reference = instruction.code
-        print("query:\n", self.query)
-        print("reference:\n", self.reference)
         self.topic = context.title
         self.subtopic = context.topic
         self.tags = context.tags
