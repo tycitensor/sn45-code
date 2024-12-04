@@ -18,6 +18,7 @@ class BigCodeInstruction(BaseModel):
     
     @property
     def prompt(self) -> str:
+        imports = "\n".join(f"import {pkg}" for pkg in self.imports)
         return f"""
 write a function {self.signature} to:
 {self.description}
@@ -26,8 +27,9 @@ The function should output with:
 {self.returns}
 
 You should start with:
-{self.imports}
-{self.signature}
+```
+{imports}
+{self.signature} ```
 """
 
 def bigcode_splitter(prompt: str) -> BigCodeInstruction:
