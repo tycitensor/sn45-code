@@ -28,6 +28,20 @@ from typing import List, AsyncIterator, Any, Optional
 
 from coding.schemas import ChatMessage, File
 
+
+class LogicSynapse(bt.Synapse):
+    """
+    LogicSynapse is a Synapse that is used to get the logic of the miner. 
+    
+    Attributes:
+        logic (dict): A dictionary where the key is a filename and the value is the file contents
+    """
+    logic: dict = pydantic.Field(
+        {},
+        title="logic",
+        description="A dictionary where the key is a filename and the value is the file contents",
+    )
+
 class HFModelSynapse(bt.Synapse):
     """
     HFModelSynapse is a Synapse that is used to get the HF model name that this miner published to HF
