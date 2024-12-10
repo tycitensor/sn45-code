@@ -16,9 +16,12 @@ class CodeSimModel(BaseRewardModel):
     def name(self) -> str:
         return "codesim"
 
-    def __init__(self, code_scorer=BERTScorer(lang="python"), **kwargs):
+    def __init__(self, code_scorer=None, **kwargs):
         super().__init__()
-        self.code_scorer = code_scorer
+        if code_scorer is None:
+            self.code_scorer = BERTScorer(lang="python")
+        else:
+            self.code_scorer = code_scorer
 
     def similarity(self, reference: str, completion: str) -> float:
         if not reference:
