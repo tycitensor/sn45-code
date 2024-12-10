@@ -30,7 +30,7 @@ from .repofile import RepoFileTask
 from .repo import RepoCompletionTask
 from .completion import CompletionTask
 from .organic_convo import OrganicConvoTask
-from .bigcodebench import BigcodeBenchTask
+from .bigcodebench import BigCodeBenchTask
 
 TASKS = {
     RepoCompletionTask.name: RepoCompletionTask,
