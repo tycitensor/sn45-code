@@ -44,10 +44,9 @@ TASKS = {
 from coding.repl import REPLClient
 from coding.schemas import Context
 from coding.helpers import Selector
-from coding.datasets import DATASET_MANAGER
+from coding.datasets import DatasetManager
 from coding.protocol import StreamCodeSynapse
 from coding.datasets import TheStackDataset, PipDataset, SWEDataset
-
 TASK_REGISTRY = {
     RepoCompletionTask.name: [TheStackDataset.name],
     FillInMiddleTask.name: [TheStackDataset.name],
@@ -63,7 +62,8 @@ def create_task(
     task_name: str,
     selector: Selector = random.choice,
     repl: REPLClient = REPLClient(),
-    code_scorer: Callable = None
+    code_scorer: Callable = None,
+    dataset_manager: DatasetManager = None
 ) -> Task:
     """Create a task from the given task name and LLM pipeline.
 
@@ -88,7 +88,7 @@ def create_task(
     if len(dataset_choices) == 0:
         raise ValueError(f"No datasets available for task {task_name}")
     dataset_name = selector(dataset_choices)
-    dataset = DATASET_MANAGER.datasets.get(dataset_name, None)
+    dataset = dataset_manager.datasets.get(dataset_name, None)
     if dataset is None:
         raise ValueError(f"Dataset {dataset_name} not found")
     return task(llm=llm, context=dataset.next(**dict(task.dataset_options)), repl=repl, code_scorer=code_scorer)

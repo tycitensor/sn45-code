@@ -12,6 +12,7 @@ class BigCodeBenchDataset(Dataset):
 
     def __init__(
         self,
+        config=None,
     ):
         if os.getenv("OPENAI_API_KEY") is None:
             raise ValueError("OPENAI_API_KEY is not set")
@@ -21,7 +22,13 @@ class BigCodeBenchDataset(Dataset):
         ).shuffle()
         self.instruct_iterset = iter(self.instruct_ds)
 
-        self.gpt4 = ChatOpenAI(model="gpt-4o", temperature=0.7)
+        self.llm = ChatOpenAI(
+            base_url=config.neuron.model_url,
+            model_name=config.neuron.model_id,
+            api_key=config.neuron.vllm_api_key,
+            temperature=0.7,
+            # max_tokens=12000
+        )
 
         self.buffer = []
 

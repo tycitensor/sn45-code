@@ -253,6 +253,7 @@ class BaseValidatorNeuron(BaseNeuron):
         # If no finetune results yet, return just forward scores
         if not hasattr(self, 'finetune_results') or not self.finetune_results:
             return [0]*len(forward_scores)
+        
         # get latest finetune results 
         latest_competition_id = max(self.finetune_results.keys())
         finetune_trackers = self.finetune_results[latest_competition_id].trackers
@@ -269,8 +270,8 @@ class BaseValidatorNeuron(BaseNeuron):
             if i < len(weights):
                 finetune_weights[result.uid] = weights[i]
 
-        # Combine scores - 75% from forward pass, 25% from finetune results
-        return finetune_weights
+        # Combine scores - 50% from forward pass, 50% from finetune results
+        return finetune_weights * 0.5 + forward_scores * 0.5
     
     def set_weights(self):
         """
