@@ -14,8 +14,8 @@ class BigCodeBenchDataset(Dataset):
         self,
         config=None,
     ):
-        if os.getenv("OPENAI_API_KEY") is None:
-            raise ValueError("OPENAI_API_KEY is not set")
+        # if os.getenv("OPENAI_API_KEY") is None:
+            # raise ValueError("OPENAI_API_KEY is not set")
 
         self.instruct_ds = load_dataset(
             "bigcode/self-oss-instruct-sc2-instructions", split="train", streaming=True
