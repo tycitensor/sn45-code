@@ -49,7 +49,7 @@ class BigCodeBenchDataset(Dataset):
             count += 1
             row = next(self.instruct_iterset)
             seed = row["seed"]
-            response = self.gpt4.invoke(DATA_SYNTH_PROMPT + "\n" + seed).content
+            response = self.llm.invoke(DATA_SYNTH_PROMPT + "\n" + seed).content
             
             # Extract all Python code blocks from the content, including those with a newline after 'python'
             code_blocks = re.findall(r"```python\s*(.*?)```", response, re.DOTALL)
