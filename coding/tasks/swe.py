@@ -6,42 +6,29 @@ from typing import Callable, List, Dict
 from dataclasses import dataclass, field
 
 from .task import Task
-from coding.schemas import Context, File
+from coding.schemas import Context, File, Patch, Edit
 from coding.rewards.reward import BatchRewardOutput, RewardEvent
 from coding.rewards.codesim import CodeSimModel
 
 
-# TODO decide if should move diff stuff and downloading to dataset
-@dataclass
-class Diff:
-    file: str
-    edited_lines: List[tuple] = field(
-        default_factory=list
-    )  # +/- , line number , line content
-
-
-def parse_diff(diff_text: str, no_title=False) -> List[Diff]:
+def parse_diff(diff_text: str, no_title=False) -> Patch:
     diff_pattern = r"^diff --git a\/(.+?) b\/(.+?)$"
     line_change_pattern = r"^@@ -(\d+),\d+ \+(\d+),\d+ @@"
-    diff_objects = []
+    edits = []
 
-    current_diff = None
+    current_file = None
     old_file_line_num = 0
     new_file_line_num = 0
     
     for line in diff_text.splitlines():
         diff_match = re.match(diff_pattern, line)
         if diff_match:
-            # When we encounter a new file diff, add the previous diff object
-            if current_diff:
-                diff_objects.append(current_diff)
-            current_diff = Diff(file=diff_match.group(2))
+            current_file = diff_match.group(2)
             old_file_line_num = 0
             new_file_line_num = 0
             continue
-        elif no_title and not current_diff:
-            # Handle case where title (file name) is not provided
-            current_diff = Diff(file="")
+        elif no_title and not current_file:
+            current_file = ""
             old_file_line_num = 0
             new_file_line_num = 0
             continue
@@ -49,55 +36,35 @@ def parse_diff(diff_text: str, no_title=False) -> List[Diff]:
         line_change_match = re.match(line_change_pattern, line)
         
         if line_change_match:
-            # Capture the starting line numbers for old and new files
             old_file_line_num = int(line_change_match.group(1))
             new_file_line_num = int(line_change_match.group(2))
             continue
 
         if line.startswith("+") and not line.startswith("+++"):
             # Line added in new file
-            current_diff.edited_lines.append(("+", new_file_line_num, line[1:].strip()))
-            new_file_line_num += 1  # Increment only the new file line number
+            edits.append(Edit(
+                file_name=current_file,
+                line_number=new_file_line_num,
+                line_content="",
+                new_line_content=line[1:].strip()
+            ))
+            new_file_line_num += 1
         elif line.startswith("-") and not line.startswith("---"):
             # Line removed from old file
-            current_diff.edited_lines.append(("-", old_file_line_num, line[1:].strip()))
-            old_file_line_num += 1  # Increment only the old file line number
+            edits.append(Edit(
+                file_name=current_file,
+                line_number=old_file_line_num,
+                line_content=line[1:].strip(),
+                new_line_content=""
+            ))
+            old_file_line_num += 1
         elif line.startswith(" "):
             # Context lines (lines present in both old and new files)
             old_file_line_num += 1
             new_file_line_num += 1
 
-    # Append the last diff object if exists
-    if current_diff:
-        diff_objects.append(current_diff)
+    return Patch(edits=edits)
 
-    return diff_objects
-
-
-def download_git_file(repo_name, commit_sha, file_path):
-    # Construct the URL for the file in the specific commit
-    file_url = f"https://api.github.com/repos/{repo_name}/contents/{file_path}?ref={commit_sha}"
-    file_response = requests.get(file_url)
-
-    if file_response.status_code == 200:
-        # The response is JSON containing file info, including the download URL
-        file_info = file_response.json()
-        download_url = file_info["download_url"]
-
-        # Fetch the file content
-        content_response = requests.get(download_url)
-
-        if content_response.status_code == 200:
-            # Return the file content
-            return content_response.content
-        else:
-            raise Exception(
-                f"Failed to download {file_path} from commit {commit_sha}. HTTP Status Code: {content_response.status_code}"
-            )
-    else:
-        raise Exception(
-            f"Failed to get file info for {file_path} from commit {commit_sha}. HTTP Status Code: {file_response.status_code}"
-        )
 
 
 class SWETask(Task):
@@ -120,122 +87,14 @@ class SWETask(Task):
     ):
         self.llm = llm
         self.context = context
-        self.diffs: List[Diff] = parse_diff(context.content)
+        self.patch: Patch = parse_diff(context.content)
+        self.query = context.topic
+        self.repo = context.title
+        self.base_commit = context.extras["base_commit"]
+        self.pull_number = context.extras["pull_number"]
 
-        self.context.files = [
-            File(
-                path=diff.file,
-                content=download_git_file(
-                    context.title, context.extras["base_commit"], diff.file
-                ),
-            )
-            for diff in self.diffs
-        ]
-        self.timeout = 20 + 20*len(self.context.files)
-
-        # TODO uncomment if want to rename
-        # renaming the files
-        # for idx, file in enumerate(self.diffs):
-        #     id = str(uuid.uuid4())[0:5]
-        #     self.diffs[idx].file = id
-        #     self.context.files[idx].path = id
-
-        self.files = self.context.files
-        self.query = (
-            """Given the following issue and files, please return a patch file that would fix the issue. An example of what you should return is
-<patch> diff --git a/example.txt b/example.txt
-index e69de29..d95f3ad 100644
---- a/example.txt
-+++ b/example.txt
-@@ -1,3 +1,3 @@
--Hello, world!
-+Hello, universe!
- 
- This is a simple text file.
--The end.
-+Goodbye, world! </patch>
-The following issue is:\n\n
-"""
-            + self.context.topic
-        )  # problem statement
-        # TODO potentially dont initiate CodeSimModel and instead just move the cosim function out and just import that
-        self.codesim = CodeSimModel(code_scorer=code_scorer)
-        
-        self.topic = context.title
-        self.subtopic = context.topic
-        self.tags = context.tags
         
 
-    def score(self, completion):
-        try:
-            completion = json.loads(completion)
-        except:
-            return 0
+    def score(self, patch: Patch):
+        pass
         
-        if not completion:
-            return 0
-        
-        total_points = len(self.diffs)  # one point per file
-        points = 0
-        # check if the diff file names match the ones in the github issue
-        for diff in self.diffs:
-            if diff.file not in completion.keys():
-                continue
-
-            miner_diffs = parse_diff(completion[diff.file], no_title=True)
-            if not miner_diffs:
-                return 0
-            else:
-                miner_diff = miner_diffs[0]
-            total_line_points = len(diff.edited_lines)
-            line_points = 0
-            for edit, line_num, content in diff.edited_lines:
-                if line_num not in [line[1] for line in miner_diff.edited_lines]:
-                    continue
-                # find the miners edited line that has the same line number
-                for miner_line in miner_diff.edited_lines:
-                    miner_edit, miner_line_num, miner_content = miner_line
-                    if miner_line_num == line_num:
-                        if (
-                            miner_edit == "-"
-                            and miner_content == content
-                            and miner_edit == edit
-                        ):
-                            line_points += 1
-                        if miner_edit == "+" and miner_edit == edit:
-                            line_points += 1 * self.codesim.similarity(content, miner_content)
-            if line_points != 0:
-                points += 1 * (line_points / total_line_points)
-        if points == 0:
-            return 0
-        return points / total_points
-
-    def reward(self, completions: List[str]) -> BatchRewardOutput:
-        rewards = []
-        timings = []
-
-        for completion in completions:
-            t0 = time.time()
-            try:
-                rewards.append(self.score(completion))
-            except:
-                rewards.append(0)
-            timings.append(time.time() - t0)
-        output = BatchRewardOutput(rewards=rewards, timings=timings, extra_info={})
-
-        return output
-
-    def reward_apply(self, response_event, reward_type) -> RewardEvent:
-        t0 = time.time()
-        batch_rewards_output = self.reward(response_event.completions)
-        batch_rewards_time = time.time() - t0
-
-        return RewardEvent(
-            model_name=self.name,
-            rewards=batch_rewards_output.rewards,
-            rewards_normalized=batch_rewards_output.rewards_normalized,
-            model_type=reward_type,
-            batch_time=batch_rewards_time,
-            extra_info=batch_rewards_output.extra_info,
-            timings=batch_rewards_output.timings,
-        )

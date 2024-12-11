@@ -41,6 +41,12 @@ class LogicSynapse(bt.Synapse):
         title="logic",
         description="A dictionary where the key is a filename and the value is the file contents",
     )
+    
+    llm_name: str = pydantic.Field(
+        "",
+        title="llm_name",
+        description="The name of the LLM to use",
+    )
 
 class HFModelSynapse(bt.Synapse):
     """

@@ -1,14 +1,13 @@
 from typing import List
 
-from coding.schemas.model import Model
-from coding.protocol import HFModelSynapse
+from coding.protocol import LogicSynapse
 from coding.schemas.tracking import TrackingInfo
 from coding.utils.uids import get_miner_uids, get_hotkey_from_uid
 
-def gather_all_models(validator) -> List[TrackingInfo]:
+def gather_all_logics(validator) -> List[TrackingInfo]:
     uids = get_miner_uids(validator)
     axons = [validator.metagraph.axons[uid] for uid in uids]
-    synapse = HFModelSynapse()
+    synapse = LogicSynapse()
     responses = []
     for axon in axons:
         try:
@@ -18,10 +17,11 @@ def gather_all_models(validator) -> List[TrackingInfo]:
             responses.append(synapse)
     return [
         TrackingInfo(
-            model=Model(model_name=synapse.model_name, competition_id=synapse.competition_id, block=validator.metagraph.block),
+            logic=synapse.logic,
             block=validator.metagraph.block,
             hotkey=get_hotkey_from_uid(validator, uids[i]),
             uid=uids[i],
+            llm_name=synapse.llm_name
         )
-        for i, synapse in enumerate(responses) if synapse.model_name is not None
+        for i, synapse in enumerate(responses)
     ]

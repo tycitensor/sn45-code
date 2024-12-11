@@ -92,7 +92,10 @@ class SWEDataset(Dataset):
 
         valid_pull = None
         err_count = 0
-        for pull in repo.get_all_pulls():
+        pulls = [pull for pull in repo.get_all_pulls(state="closed")]
+        random.shuffle(pulls)
+        # TODO either shuffle the pulls or grab every valid pull and randomly select one of those
+        for pull in pulls:
             try:
                 if valid_pull or err_count > 5:
                     break
