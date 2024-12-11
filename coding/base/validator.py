@@ -271,7 +271,13 @@ class BaseValidatorNeuron(BaseNeuron):
                 finetune_weights[result.uid] = weights[i]
 
         # Combine scores - 50% from forward pass, 50% from finetune results
-        return finetune_weights * 0.5 + forward_scores * 0.5
+        combined = finetune_weights * 0.5 + forward_scores * 0.5
+        
+        # Set bottom 10% of scores to 0
+        cutoff = np.percentile(combined, 10)
+        combined[combined <= cutoff] = 0
+        
+        return combined
     
     def set_weights(self):
         """
