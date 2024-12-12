@@ -2,7 +2,7 @@ from schemas.swe import Patch
 from abc import ABC, abstractmethod
 from langchain_openai import ChatOpenAI
 
-class SWE(ABC):
+class SWEBase(ABC):
     def __init__(self, llm: ChatOpenAI):
         self.llm = llm
 

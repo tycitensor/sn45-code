@@ -24,12 +24,10 @@ import threading
 import bittensor as bt
 import numpy as np
 
-from typing import Awaitable
 from traceback import print_exception
 
 from coding.mock import MockDendrite
 from coding.base.neuron import BaseNeuron
-from coding.protocol import StreamCodeSynapse
 from coding.utils.config import add_validator_args
 from coding.utils.exceptions import MaxRetryError
 
@@ -243,35 +241,6 @@ class BaseValidatorNeuron(BaseNeuron):
             self.is_running = False
             bt.logging.debug("Stopped")
 
-    def combine_scores(self) -> np.ndarray:
-        """Combine the scores from the finetune results with the scores from the forward pass.
-        
-        Each accounts for 50% of the final score. The top finetuned model gets 50% of the finetune score. 2nd best gets 30%, 3rd best gets 20%.
-        If no finetune results exist yet, returns just the forward scores.
-        """
-        forward_scores = self.scores
-
-        # If no finetune results yet, return just forward scores
-        if not hasattr(self, 'finetune_results') or not self.finetune_results:
-            return forward_scores * 0.5
-
-        finetune_results = self.finetune_results
-
-        # Sort finetune results by score in descending order
-        sorted_results = sorted(finetune_results, key=lambda x: x.score, reverse=True)
-
-        # Initialize finetune weights array with zeros
-        finetune_weights = np.zeros_like(forward_scores)
-
-        # Assign weights to top 3 models (50%, 30%, 20%)
-        weights = [1, 0.5, 0.2]
-        for i, result in enumerate(sorted_results[:3]):
-            if i < len(weights):
-                finetune_weights[result.tracking_info.uid] = weights[i]
-
-        # Combine scores - 75% from forward pass, 25% from finetune results
-        return 0.75 * forward_scores + 0.25 * finetune_weights
-    
     def set_weights(self):
         """
         Sets the validator weights to the metagraph hotkeys based on the scores it has received from the miners. The weights determine the trust and incentive level the validator assigns to miner nodes on the network.
@@ -279,10 +248,7 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # Check if self.scores contains any NaN values and log a warning if it does.
         for _ in range(1):
-            # Calculate the average reward for each uid across non-zero values.
-            # Replace any NaN values with 0.
-            combined_scores = self.combine_scores()
-            raw_weights = np.divide(combined_scores, np.sum(combined_scores, axis=0))
+            raw_weights = np.divide(self.scores, np.sum(self.scores, axis=0))
 
             # Process the raw weights to final_weights via subtensor limitations.
             (
@@ -357,20 +323,18 @@ class BaseValidatorNeuron(BaseNeuron):
         # Update the hotkeys.
         self.hotkeys = copy.deepcopy(self.metagraph.hotkeys)
 
-    def update_scores(self, rewards, uids):
+    def update_scores(self):
         """Performs exponential moving average on the scores based on the rewards received from the miners."""
+        sorted_results = sorted(self.finetune_results, key=lambda x: x.score, reverse=True)
+        # Initialize finetune weights array with zeros
+        scores = np.zeros(self.metagraph.n)
 
-        # Compute forward pass rewards, assumes uids are mutually exclusive.
-        # shape: [ metagraph.n ]
-        step_rewards = np.zeros_like(self.scores)
-        step_rewards[uids] = rewards
-        bt.logging.info(f"Scattered rewards: {rewards}")
-
-        # Update scores with rewards produced by this step.
-        # shape: [ metagraph.n ]
-        alpha = self.config.neuron.moving_average_alpha
-        self.scores = alpha * step_rewards + (1 - alpha) * self.scores
-        self.scores = np.maximum(self.scores - 0.001, 0)
+        # Assign weights to top 3 models (50%, 30%, 20%)
+        weights = [1, 0.5, 0.2]
+        for i, result in enumerate(sorted_results[:3]):
+            if i < len(weights):
+                scores[result.tracking_info.uid] = weights[i]
+        self.scores = scores
         bt.logging.info(f"Updated moving avg scores: {self.scores}")
 
     def save_state(self):

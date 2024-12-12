@@ -7,14 +7,13 @@ import bittensor as bt
 from typing import List
 from pydantic import BaseModel
 
-from coding.constants import COMPETITION_ID
 from .tracker import gather_all_logics
 from .dockerutil import build_docker_container, run_docker_container
 from .git import GitRepo
 
 from coding.schemas import Patch
-from coding.finetune.score import score
 from coding.schemas.context import Context
+from coding.constants import COMPETITION_ID
 from coding.rewards.codesim import CodeSimModel
 from coding.schemas.tracking import TrackingInfo, TaskResult
 
@@ -79,9 +78,10 @@ class FinetunePipeline:
     def results(self) -> FinetuneEventResults:
         return FinetuneEventResults(scores=self.scores, tracking_infos=self.tracking_logics)
 
-    # first need to gather all logics
-    # build all logic containers 
-    # go through each task and get the repo, copy into container, run the logic, add to logic scores
+    # TODO save progress to file
+    # TODO add token usage 
+        # may need to create custom LLM class that just requests.post to a custom server. should be a clone of the ChatOpenAI class kinda
+    # TODO add time taken
     def evaluate(self) -> FinetuneEventResults:
         # gather all logics
         bt.logging.info("Gathering all logics...")
@@ -89,31 +89,36 @@ class FinetunePipeline:
         bt.logging.info(f"Gathered {len(self.tracking_logics)} logics.")
         for tracker in self.tracking_logics:
             build_docker_container(tracker.logic, tracker.hotkey)
-        
+       
         for task in self.tasks:
             repo = GitRepo(task.repo, task.base_commit)
             for tracker in self.tracking_logics:
                 container = run_docker_container(repo, tracker.hotkey, tracker.llm_name)
-                response = requests.post(f"http://localhost:3000/call", json={"repo_location": "/app/repo", "issue_description": task.issue})
                 try:
+                    response = requests.post(f"http://localhost:3000/call", json={"repo_location": "/app/repo", "issue_description": task.issue}, timeout=360)
                     response.raise_for_status()
-                except requests.exceptions.RequestException as e:
+                    result = response.json()["result"]
+                    patch = Patch(**result)
+                    score = task.score(patch)
+                except Exception as e:
                     bt.logging.error(f"Request failed: {e}")
-                    continue
-                result = response.json()["result"]
-                patch = Patch(**result)
-                score = task.score(patch)
+                    score = 0
+                
                 tracker.results.append(TaskResult(repo_name=tracker.logic, commit_hash=task.base_commit, score=score))
                 bt.logging.info(f"Result from SWE: {result}")
                 container.stop()
                 container.remove()
+            del container
+            del repo
+        
         # average the scores for each tracker
         scores = []
         for tracker in self.tracking_logics:
             scores.append(sum(tracker.results.score) / len(tracker.results.score))
         self.scores = scores
         self.store_results()
-                
+        
+        return self.results
 
     def __str__(self):
         return f"{self.__class__.__name__}(scores={self.scores!r}, models={self.tracking_logics!r})"
