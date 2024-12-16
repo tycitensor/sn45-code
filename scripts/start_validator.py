@@ -109,7 +109,7 @@ def upgrade_packages() -> None:
     log.info("Upgrading requirements")
     try:
         subprocess.run(
-            split(f"{sys.executable} -m pip install --use-deprecated=legacy-resolver -r requirements.txt"),
+            split(f"{sys.executable} -m pip install -r requirements.txt"),
             check=True,
             cwd=os.getcwd(),
         )
@@ -119,7 +119,7 @@ def upgrade_packages() -> None:
     log.info("Upgrading packages")
     try:
         subprocess.run(
-            split(f"{sys.executable} -m pip install --use-deprecated=legacy-resolver -e ."),
+            split(f"{sys.executable} -m pip install -e ."),
             check=True,
             cwd=os.getcwd(),
         )
@@ -141,23 +141,26 @@ def main(pm2_name: str, args: List[str]) -> None:
 
     try:
         while True:
-            pull_latest_version()
-            latest_version = get_version()
-            log.info("Latest version: %s", latest_version)  
+            try:
+                pull_latest_version()
+                latest_version = get_version()
+                log.info("Latest version: %s", latest_version)  
 
-            if latest_version != current_version:
-                log.info(
-                    "Upgraded to latest version: %s -> %s",
-                    current_version,
-                    latest_version,
-                )
-                upgrade_packages()
-                current_version = get_version() 
-                stop_validator_process(validator)
-                validator = start_validator_process(pm2_name, args, current_version)
-                current_version = latest_version
+                if latest_version != current_version:
+                    log.info(
+                        "Upgraded to latest version: %s -> %s",
+                        current_version,
+                        latest_version,
+                    )
+                    upgrade_packages()
+                    current_version = get_version() 
+                    stop_validator_process(validator)
+                    validator = start_validator_process(pm2_name, args, current_version)
+                    current_version = latest_version
 
-            time.sleep(UPDATES_CHECK_TIME.total_seconds())
+                time.sleep(UPDATES_CHECK_TIME.total_seconds())
+            except:
+                pass
     finally:
         stop_validator_process(validator)
 
