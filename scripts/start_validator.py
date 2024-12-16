@@ -109,7 +109,7 @@ def upgrade_packages() -> None:
     log.info("Upgrading requirements")
     try:
         subprocess.run(
-            split(f"{sys.executable} -m pip install -r requirements.txt"),
+            split(f"{sys.executable} -m pip install --use-deprecated=legacy-resolver -r requirements.txt"),
             check=True,
             cwd=os.getcwd(),
         )
@@ -119,7 +119,7 @@ def upgrade_packages() -> None:
     log.info("Upgrading packages")
     try:
         subprocess.run(
-            split(f"{sys.executable} -m pip install -e ."),
+            split(f"{sys.executable} -m pip install --use-deprecated=legacy-resolver -e ."),
             check=True,
             cwd=os.getcwd(),
         )
