@@ -384,13 +384,16 @@ class BaseValidatorNeuron(BaseNeuron):
         """Saves the state of the validator to a file."""
         bt.logging.info("Saving validator state.")
 
+        # Convert finetune_results to a numpy array of tuples for saving
+        finetune_items = np.array(list(self.finetune_results.items()), dtype=object)
+
         # Save the state of the validator to file.
         np.savez(
             self.config.neuron.full_path + "/state.npz",
             step=self.step,
             scores=self.scores,
             hotkeys=self.hotkeys,
-            finetune_results=self.finetune_results,
+            finetune_items=finetune_items,
         )
 
     def load_state(self):
@@ -405,16 +408,19 @@ class BaseValidatorNeuron(BaseNeuron):
             self.step = None
             self.scores = None
             self.hotkeys = None
+            self.finetune_results = {}
             return
 
         # Load the state of the validator from file.
-        state = np.load(state_path)
+        state = np.load(state_path, allow_pickle=True)
         
         # Set attributes, using default values if they don't exist in the state file.
         self.step = state["step"].item() if "step" in state else None
         self.scores = state["scores"] if "scores" in state else None
         self.hotkeys = state["hotkeys"] if "hotkeys" in state else None
-        self.finetune_results = state["finetune_results"] if "finetune_results" in state else None
-    
-    
-    
+        
+        # Convert finetune_items back to dictionary
+        self.finetune_results = {}
+        if "finetune_items" in state:
+            for key, value in state["finetune_items"]:
+                self.finetune_results[key] = value

@@ -27,6 +27,7 @@ from starlette.responses import StreamingResponse
 from typing import List, AsyncIterator, Any, Optional
 
 from coding.schemas import ChatMessage, File
+from coding.constants import COMPETITION_ID
 
 class HFModelSynapse(bt.Synapse):
     """
@@ -40,8 +41,8 @@ class HFModelSynapse(bt.Synapse):
             - "suffix": the suffix of the prompt
         
     """
-    model_name: Optional[str] = None
-    competition_id: Optional[str] = None
+    model_name: Optional[str] = ""
+    competition_id: Optional[int] = COMPETITION_ID
     # prompt_tokens: Optional[dict] = None
 
 

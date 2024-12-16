@@ -11,7 +11,7 @@ from coding.finetune.model import load_model_and_tokenizer, cleanup
 
 def validate_model_info(model_name: str) -> bool:
     miner_model_info = model_info(model_name)
-    license = miner_model_info.license
+    license = miner_model_info.card_data['license']
     total_size = miner_model_info.safetensors.total
     return license in ["apache-2.0", "cc-by-nc-4.0", "mit"] and total_size < 10000000000
 

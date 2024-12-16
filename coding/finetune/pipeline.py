@@ -1,4 +1,5 @@
 import os
+import copy
 import pickle
 import atexit
 import weakref
@@ -19,7 +20,7 @@ from coding.datasets.bigcodebench import BigCodeBenchDataset
 
 class FinetuneEventResults(BaseModel):
     trackers: List[TrackingInfo]
-    competition_id: str = COMPETITION_ID
+    competition_id: int = COMPETITION_ID
     
     def __state_dict__(self):
         return {
@@ -28,10 +29,15 @@ class FinetuneEventResults(BaseModel):
         }
 
 
-def generate_bigcode_tasks(ds: BigCodeBenchDataset, n: int = 1000) -> List[BigCodeBenchTask]:
+def generate_bigcode_tasks(ds: BigCodeBenchDataset, n: int = 1) -> List[BigCodeBenchTask]:
     tasks = []
-    for _ in range(n):
-        tasks.append(BigCodeBenchTask(context=Context(**ds.get())))
+    while len(tasks) < n:
+        try:
+            tasks.append(BigCodeBenchTask(context=Context(**ds.get())))
+            bt.logging.info(f"Finetune: Task progress: {len(tasks)}/{n}")
+        except Exception as e:
+            bt.logging.error(f"Finetune: Error generating task: {e}")
+            continue
     return tasks
 
 def bittensor_injector(self):
@@ -42,25 +48,25 @@ def bittensor_injector(self):
 
 
 class FinetunePipeline:
-    def __init__(self, config, competition_id: str, code_sim_model: CodeSimModel = CodeSimModel()):
+    def __init__(self, config, competition_id: int, code_sim_model: CodeSimModel = CodeSimModel()):
         self.config = config
         bittensor_injector(self)
         self.competition_id = competition_id
         self.code_sim_model = code_sim_model
         self.trackers: List[TrackingInfo] = []
-        self.dataset = BigCodeBenchDataset()
+        self.dataset = BigCodeBenchDataset(config=self.config)
         self.load_tasks()
         self.load_results()
-
+        
         # Register cleanup to be called when the object is deleted
-        self._finalizer = weakref.finalize(self, self.cleanup)
+        # self._finalizer = weakref.finalize(self, lambda: FinetunePipeline.cleanup())
 
     def load_tasks(self):
         if os.path.exists(f"tasks_{self.competition_id}.pkl"):
             with open(f"tasks_{self.competition_id}.pkl", "rb") as f:
                 self.tasks = pickle.load(f)
         else:
-            self.tasks = generate_bigcode_tasks(self.dataset, self.config.finetune_test_size)
+            self.tasks = generate_bigcode_tasks(self.dataset, self.config.neuron.finetune_test_size)
             self.store_tasks()
             
     def load_results(self):
@@ -72,45 +78,52 @@ class FinetunePipeline:
             
     @property
     def results(self) -> FinetuneEventResults:
-        return FinetuneEventResults(trackers=self.trackers, competition_id=self.competition_id)
-
+        return FinetuneEventResults(
+            trackers=self.trackers,
+            competition_id=self.competition_id
+        ).__state_dict__()
+        
     def evaluate(self) -> FinetuneEventResults:
         # gather all models
-        bt.logging.info("Gathering all models...")
+        bt.logging.info("Finetune: Gathering all models...")
         new_trackers = gather_all_trackers(self)
-        bt.logging.info(f"Gathered {len(new_trackers)} trackers.")
+        bt.logging.info(f"Finetune: Gathered {len(new_trackers)} trackers.")
         
         for tracking_info in new_trackers:
             
             # Check if the model has already been scored
             previous_score = next((tracker.score for tracker in self.trackers if tracker.model.model_name == tracking_info.model.model_name), None)
             if previous_score is not None:
-                bt.logging.info(f"Using previously evaluated score for model: {tracking_info.model}")
+                bt.logging.info(f"Finetune: Using previously evaluated score for model: {tracking_info.model}")
                 tracking_info.score = previous_score
                 continue
             
             if tracking_info in self.trackers:
-                bt.logging.info(f"Skipping already evaluated model: {tracking_info.model}")
+                bt.logging.info(f"Finetune: Skipping already evaluated model: {tracking_info.model}")
                 continue
             
-            bt.logging.info(f"Evaluating model: {tracking_info.model}")
+            bt.logging.info(f"Finetune: Evaluating model: {tracking_info.model}")
             
             # ensure competition_id is equal to current competition_id
             if tracking_info.model.competition_id != COMPETITION_ID:
                 tracking_info.score = 0.0
                 continue
             
-            model_score = score(
-                self, tracking_info.model.model_name, self.tasks, self.code_sim_model
-            )
-            bt.logging.info(f"Model score from FinetunePipeline: {model_score}")
-            tracking_info.score = model_score
+            try:
+                model_score = score(
+                    self, tracking_info.model.model_name, self.tasks, self.code_sim_model
+                )
+                bt.logging.info(f"Finetune: Model score from FinetunePipeline: {model_score}")
+                tracking_info.score = model_score
+            except Exception as e:
+                bt.logging.error(f"Finetune: Error scoring model: {e}")
+                tracking_info.score = 0.0
             
             # Save intermediate results after each model evaluation
             self.trackers.append(tracking_info)
             self.store_results()
 
-        bt.logging.info(f"All scores from FinetunePipeline: {[tracker.score for tracker in self.trackers]}")
+        bt.logging.info(f"Finetune: All scores from FinetunePipeline: {[tracker.score for tracker in self.trackers]}")
         return self.results
     
     def get_top_model(self) -> TrackingInfo:
@@ -138,18 +151,28 @@ class FinetunePipeline:
                 "trackers": self.trackers
             }, f)
     
-    def cleanup(self):
+    def cleanup():
         """
         Delete the tasks file and any other task files
         """
-        os.remove(f"tasks_{self.competition_id}.pkl")
+        try:
+            os.remove(f"tasks_{COMPETITION_ID}.pkl")
+        except FileNotFoundError:
+            pass
+            
         # check if tasks_*.pkl exists and delete it if it does
         for file in os.listdir("."):
             if file.startswith("tasks_") and file.endswith(".pkl"):
-                os.remove(file)
+                try:
+                    os.remove(file)
+                except FileNotFoundError:
+                    pass
             if file.startswith("results_") and file.endswith(".pkl"):
-                os.remove(file)
-
+                try:
+                    os.remove(file)
+                except FileNotFoundError:
+                    pass
+                
     @staticmethod
     def start(config, code_sim_model: CodeSimModel = CodeSimModel()) -> FinetuneEventResults:
         pipeline = FinetunePipeline(config, code_sim_model)
