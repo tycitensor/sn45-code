@@ -83,3 +83,4 @@ There are some sample miners you can use check them out [here](./sample-miners.m
 
 It is suggested that you play around with mining on Testnet before going to Mainnet.
 If issues are encountered with btcli, it is recommended to use btcli v7.1.2 (https://github.com/opentensor/bittensor/commits/release/7.1.2/)
+

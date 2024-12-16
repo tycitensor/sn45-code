@@ -7,7 +7,7 @@ from langchain_openai import ChatOpenAI
 from .base import Dataset
 from .prompts.bigcodebench import DATA_SYNTH_PROMPT
 
-class BigcodeBenchDataset(Dataset):
+class BigCodeBenchDataset(Dataset):
     name = "bigcodebench"
 
     def __init__(

@@ -29,7 +29,9 @@ import bittensor as bt
 from typing import Awaitable, Tuple
 from code_bert_score import BERTScorer
 from langchain_openai import ChatOpenAI
+from concurrent.futures import ThreadPoolExecutor
 
+from coding.datasets import DatasetManager
 from coding.validator import forward, forward_organic_synapse
 from coding.rewards.pipeline import RewardPipeline
 from coding.protocol import StreamCodeSynapse
@@ -52,6 +54,7 @@ class Validator(BaseValidatorNeuron):
     def __init__(self, config=None):
         if not config:
             config = util_config(self)
+        self.finetune_results = {}
         super(Validator, self).__init__(config=config)
 
         bt.logging.info("load_state()")
@@ -72,6 +75,7 @@ class Validator(BaseValidatorNeuron):
             )
             if p > 0
         ]
+        self.executor = ThreadPoolExecutor()
         # Load the reward pipeline
         self.reward_pipeline = RewardPipeline(
             selected_tasks=self.active_tasks,

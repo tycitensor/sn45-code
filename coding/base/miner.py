@@ -22,10 +22,10 @@ import threading
 import bittensor as bt
 
 from typing import Union
-from coding.protocol import StreamCodeSynapse
+from traceback import print_exception
 from coding.base.neuron import BaseNeuron
 from coding.utils.config import add_miner_args
-from traceback import print_exception
+from coding.protocol import StreamCodeSynapse, HFModelSynapse
 
 
 class BaseMinerNeuron(BaseNeuron):
@@ -56,11 +56,15 @@ class BaseMinerNeuron(BaseNeuron):
 
         # Attach determiners which functions are called when servicing a request.
         bt.logging.info(f"Attaching forward function to miner axon.")
-        self.axon.attach(
-            forward_fn=self._forward,
-            blacklist_fn=self.blacklist,
-            priority_fn=self.priority,
-        )
+        for forward_capability in self.forward_capabilities:
+            forward_fn = forward_capability['forward']
+            blacklist_fn = forward_capability['blacklist']
+            priority_fn = forward_capability['priority']
+            self.axon.attach(
+                forward_fn=forward_fn,
+                blacklist_fn=blacklist_fn,
+                priority_fn=priority_fn,
+            )
         bt.logging.info(f"Axon created: {self.axon}")
 
         # Instantiate runners
@@ -192,28 +196,3 @@ class BaseMinerNeuron(BaseNeuron):
         # Sync the metagraph.
         self.metagraph.sync(subtensor=self.subtensor)
         self.last_block_sync = self.block
-
-    def _forward(self, synapse: StreamCodeSynapse) -> StreamCodeSynapse:
-        """
-        A wrapper method around the `forward` method that will be defined by the subclass.
-
-        This method acts as an intermediary layer to perform pre-processing before calling the
-        actual `forward` method implemented in the subclass. Specifically, it checks whether a
-        prompt is in cache to avoid reprocessing recent requests. If the prompt is not in the
-        cache, the subclass `forward` method is called.
-
-        Args:
-            synapse (StreamCodeSynapse): The incoming request object encapsulating the details of the request.
-
-        Returns:
-            StreamCodeSynapse: The response object to be sent back in reply to the incoming request, essentially
-            the filled synapse request object.
-
-        Raises:
-            ValueError: If the prompt is found in the cache indicating it was sent recently.
-
-        Example:
-            This method is not meant to be called directly but is invoked internally when a request
-            is received, and it subsequently calls the `forward` method of the subclass.
-        """
-        return self.forward(synapse=synapse)

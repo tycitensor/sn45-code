@@ -13,7 +13,7 @@ If there are any constants (e.g. strings and numeric values) used in the functio
 them before the function.
 If data is used, you need to provide sample data in the comment.
 Try to return values for correctness assertion.
-Each programming scenario and intent should be separated by the special token `GPT_ODEX_BREAK`.
+Each programming scenario and intent should be separated by a newline.
 Generate two examples with two scenarios from the following simple example:
 ```python
 def count_char(char, word):
@@ -100,8 +100,6 @@ def analyze_text_corpus(corpus):
         'token_length_stats': token_length_stats
     }
 ```
-`GPT_ODEX_BREAK`
-
 Scenario 2:
 ```python
 import re

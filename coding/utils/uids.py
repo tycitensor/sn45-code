@@ -99,3 +99,22 @@ def get_random_uids(
         )
     uids = np.array(random.sample(available_uids, k))
     return uids
+
+def get_miner_hotkeys(self) -> List[str]:
+    hotkeys = []
+    for uid in range(self.metagraph.n.item()):
+        if check_uid_availability(self.metagraph, uid, self.config.neuron.vpermit_tao_limit):
+            hotkeys.append(self.metagraph.axons[uid].hotkey)
+    return hotkeys
+
+def get_uid_from_hotkey(self, hotkey: str) -> int:
+    for uid in range(self.metagraph.n.item()):
+        if self.metagraph.axons[uid].hotkey == hotkey:
+            return uid
+    return None
+
+def get_hotkey_from_uid(self, uid: int) -> str:
+    return self.metagraph.axons[uid].hotkey
+
+def get_miner_uids(self) -> List[int]:
+    return [uid for uid in range(self.metagraph.n.item()) if check_uid_availability(self.metagraph, uid, self.config.neuron.vpermit_tao_limit)]

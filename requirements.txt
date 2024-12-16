@@ -15,4 +15,8 @@ swebench
 autopep8
 boto3
 smart_open
-pydantic==2.9.2
+accelerate
+transformers
+bitsandbytes
+flash_attn
+huggingface-hub

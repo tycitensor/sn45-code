@@ -30,6 +30,8 @@ import coding
 # import base miner class which takes care of most of the boilerplate
 from coding.base.miner import BaseMinerNeuron
 from coding.utils.config import config as util_config
+from coding.protocol import StreamCodeSynapse, HFModelSynapse
+from coding.miners.finetune import miner_process as miner_process_fine_tuning
 
 class Miner(BaseMinerNeuron):
     """
@@ -43,19 +45,37 @@ class Miner(BaseMinerNeuron):
     def __init__(self, config=None):
         if not config:
             config = util_config(self)
+        self.forward_capabilities = [
+            {'forward': self.forward, 'blacklist': self.blacklist, 'priority': self.priority},
+            {'forward': self.forward_hf_model, 'blacklist': self.blacklist_hf_model, 'priority': self.priority_hf_model},
+        ]
         super().__init__(config=config)
-        miner_name = f"coding.miners.{config.miner.name}_miner" # if config and config.miner else "bitagent.miners.t5_miner"
+        miner_name = f"coding.miners.{config.miner.name}_miner"  # if config and config.miner else "bitagent.miners.t5_miner"
         miner_module = importlib.import_module(miner_name)
-
+        
         self.miner_init = miner_module.miner_init
         self.miner_process = miner_module.miner_process
 
         self.miner_init(self)
 
-         
+    async def forward_hf_model(
+        self, synapse: HFModelSynapse
+    ) -> HFModelSynapse:
+        return miner_process_fine_tuning(self, synapse)
+    
+    async def blacklist_hf_model(
+        self, synapse: HFModelSynapse
+    ) -> typing.Tuple[bool, str]:
+        return await self.blacklist(synapse)
+    
+    async def priority_hf_model(
+        self, synapse: HFModelSynapse
+    ) -> float:
+        return await self.priority(synapse)
+    
     def forward(
-        self, synapse: coding.protocol.StreamCodeSynapse
-    ) -> Awaitable:
+        self, synapse: StreamCodeSynapse
+    ) -> StreamCodeSynapse:
         """
         Processes the incoming 'Dummy' synapse by performing a predefined operation on the input data.
         This method should be replaced with actual logic relevant to the miner's purpose.
@@ -72,12 +92,14 @@ class Miner(BaseMinerNeuron):
         try:
             response = self.miner_process(self, synapse)
         except:
-            bt.logging.error("An error occurred while processing the synapse: ", traceback.format_exc())
+            bt.logging.error(
+                "An error occurred while processing the synapse: ",
+                traceback.format_exc(),
+            )
         return response
-        
 
     async def blacklist(
-        self, synapse: coding.protocol.StreamCodeSynapse
+        self, synapse: StreamCodeSynapse
     ) -> typing.Tuple[bool, str]:
         """
         Determines whether an incoming request should be blacklisted and thus ignored. Your implementation should
@@ -112,7 +134,10 @@ class Miner(BaseMinerNeuron):
             if synapse.dendrite is None or synapse.dendrite.hotkey is None:
                 bt.logging.warning("Received a request without a dendrite or hotkey.")
                 return True, "Missing dendrite or hotkey"
-            if synapse.dendrite.hotkey == "5Fy7c6skhxBifdPPEs3TyytxFc7Rq6UdLqysNPZ5AMAUbRQx":
+            if (
+                synapse.dendrite.hotkey
+                == "5Fy7c6skhxBifdPPEs3TyytxFc7Rq6UdLqysNPZ5AMAUbRQx"
+            ):
                 return False, "Subnet owner hotkey"
             # TODO(developer): Define how miners should blacklist requests.
             uid = self.metagraph.hotkeys.index(synapse.dendrite.hotkey)
@@ -141,7 +166,9 @@ class Miner(BaseMinerNeuron):
         except:
             return True, "Errored out the blacklist function, blacklisting the hotkey"
 
-    async def priority(self, synapse: coding.protocol.StreamCodeSynapse) -> float:
+    async def priority(
+        self, synapse: StreamCodeSynapse
+    ) -> float:
         """
         The priority function determines the order in which requests are handled. More valuable or higher-priority
         requests are processed before others. You should design your own priority mechanism with care.
@@ -164,7 +191,7 @@ class Miner(BaseMinerNeuron):
         if synapse.dendrite is None or synapse.dendrite.hotkey is None:
             bt.logging.warning("Received a request without a dendrite or hotkey.")
             return 0.0
-        try: 
+        try:
             caller_uid = self.metagraph.hotkeys.index(
                 synapse.dendrite.hotkey
             )  # Get the caller index.

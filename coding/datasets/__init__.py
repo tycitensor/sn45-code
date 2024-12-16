@@ -1,6 +1,6 @@
 from .base import Dataset
 
-from .bigcodebench import BigcodeBenchDataset
+from .bigcodebench import BigCodeBenchDataset
 from .thestack import TheStackDataset
 from .pip import PipDataset
 from .swe import SWEDataset
@@ -10,13 +10,13 @@ class DatasetManager:
         self._datasets = None
         self.config = config
 
-    @property   
+    @property
     def datasets(self):
         if self._datasets is None:
             self._datasets = {
                 TheStackDataset.name: TheStackDataset(),
                 PipDataset.name: PipDataset(),
                 SWEDataset.name: SWEDataset(),
-                BigcodeBenchDataset.name: BigcodeBenchDataset(self.config)
+                BigCodeBenchDataset.name: BigCodeBenchDataset(self.config)
             }
         return self._datasets

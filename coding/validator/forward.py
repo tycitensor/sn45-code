@@ -24,18 +24,22 @@ import random
 import asyncio
 import traceback
 import bittensor as bt
+from datetime import datetime, timezone
 from functools import partial
 from starlette.types import Send
 from dataclasses import dataclass
 from typing import Awaitable, List, Dict
 
 from coding.rewards import RewardResult
+from coding.utils.logging import log_event
+from coding.finetune import FinetunePipeline
 from coding.utils.uids import get_random_uids
 from coding.protocol import StreamCodeSynapse
+from coding.rewards.codesim import CodeSimModel
 from coding.dendrite import DendriteResponseEvent
-from coding.utils.logging import log_event
 from coding.tasks import create_task, create_organic_task
-
+from coding.finetune.pipeline import FinetuneEventResults
+from coding.constants import COMPETITION_END_DATE, COMPETITION_ID
 
 @dataclass
 class StreamResult:
@@ -152,7 +156,7 @@ def forward_organic_synapse(self, synapse: StreamCodeSynapse):
                 )
 
         axon = self.metagraph.axons[synapse.uid]
-        bt.logging.info(f"🛈🛈🛈🛈🛈 Forwarding {synapse} request to axon: {axon}")
+        bt.logging.info(f"Forwarding {synapse} request to axon: {axon}")
         responses = self.dendrite.query(
             axons=[axon],
             synapse=synapse,
@@ -177,6 +181,22 @@ async def forward(self, synapse: StreamCodeSynapse):
 
     """
     bt.logging.info("🚀 Starting forward loop...")
+    
+    # check if the competition has ended and evaluation not started
+    if datetime.now(timezone.utc) > datetime.strptime(COMPETITION_END_DATE, "%Y-%m-%d").replace(tzinfo=timezone.utc):
+        if not COMPETITION_ID in self.finetune_results and not hasattr(self, 'finetune_eval_future'):
+            finetune_pipeline = FinetunePipeline(
+                config=self.config,
+                competition_id=COMPETITION_ID,
+                code_sim_model=CodeSimModel(code_scorer=self.code_scorer),
+            )
+            self.finetune_eval_future = self.executor.submit(finetune_pipeline.evaluate)
+    # Check if evaluation is complete
+    if hasattr(self, 'finetune_eval_future') and self.finetune_eval_future.done():
+        self.finetune_results[COMPETITION_ID] = FinetuneEventResults(**self.finetune_eval_future.result())
+        delattr(self, 'finetune_eval_future')  # Remove the future after getting results
+    
+    # TODO remove this once we are sure that we only want to do finetuning
     if not synapse:
         while True:
             # Create a specific task
@@ -245,5 +265,6 @@ async def forward(self, synapse: StreamCodeSynapse):
             "step": self.step,
             **reward_result.__state_dict__(),
             **response_event.__state_dict__(),
+            # **({"trackers": [tracker.model_dump() for tracker in self.finetune_results[COMPETITION_ID].trackers]} if hasattr(self, 'finetune_results') and COMPETITION_ID in self.finetune_results else {}),
         },
     )

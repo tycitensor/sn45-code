@@ -1,6 +1,8 @@
 import time
 import numpy as np
 from typing import List
+from code_bert_score import BERTScorer
+
 from .reward import (
     BaseRewardModel,
     BatchRewardOutput,
@@ -16,7 +18,10 @@ class CodeSimModel(BaseRewardModel):
 
     def __init__(self, code_scorer=None, **kwargs):
         super().__init__()
-        self.code_scorer = code_scorer
+        if code_scorer is None:
+            self.code_scorer = BERTScorer(lang="python")
+        else:
+            self.code_scorer = code_scorer
 
     def similarity(self, reference: str, completion: str) -> float:
         if not reference:

@@ -18,6 +18,7 @@ class BigCodeInstruction(BaseModel):
     
     @property
     def prompt(self) -> str:
+        imports = "\n".join(f"import {pkg}" for pkg in self.imports)
         return f"""
 write a function {self.signature} to:
 {self.description}
@@ -26,9 +27,11 @@ The function should output with:
 {self.returns}
 
 You should start with:
-{self.imports}
-{self.signature}
+```
+{imports}
+{self.signature} ```
 """
+
 
 def bigcode_splitter(prompt: str) -> BigCodeInstruction:
     """
@@ -56,6 +59,7 @@ def bigcode_splitter(prompt: str) -> BigCodeInstruction:
     signature = f'def {signature_match.group(1)}' if signature_match else ""
 
     # Extract the full code including the definition
+    # TODO ensure to include the imports 
     code_match = re.search(r'(def .+?:\s*.+)', prompt, re.DOTALL)
     code = code_match.group(1).strip() if code_match else ""
 
@@ -73,6 +77,7 @@ def bigcode_splitter(prompt: str) -> BigCodeInstruction:
     
     # Return the formatted prompt
     return instruction
+
 def parse_parameters(params_raw: str) -> Dict:
     """
     Parse the parameters section into a dictionary.
@@ -95,7 +100,7 @@ class BigCodeBenchTask(Task):
     goal: str = "to complete the code to match the given instructions"
     reward_definition: str = [
         dict(name="codesim", weight=0.8),
-        dict(name="speed", weight=0.2, ideal_time=1.5)
+        dict(name="speed", weight=0.2, ideal_time=4.5)
     ]
     penalty_definition: List = [
     ]
@@ -110,7 +115,7 @@ class BigCodeBenchTask(Task):
         self.context = context
         instruction = bigcode_splitter(context.content)
         self.query = instruction.prompt
-        self.reference = instruction.code
+        self.reference = context.content
         self.topic = context.title
         self.subtopic = context.topic
         self.tags = context.tags

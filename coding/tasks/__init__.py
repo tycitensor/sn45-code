@@ -31,6 +31,7 @@ from .repo import RepoCompletionTask
 from .completion import CompletionTask
 from .bigcodebench import BigCodeBenchTask
 from .organic_convo import OrganicConvoTask
+from .bigcodebench import BigCodeBenchTask
 
 TASKS = {
     RepoCompletionTask.name: RepoCompletionTask,
@@ -45,9 +46,8 @@ TASKS = {
 from coding.repl import REPLClient
 from coding.schemas import Context
 from coding.helpers import Selector
-from coding.datasets import DatasetManager
 from coding.protocol import StreamCodeSynapse
-from coding.datasets import TheStackDataset, PipDataset, SWEDataset, BigcodeBenchDataset
+from coding.datasets import TheStackDataset, PipDataset, SWEDataset, BigCodeBenchDataset, DatasetManager
 
 TASK_REGISTRY = {
     RepoCompletionTask.name: [TheStackDataset.name],
@@ -56,7 +56,7 @@ TASK_REGISTRY = {
     RepoFileTask.name: [TheStackDataset.name],
     # DebugTask.name: [PipDataset.name],
     SWETask.name: [SWEDataset.name],
-    BigCodeBenchTask.name: [BigcodeBenchDataset.name],
+    BigCodeBenchTask.name: [BigCodeBenchDataset.name],
 }
 
 
@@ -66,7 +66,7 @@ def create_task(
     selector: Selector = random.choice,
     repl: REPLClient = REPLClient(),
     code_scorer: Callable = None,
-    dataset_manager: DatasetManager = DatasetManager()
+    dataset_manager: DatasetManager = None
 ) -> Task:
     """Create a task from the given task name and LLM pipeline.
 
