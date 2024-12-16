@@ -50,15 +50,24 @@ def start_validator_process(pm2_name: str, args: List[str], current_version: str
     """
     assert sys.executable, "Failed to get python executable"
 
+    # First check if process already exists and delete it
+    try:
+        subprocess.run(("pm2", "delete", pm2_name), cwd=os.getcwd(), check=True)
+    except subprocess.CalledProcessError:
+        # Process doesn't exist, which is fine
+        pass
+
     log.info("Starting validator process with pm2, name: %s", pm2_name)
     process = subprocess.Popen(
         (
             "pm2",
             "start",
+            "--interpreter",
             "python3",
             "--name",
             pm2_name,
             "neurons/validator.py",
+            "--",
             *args,
         ),
         cwd=os.getcwd(),
@@ -149,7 +158,6 @@ def main(pm2_name: str, args: List[str]) -> None:
                 current_version = latest_version
 
             time.sleep(UPDATES_CHECK_TIME.total_seconds())
-
     finally:
         stop_validator_process(validator)
 
@@ -170,4 +178,5 @@ if __name__ == "__main__":
 
     flags, extra_args = parser.parse_known_args()
 
-    main(flags.pm2_name, extra_args)
+    main(flags.pm2_name, extra_args)        
+
