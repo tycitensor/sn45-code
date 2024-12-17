@@ -12,6 +12,7 @@ strenum
 detect-secrets
 wandb
 swebench
+torch
 autopep8
 boto3
 smart_open
@@ -20,3 +21,4 @@ transformers
 bitsandbytes
 flash_attn
 huggingface-hub
+
