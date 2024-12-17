@@ -252,7 +252,7 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # If no finetune results yet, return just forward scores
         if not hasattr(self, 'finetune_results') or not self.finetune_results:
-            return [0]*len(forward_scores)
+            return forward_scores
         
         # get latest finetune results 
         latest_competition_id = max(self.finetune_results.keys())
