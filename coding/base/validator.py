@@ -265,10 +265,10 @@ class BaseValidatorNeuron(BaseNeuron):
         finetune_weights = np.zeros_like(forward_scores)
 
         # Assign weights to top 4 models (100%, 50%, 20%, 10%)
-        weights = [1, 0.5, 0.2, 0.1]
-        for i, result in enumerate(sorted_results[:4]):
-            if i < len(weights):
-                finetune_weights[result.uid] = weights[i]
+        # weights = [1, 0.5, 0.2, 0.1]
+        # for i, result in enumerate(sorted_results[:4]):
+        #     if i < len(weights):
+        #         finetune_weights[result.uid] = weights[i]
 
         # Combine scores - 50% from forward pass, 50% from finetune results
         combined = finetune_weights * 0.5 + forward_scores * 0.5
