@@ -30,10 +30,9 @@ from typing import Awaitable, Tuple
 from code_bert_score import BERTScorer
 from langchain_openai import ChatOpenAI
 from concurrent.futures import ProcessPoolExecutor
-from coding.validator import forward, forward_organic_synapse
+from coding.validator import forward
 from coding.rewards.pipeline import RewardPipeline
 from coding.protocol import StreamCodeSynapse
-from coding.repl import REPLClient
 
 # import base validator class which takes care of most of the boilerplate
 from coding.utils.config import config as util_config
@@ -62,7 +61,6 @@ class Validator(BaseValidatorNeuron):
             model_name=self.config.neuron.model_id,
             api_key=self.config.neuron.vllm_api_key,
         ) 
-        self.repl = REPLClient()
         self.code_scorer = BERTScorer(lang="python")
 
         self.active_tasks = [
@@ -89,19 +87,20 @@ class Validator(BaseValidatorNeuron):
         """
         forward method that is called when the validator is queried with an axon
         """
-        response = forward_organic_synapse(self, synapse=synapse)
+        return forward(self, synapse)
+        # # response = forward_organic_synapse(self, synapse=synapse)
 
-        def _run():
-            asyncio.run(forward(self, synapse))
+        # def _run():
+        #     asyncio.run(forward(self, synapse))
 
-        if random.random() < self.config.neuron.percent_organic_score:
-            try:
-                loop = asyncio.get_running_loop()
-                loop.create_task(forward(self, synapse))
-            except RuntimeError:  # No event loop running
-                threading.Thread(target=_run).start()
-            # return the response
-        return response
+        # if random.random() < self.config.neuron.percent_organic_score:
+        #     try:
+        #         loop = asyncio.get_running_loop()
+        #         loop.create_task(forward(self, synapse))
+        #     except RuntimeError:  # No event loop running
+        #         threading.Thread(target=_run).start()
+        #     # return the response
+        # return response
 
     async def forward(self, synapse: StreamCodeSynapse) -> Awaitable:
         """
