@@ -1,21 +1,12 @@
-from fastapi import FastAPI, HTTPException, Request
-from langchain_openai import ChatOpenAI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-import os
 import submission
 
 app = FastAPI()
 
 # Initialize the LLM class from submission.py
 
-llm = ChatOpenAI(
-        base_url="http://host.docker.internal:21000/v1",
-        model_name=os.getenv("LLM_NAME"),
-        temperature=0.7,
-        max_tokens=16384,
-    )
-
-swe_instance = submission.SWE(llm)
+swe_instance = submission.SWE()
 
 class CallRequest(BaseModel):
     repo_location: str

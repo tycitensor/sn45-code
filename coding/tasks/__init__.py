@@ -23,14 +23,14 @@ import random
 from typing import Callable
 
 from .task import Task
-from .swe import SWETask
+from .swe import SWEBenchTask
 # from .debug import DebugTask
 from .fim import FillInMiddleTask
 from .repofile import RepoFileTask
 from .repo import RepoCompletionTask
 from .completion import CompletionTask
 from .organic_convo import OrganicConvoTask
-from .bigcodebench import BigcodeBenchTask
+from .bigcodebench import BigCodeBenchTask
 
 TASKS = {
     RepoCompletionTask.name: RepoCompletionTask,
@@ -38,15 +38,14 @@ TASKS = {
     CompletionTask.name: CompletionTask,
     RepoFileTask.name: RepoFileTask,
     # DebugTask.name: DebugTask,
-    SWETask.name: SWETask,
+    SWEBenchTask.name: SWEBenchTask,
 }
 
-from coding.repl import REPLClient
 from coding.schemas import Context
 from coding.helpers import Selector
 from coding.datasets import DATASET_MANAGER
 from coding.protocol import StreamCodeSynapse
-from coding.datasets import TheStackDataset, PipDataset, SWEDataset
+from coding.datasets import TheStackDataset, PipDataset, SWEBenchDataset
 
 TASK_REGISTRY = {
     RepoCompletionTask.name: [TheStackDataset.name],
@@ -54,7 +53,7 @@ TASK_REGISTRY = {
     CompletionTask.name: [TheStackDataset.name],
     RepoFileTask.name: [TheStackDataset.name],
     # DebugTask.name: [PipDataset.name],
-    SWETask.name: [SWEDataset.name],
+    SWEBenchTask.name: [SWEBenchDataset.name],
 }
 
 
@@ -62,7 +61,6 @@ def create_task(
     llm,
     task_name: str,
     selector: Selector = random.choice,
-    repl: REPLClient = REPLClient(),
     code_scorer: Callable = None
 ) -> Task:
     """Create a task from the given task name and LLM pipeline.
@@ -97,13 +95,11 @@ def create_task(
 def create_organic_task(
     llm,
     synapse: StreamCodeSynapse,
-    repl: REPLClient = REPLClient(),
 ) -> Task:
     """Create a task from the given synapse and LLM pipeline."""
 
     return OrganicConvoTask(
         llm=llm,
         context=Context(messages=synapse.messages, files=synapse.files),
-        repl=repl,
     )
  

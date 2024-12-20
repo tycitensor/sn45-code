@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import Callable, List, Dict
 
 from .task import Task
+from coding.helpers.git import GitRepo
 from coding.schemas import Context, Patch, Edit
 
 
@@ -90,19 +91,41 @@ def chunk_patch(patch: Patch) -> List[PatchChunk]:
         ):
             current_chunk.append(edit)
         else:
-            chunks.append(current_chunk)
+            # Convert chunk to PatchChunk before appending
+            if current_chunk:
+                start_idx = current_chunk[0].line_number
+                end_idx = current_chunk[-1].line_number
+                content = "\n".join(edit.line_content for edit in current_chunk)
+                new_content = "\n".join(edit.new_line_content for edit in current_chunk)
+                chunks.append(PatchChunk(
+                    file_name=current_file,
+                    start_index=start_idx,
+                    end_index=end_idx,
+                    content=content,
+                    new_content=new_content
+                ))
             current_chunk = [edit]
             current_file = edit.file_name
 
         # Add final chunk
         if i == len(patch.edits) - 1:
-            chunks.append(current_chunk)
+            if current_chunk:
+                start_idx = current_chunk[0].line_number
+                end_idx = current_chunk[-1].line_number
+                content = "\n".join(edit.line_content for edit in current_chunk)
+                new_content = "\n".join(edit.new_line_content for edit in current_chunk)
+                chunks.append(PatchChunk(
+                    file_name=current_file,
+                    start_index=start_idx,
+                    end_index=end_idx,
+                    content=content,
+                    new_content=new_content
+                ))
 
     return chunks
 
-
-class SWETask(Task):
-    name: str = "swe"
+class SWEBenchTask(Task):
+    name: str = "swebench"
     desc: str = "given a github issue corrrectly solve it"
     goal: str = "return the valid patch"
     reward_definition: str = [
@@ -119,16 +142,16 @@ class SWETask(Task):
     def __init__(
         self, llm: Callable, context: Context, code_scorer: Callable = None, **kwargs
     ):
+        self.repo = GitRepo(context.title, context.extras["base_commit"])
         self.code_scorer = code_scorer
-        self.llm = llm
         self.context = context
         self.patch: Patch = parse_diff(context.content)
         self.query = context.topic
-        self.repo = context.title
+        # self.repo = context.title
         self.base_commit = context.extras["base_commit"]
         self.pull_number = context.extras["pull_number"]
 
-    def score(self, patch: Patch):
+    def score(self, patch: Patch, token_count: int):
         valid_num_lines = {}  # file name -> num lines
         miner_num_lines = {}
 

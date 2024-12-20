@@ -1,2 +1,2 @@
-from .forward import forward, forward_organic_synapse
+from .forward import forward
 from .reward import reward

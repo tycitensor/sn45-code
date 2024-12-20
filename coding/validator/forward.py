@@ -26,7 +26,7 @@ from coding.utils.logging import log_event
 from coding.finetune import FinetunePipeline
 from coding.protocol import StreamCodeSynapse
 from coding.rewards.codesim import CodeSimModel
-from coding.constants import COMPETITION_END_DATE, COMPETITION_ID
+from coding.constants import COMPETITION_END_DATE
 
 async def forward(self, synapse: StreamCodeSynapse):
     """
@@ -39,14 +39,13 @@ async def forward(self, synapse: StreamCodeSynapse):
 
     """
     bt.logging.info("🚀 Starting forward loop...")
-    
+    # TODO fix the competition end date checking , it is fixed in the main branch
     # check if the competition has ended and evaluation not started
     if datetime.now() > datetime.strptime(COMPETITION_END_DATE, "%Y-%m-%d"):
         if not self.finetune_results and not hasattr(self, 'finetune_eval_future'):
             self.finetune_result = None
             finetune_pipeline = FinetunePipeline(
-                validator=self,
-                competition_id=COMPETITION_ID,
+                config=self.config,
                 code_sim_model=CodeSimModel(code_scorer=self.code_scorer),
             )
             self.finetune_eval_future = self.executor.submit(finetune_pipeline.evaluate)

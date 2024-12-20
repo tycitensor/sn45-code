@@ -1,5 +1,4 @@
-ast
-sentencetransformers
+sentence-transformers
 networkx
 grep-ast
 tree-sitter
@@ -9,7 +8,7 @@ llama-index
 pydantic
 numpy
 ruamel.yaml
-json
 fastapi
 uvicorn
 langchain_openai
+libcst

@@ -5,7 +5,7 @@ from .model import Model
 
 class TaskResult(BaseModel):
     score: float
-    repo_name: str
+    logic: dict
     commit_hash: str
 
 class TrackingInfo(BaseModel):
@@ -13,5 +13,4 @@ class TrackingInfo(BaseModel):
     block: int
     hotkey: str
     uid: int
-    llm_name: str
     results: List[TaskResult] = []

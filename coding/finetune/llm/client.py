@@ -1,16 +1,5 @@
 import os
 import requests
-from pydantic import BaseModel
-from abc import ABC, abstractmethod
-
-class Edit(BaseModel):
-    file_name: str
-    line_number: int
-    line_content: str
-    new_line_content: str
-
-class Patch(BaseModel):
-    edits: list[Edit]
 
 class LLMClient:
     def __init__(self, base_url: str = f"http://{os.getenv('DOCKER_HOST_IP', 'localhost')}:25000"):
@@ -39,10 +28,23 @@ class LLMClient:
         result = response.json()
         return result["result"], result["total_tokens"]
 
-class SWEBase(ABC):
-    def __init__(self):
-        self.llm = LLMClient()
+    def embed(self, query: str) -> list[float]:
+        """
+        Get embeddings for text using the embedding API endpoint
 
-    @abstractmethod
-    def __call__(self, repo_location: str, issue_description: str) -> Patch:
-        pass
+        Args:
+            query (str): The text to get embeddings for
+
+        Returns:
+            list[float]: Vector embedding of the input text
+
+        Raises:
+            requests.exceptions.RequestException: If API call fails
+        """
+        payload = {"query": query}
+
+        response = requests.post(f"{self.base_url}/embed", json=payload)
+        response.raise_for_status()
+
+        result = response.json()
+        return result["vector"]

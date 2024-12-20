@@ -21,7 +21,6 @@ def gather_all_logics(validator) -> List[TrackingInfo]:
             block=validator.metagraph.block,
             hotkey=get_hotkey_from_uid(validator, uids[i]),
             uid=uids[i],
-            llm_name=synapse.llm_name
         )
         for i, synapse in enumerate(responses)
     ]

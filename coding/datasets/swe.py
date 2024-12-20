@@ -65,8 +65,8 @@ def get_top_pip_packages():
     return packages
 
 
-class SWEDataset(Dataset):
-    name = "swe"
+class SWEBenchDataset(Dataset):
+    name = "swebench"
 
     def __init__(
         self,
@@ -83,7 +83,6 @@ class SWEDataset(Dataset):
         token = os.environ.get("GITHUB_TOKEN", None)
         if not token:
             raise Exception("GITHUB_TOKEN not set")
-
         repo = SWERepo(
             package_info["github"].split("/")[-2],
             package_info["github"].split("/")[-1],

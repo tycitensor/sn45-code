@@ -3,7 +3,7 @@ from .base import Dataset
 from .bigcodebench import BigCodeBenchDataset
 from .thestack import TheStackDataset
 from .pip import PipDataset
-from .swe import SWEDataset
+from .swe import SWEBenchDataset
 
 class DatasetManager:
     def __init__(self):
@@ -15,7 +15,7 @@ class DatasetManager:
             self._datasets = {
                 TheStackDataset.name: TheStackDataset(),
                 PipDataset.name: PipDataset(),
-                SWEDataset.name: SWEDataset()
+                SWEBenchDataset.name: SWEBenchDataset()
             }
         return self._datasets
 
