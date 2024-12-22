@@ -1,5 +1,5 @@
 langchain==0.3.7
-bittensor==8.4.2
+bittensor==8.5.1
 langchain-openai
 sentence_transformers
 numpy
@@ -21,4 +21,4 @@ transformers
 bitsandbytes
 flash_attn
 huggingface-hub
-
+bittensor-commit-reveal
