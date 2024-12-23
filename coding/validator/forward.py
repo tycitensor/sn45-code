@@ -265,6 +265,6 @@ async def forward(self, synapse: StreamCodeSynapse):
             "step": self.step,
             **reward_result.__state_dict__(),
             **response_event.__state_dict__(),
-            **({"trackers": [tracker.model_dump() for tracker in self.finetune_results[COMPETITION_ID].trackers]} if hasattr(self, 'finetune_results') and COMPETITION_ID in self.finetune_results else {}),
+            # **({"trackers": [tracker.model_dump() for tracker in self.finetune_results[COMPETITION_ID].trackers]} if hasattr(self, 'finetune_results') and COMPETITION_ID in self.finetune_results else {}),
         },
     )

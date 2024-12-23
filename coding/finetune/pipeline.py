@@ -94,7 +94,7 @@ class FinetunePipeline:
             # Check if the model has already been scored
             previous_score = next((tracker.score for tracker in self.trackers if tracker.model.model_name == tracking_info.model.model_name), None)
             if previous_score is not None:
-                bt.logging.info(f"Finetune: Using previously evaluated score for model: {tracking_info.model}")
+                bt.logging.info(f"Finetune: Using previously evaluated score for hotkey: {tracking_info.hotkey}")
                 tracking_info.score = previous_score
                 self.trackers.append(tracking_info)
                 self.store_results()
@@ -104,7 +104,7 @@ class FinetunePipeline:
             #     # bt.logging.info(f"Finetune: Skipping already evaluated model: {tracking_info.model}")
             #     continue
             
-            bt.logging.info(f"Finetune: Evaluating model: {tracking_info.model}")
+            bt.logging.info(f"Finetune: Evaluating hotkey: {tracking_info.hotkey}")
             
             # ensure competition_id is equal to current competition_id
             if tracking_info.model.competition_id != COMPETITION_ID:
