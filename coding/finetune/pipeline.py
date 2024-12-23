@@ -96,6 +96,8 @@ class FinetunePipeline:
             if previous_score is not None:
                 # bt.logging.info(f"Finetune: Using previously evaluated score for model: {tracking_info.model}")
                 tracking_info.score = previous_score
+                self.trackers.append(tracking_info)
+                self.store_results()
                 continue
             
             if tracking_info in self.trackers:
