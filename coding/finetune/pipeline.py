@@ -55,6 +55,15 @@ class FinetunePipeline:
         self.code_sim_model = code_sim_model
         self.trackers: List[TrackingInfo] = []
         self.dataset = BigCodeBenchDataset(config=self.config)
+        
+        new_trackers = self.load_unfinished_trackers()
+        if len(new_trackers) > 0:
+            bt.logging.info(f"Finetune: Found {len(new_trackers)} unfinished trackers.")
+        else:
+            new_trackers = gather_all_trackers(self)
+            bt.logging.info(f"Finetune: Gathered {len(new_trackers)} trackers.")
+            self.store_unfinished_trackers(new_trackers)
+        
         self.load_tasks()
         self.load_results()
         
