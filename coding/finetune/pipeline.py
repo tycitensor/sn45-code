@@ -82,12 +82,17 @@ class FinetunePipeline:
             trackers=self.trackers,
             competition_id=self.competition_id
         ).__state_dict__()
-        
+    
     def evaluate(self) -> FinetuneEventResults:
         # gather all models
         bt.logging.info("Finetune: Gathering all models...")
-        new_trackers = gather_all_trackers(self)
-        bt.logging.info(f"Finetune: Gathered {len(new_trackers)} trackers.")
+        new_trackers = self.load_unfinished_trackers()
+        if len(new_trackers) > 0:
+            bt.logging.info(f"Finetune: Found {len(new_trackers)} unfinished trackers.")
+        else:
+            new_trackers = gather_all_trackers(self)
+            bt.logging.info(f"Finetune: Gathered {len(new_trackers)} trackers.")
+            self.store_unfinished_trackers(new_trackers)
         
         for tracking_info in new_trackers:
             
@@ -146,7 +151,18 @@ class FinetunePipeline:
     def store_tasks(self):
         with open(f"tasks_{self.competition_id}.pkl", "wb") as f:
             pickle.dump(self.tasks, f)
-            
+    
+    def load_unfinished_trackers(self):
+        try:
+            with open(f"trackers_{self.competition_id}.pkl", "rb") as f:
+                return pickle.load(f)
+        except FileNotFoundError:
+            return []
+    
+    def store_unfinished_trackers(self, trackers: List[TrackingInfo]):
+        with open(f"trackers_{self.competition_id}.pkl", "wb") as f:
+            pickle.dump(trackers, f)
+    
     def store_results(self):
         with open(f"results_{self.competition_id}.pkl", "wb") as f:
             pickle.dump({
