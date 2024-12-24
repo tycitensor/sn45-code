@@ -76,7 +76,6 @@ class ModelServer:
         self.model_name = model_name
         self.server_process = None
         self.start_server()
-        self.llm = None
 
     def invoke(self, messages: list[dict]):
         return self.llm.invoke(messages).content
