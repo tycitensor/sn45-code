@@ -13,9 +13,9 @@ from coding.utils.shell import execute_shell_command
 MODEL_DIR = "~/.cache/huggingface/hub"
 
 # Delete the model from the huggingface cache when we're done serving it so we don't run out of disk space
-def delete_model_from_hf_cache(self, model_name: str):
+def delete_model_from_hf_cache(model_name: str):
     # Determine the cache directory
-    cache_dir = os.path.expanduser(self.config.validator_hf_cache_dir)
+    cache_dir = os.path.expanduser(MODEL_DIR)
     
     # Format the directory name based on the model name
     model_cache_dir = os.path.join(cache_dir, f"models--{model_name.replace('/', '--')}")
