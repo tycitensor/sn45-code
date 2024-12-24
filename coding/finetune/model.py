@@ -120,7 +120,8 @@ class ModelServer:
             --port 12000 \ 
             --host 0.0.0.0 \
             --mem-fraction-static 0.5 \
-            --context-length 8096
+            --context-length 8096 \
+            --model {self.model_name}
             """,
             self.model_name
         )
