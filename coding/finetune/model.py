@@ -138,7 +138,7 @@ class ModelServer:
 
         self.llm = ChatOpenAI(
             api_key="None",
-            base_url="http://localhost:12000",
+            base_url="http://localhost:12000/v1",
             model=self.model_name,
         )
 
