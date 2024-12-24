@@ -3,6 +3,7 @@ import copy
 import pickle
 import atexit
 import weakref
+import traceback
 import bittensor as bt
 from typing import List
 from pydantic import BaseModel
@@ -133,6 +134,7 @@ class FinetunePipeline:
                 tracking_info.score = model_score
             except Exception as e:
                 bt.logging.error(f"Finetune: Error scoring model: {e}")
+                bt.logging.error(f"Finetune: Error traceback: {traceback.format_exc()}")
                 tracking_info.score = 0.0
             
             # Save intermediate results after each model evaluation
