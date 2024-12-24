@@ -8,6 +8,10 @@ import bittensor as bt
 from langchain_openai import ChatOpenAI
 from sglang.utils import terminate_process
 
+import shlex
+import subprocess
+import bittensor as bt
+from threading import Thread
 from coding.utils.shell import execute_shell_command
 
 MODEL_DIR = "~/.cache/huggingface/hub"
@@ -68,6 +72,7 @@ def wait_for_server(base_url: str, server_process, timeout: int = None) -> None:
 
 class ModelServer:
     def __init__(self, model_name: str):
+        self.model_path = f"{MODEL_DIR}/{model_name}"
         self.model_name = model_name
         self.server_process = None
         self.start_server()
@@ -111,10 +116,11 @@ class ModelServer:
         self.server_process = execute_shell_command(
             f"""
             {os.getcwd()}/.venvsglang/bin/python -m sglang.launch_server \
+            --model-path {self.model_path} \
             --port 12000 \ 
             --host 0.0.0.0 \
             --mem-fraction-static 0.5 \
-            --context-length 25000
+            --context-length 8096
             """,
             self.model_name
         )
@@ -147,3 +153,27 @@ class ModelServer:
 
     def __del__(self):
         self.cleanup()
+
+if __name__ == "__main__":
+    # Test the model server with a simple prompt
+    model_name = "TheBloke/Mistral-7B-Instruct-v0.2-GPTQ"
+    server = ModelServer(model_name)
+    
+    try:
+        # Test basic invoke
+        query = "What is 2+2?"
+        response = server.invoke(query)
+        print("Basic invoke test:")
+        print(f"Response: {response}\n")
+
+        # Test batch invoke
+        queries = [f"What is {i}+{i}?" for i in range(3)]
+        responses = server.invoke_batch(queries, batch_size=2)
+        print("Batch invoke test:")
+        for i, response in enumerate(responses):
+            print(f"Batch {i} response: {response}")
+
+    except Exception as e:
+        print(f"Error during testing: {e}")
+    finally:
+        server.cleanup()
