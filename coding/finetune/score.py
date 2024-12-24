@@ -68,4 +68,5 @@ def score(validator, model_name: str, tasks: List[Task], codesim: CodeSimModel) 
         return 0.0
     finally:
         model_server.cleanup()
+        del model_server
 

@@ -120,6 +120,7 @@ class ModelServer:
             --mem-fraction-static 0.5 \
             --context-length 8096 \
             --model {self.model_name}
+            --max-total-tokens 16384
             """,
             self.model_name
         )
@@ -158,7 +159,7 @@ class ModelServer:
         
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.cleanup()
-        
+
 if __name__ == "__main__":
     # Test the model server with a simple prompt
     model_name = "TheBloke/Mistral-7B-Instruct-v0.2-GPTQ"
