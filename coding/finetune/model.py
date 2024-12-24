@@ -126,7 +126,7 @@ class ModelServer:
         )
 
         try:
-            wait_for_server(f"http://localhost:12000", self.server_process, timeout=60*10)
+            wait_for_server(f"http://localhost:12000", self.server_process, timeout=60*20)
         except TimeoutError:
             bt.logging.error(f"Finetune: Server did not become ready within timeout period")
             self.cleanup()
