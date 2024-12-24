@@ -52,9 +52,13 @@ def score(validator, model_name: str, tasks: List[Task], codesim: CodeSimModel) 
     
     scores = []
     responses = []
-    for task in tqdm(tasks, desc="Evaluating tasks"):
-        response = model_server.invoke(task.query)
-        responses.append(response)
+    # Create list of queries
+    queries = [task.query for task in tasks]
+    
+    # Make parallel calls using asyncio
+    responses = model_server.invoke_batch(queries)
+    
+    # Get references
     references = [task.reference for task in tasks]
     scores = codesim.similarity_batch(references, responses)
     model_server.cleanup()

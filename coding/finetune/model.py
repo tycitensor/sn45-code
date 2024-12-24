@@ -76,6 +76,37 @@ class ModelServer:
     def invoke(self, messages: list[dict]):
         return self.llm.invoke(messages).content
 
+    async def ainvoke(self, messages: list[dict]):
+        response = await self.llm.ainvoke(messages)
+        return response.content
+    
+    def invoke_batch(self, message_batches: list[list[dict]], batch_size: int = 10):
+        """Run multiple message batches in parallel
+        
+        Args:
+            message_batches: List of message batches, where each batch is a list of message dicts
+            batch_size: Number of batches to run in parallel
+        
+        Returns:
+            List of responses in same order as input batches
+        """
+        results = []
+        for i in range(0, len(message_batches), batch_size):
+            batch = message_batches[i:i + batch_size]
+            # Run batch in parallel using asyncio
+            async def run_batch():
+                tasks = []
+                for messages in batch:
+                    tasks.append(self.llm.ainvoke(messages))
+                responses = await asyncio.gather(*tasks)
+                return [r.content for r in responses]
+            
+            # Run the async batch and collect results
+            batch_results = asyncio.run(run_batch())
+            results.extend(batch_results)
+            
+        return results
+
     def start_server(self):
         self.server_process = execute_shell_command(
             f"""
@@ -113,7 +144,6 @@ class ModelServer:
                 pass
             self.server_process = None
         delete_model_from_hf_cache(self.model_name)
-
 
     def __del__(self):
         self.cleanup()
