@@ -208,4 +208,4 @@ class FinetunePipeline:
         return result
     
 # Register cleanup to be called when the process exits
-atexit.register(FinetunePipeline.cleanup)
+# atexit.register(FinetunePipeline.cleanup)
