@@ -296,7 +296,7 @@ def add_validator_args(cls, parser):
         "--neuron.finetune_test_size",
         type=int,
         help="The number of finetune tasks to generate and score with.",
-        default=500,
+        default=100,
     )
     
 

@@ -71,15 +71,15 @@ class FinetunePipeline:
         # self._finalizer = weakref.finalize(self, lambda: FinetunePipeline.cleanup())
 
     def load_tasks(self):
-        if os.path.exists(f"tasks_{self.competition_id}.pkl"):
-            with open(f"tasks_{self.competition_id}.pkl", "rb") as f:
-                self.tasks = pickle.load(f)
+        if os.path.exists(f"{self.config.neuron.full_path}/tasks_{self.competition_id}.pkl"):
+            with open(f"{self.config.neuron.full_path}/tasks_{self.competition_id}.pkl", "rb") as f:
+                self.tasks = pickle.load(f)[:self.config.neuron.finetune_test_size]
         else:
             self.tasks = generate_bigcode_tasks(self.dataset, self.config.neuron.finetune_test_size)
             self.store_tasks()
             
     def load_results(self):
-        results_file = f"results_{self.competition_id}.pkl"
+        results_file = f"{self.config.neuron.full_path}/results_{self.competition_id}.pkl"
         if os.path.exists(results_file):
             with open(results_file, "rb") as f:
                 saved_results = pickle.load(f)
@@ -158,53 +158,53 @@ class FinetunePipeline:
         }
     
     def store_tasks(self):
-        with open(f"tasks_{self.competition_id}.pkl", "wb") as f:
+        with open(f"{self.config.neuron.full_path}/tasks_{self.competition_id}.pkl", "wb") as f:
             pickle.dump(self.tasks, f)
     
     def load_unfinished_trackers(self):
         try:
-            with open(f"trackers_{self.competition_id}.pkl", "rb") as f:
+            with open(f"{self.config.neuron.full_path}/trackers_{self.competition_id}.pkl", "rb") as f:
                 return pickle.load(f)
         except FileNotFoundError:
             return []
     
     def store_unfinished_trackers(self, trackers: List[TrackingInfo]):
-        with open(f"trackers_{self.competition_id}.pkl", "wb") as f:
+        with open(f"{self.config.neuron.full_path}/trackers_{self.competition_id}.pkl", "wb") as f:
             pickle.dump(trackers, f)
     
     def store_results(self):
-        with open(f"results_{self.competition_id}.pkl", "wb") as f:
+        with open(f"{self.config.neuron.full_path}/results_{self.competition_id}.pkl", "wb") as f:
             pickle.dump({
                 "trackers": self.trackers
             }, f)
     
-    def cleanup():
-        """
-        Delete the tasks file and any other task files
-        """
-        try:
-            os.remove(f"tasks_{COMPETITION_ID}.pkl")
-        except FileNotFoundError:
-            pass
+    # def cleanup():
+    #     """
+    #     Delete the tasks file and any other task files
+    #     """
+    #     try:
+    #         os.remove(f"{self.config.neuron.full_path}/tasks_{COMPETITION_ID}.pkl")
+    #     except FileNotFoundError:
+    #         pass
             
-        # check if tasks_*.pkl exists and delete it if it does
-        for file in os.listdir("."):
-            if file.startswith("tasks_") and file.endswith(".pkl"):
-                try:
-                    os.remove(file)
-                except FileNotFoundError:
-                    pass
-            if file.startswith("results_") and file.endswith(".pkl"):
-                try:
-                    os.remove(file)
-                except FileNotFoundError:
-                    pass
+    #     # check if tasks_*.pkl exists and delete it if it does
+    #     for file in os.listdir(self.config.neuron.full_path):
+    #         if file.startswith("tasks_") and file.endswith(".pkl"):
+    #             try:
+    #                 os.remove(file)
+    #             except FileNotFoundError:
+    #                 pass
+    #         if file.startswith("results_") and file.endswith(".pkl"):
+    #             try:
+    #                 os.remove(file)
+    #             except FileNotFoundError:
+    #                 pass
                 
     @staticmethod
     def start(config, code_sim_model: CodeSimModel = CodeSimModel()) -> FinetuneEventResults:
         pipeline = FinetunePipeline(config, code_sim_model)
         result = pipeline.evaluate()
-        pipeline.cleanup()  # Ensure cleanup is called after evaluation
+        # pipeline.cleanup()  # Ensure cleanup is called after evaluation
         return result
     
 # Register cleanup to be called when the process exits

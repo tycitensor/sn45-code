@@ -1,7 +1,7 @@
 import bittensor as bt
 from typing import List
 from huggingface_hub import model_info
-
+from tqdm import tqdm
 
 from coding.tasks.task import Task
 from coding.finetune.evaluate import evaluate
@@ -51,7 +51,10 @@ def score(validator, model_name: str, tasks: List[Task], codesim: CodeSimModel) 
         return 0.0
     
     scores = []
-    responses = [evaluate(model, tokenizer, renderer, task.query) for task in tasks]
+    responses = []
+    for task in tqdm(tasks, desc="Evaluating tasks"):
+        response = evaluate(model, tokenizer, renderer, task.query)
+        responses.append(response)
     references = [task.reference for task in tasks]
     scores = codesim.similarity_batch(references, responses)
     cleanup(model, tokenizer)
