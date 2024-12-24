@@ -120,7 +120,6 @@ class ModelServer:
             --mem-fraction-static 0.5 \
             --context-length 8096 \
             --model {self.model_name}
-            --max-total-tokens 16384
             """,
             self.model_name
         )
