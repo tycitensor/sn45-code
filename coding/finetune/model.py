@@ -4,10 +4,10 @@ import shutil
 import psutil
 import asyncio
 import requests
+from tqdm import tqdm   
 import bittensor as bt
 from langchain_openai import ChatOpenAI
 from sglang.utils import terminate_process
-
 import shlex
 import subprocess
 import bittensor as bt
@@ -95,7 +95,7 @@ class ModelServer:
             List of responses in same order as input batches
         """
         results = []
-        for i in range(0, len(message_batches), batch_size):
+        for i in tqdm(range(0, len(message_batches), batch_size), desc="Processing batches"):
             batch = message_batches[i:i + batch_size]
             # Run batch in parallel using asyncio
             async def run_batch():
@@ -108,7 +108,6 @@ class ModelServer:
             # Run the async batch and collect results
             batch_results = asyncio.run(run_batch())
             results.extend(batch_results)
-            
         return results
 
     def start_server(self):
