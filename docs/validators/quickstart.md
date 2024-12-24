@@ -172,6 +172,15 @@ HF_TOKEN=<your huggingface token>
 ```
 
 
+#### Setup sglang
+
+~~~bash
+python3 -m venv .venvsglang
+# note to change cu121 in this path according to this page: https://docs.flashinfer.ai/installation.html
+./.venvsglang/bin/pip install flashinfer -i https://flashinfer.ai/whl/cu121/torch2.4/ 
+./.venvsglang/bin/pip install -r requirements.sglang.txt
+~~~
+
 #### Start the validator
 
 
@@ -191,4 +200,5 @@ python3 scripts/start_validator.py
     --wandb.on True # default is true but you can disable
     --neuron.finetune_gpu_id 0 # Defaults to 0, if using two gpu's set to 1
 ```
+
 

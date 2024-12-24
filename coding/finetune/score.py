@@ -6,7 +6,7 @@ from tqdm import tqdm
 from coding.tasks.task import Task
 from coding.finetune.evaluate import evaluate
 from coding.rewards.codesim import CodeSimModel
-from coding.finetune.model import load_model_and_tokenizer, cleanup
+from coding.finetune.model import ModelServer
 
 
 def validate_model_info(model_name: str) -> bool:
@@ -45,7 +45,7 @@ def score(validator, model_name: str, tasks: List[Task], codesim: CodeSimModel) 
         return 0.0
     
     try:
-        model, tokenizer, renderer = load_model_and_tokenizer(model_name, validator.config.neuron.finetune_gpu_id)
+        model_server = ModelServer(model_name)
     except Exception as e:
         bt.logging.info(f"Error loading model {model_name}: {e}") # TODO change to logging
         return 0.0
@@ -53,10 +53,10 @@ def score(validator, model_name: str, tasks: List[Task], codesim: CodeSimModel) 
     scores = []
     responses = []
     for task in tqdm(tasks, desc="Evaluating tasks"):
-        response = evaluate(model, tokenizer, renderer, task.query)
+        response = model_server.invoke(task.query)
         responses.append(response)
     references = [task.reference for task in tasks]
     scores = codesim.similarity_batch(references, responses)
-    cleanup(model, tokenizer)
+    model_server.cleanup()
     return sum(scores) / len(scores)
 

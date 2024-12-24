@@ -1,118 +1,119 @@
 import os
-import json
-import torch
+import time
 import shutil
-from jinja2 import Template
-from accelerate.utils import release_memory
-from transformers import AutoTokenizer, BitsAndBytesConfig, AutoModelForCausalLM
+import psutil
+import asyncio
+import requests
+import bittensor as bt
+from langchain_openai import ChatOpenAI
+from sglang.utils import terminate_process
 
-def get_renderer(template_str: str):
+from coding.utils.shell import execute_shell_command
+
+MODEL_DIR = "~/.cache/huggingface/hub"
+
+# Delete the model from the huggingface cache when we're done serving it so we don't run out of disk space
+def delete_model_from_hf_cache(self, model_name: str):
+    # Determine the cache directory
+    cache_dir = os.path.expanduser(self.config.validator_hf_cache_dir)
+    
+    # Format the directory name based on the model name
+    model_cache_dir = os.path.join(cache_dir, f"models--{model_name.replace('/', '--')}")
+    
+    # Check if the directory exists and delete it
+    if os.path.exists(model_cache_dir):
+        try:
+            shutil.rmtree(model_cache_dir)
+            bt.logging.debug(f"Finetune: Model has been removed from the HF cache.")
+        except Exception as e:
+            bt.logging.error(f"Finetune: Error deleting model: from HF cache: {e}")
+    else:
+        bt.logging.debug(f"Finetune: Model not found in the cache, could not delete")
+
+def wait_for_server(base_url: str, server_process, timeout: int = None) -> None:
+    """Wait for the server to be ready by polling the /v1/models endpoint.
+
+    Args:
+        base_url: The base URL of the server
+        server_process: The process to terminate if the server is ready
+        timeout: Maximum time to wait in seconds. None means wait forever.
     """
-    Renders a Jinja2 template string with a list of dictionaries and additional context.
+    start_time = time.time()
+    procutil = psutil.Process(int(server_process.pid))
+    while True:
+        try:
+            if timeout and time.time() - start_time > timeout:
+                bt.logging.error(f"Finetune: Server did not become ready within timeout period")
+                raise TimeoutError("Server did not become ready within timeout period")
 
-    Parameters:
-        data (list): A list of dictionaries with data to render the template.
-        template_str (str): A Jinja2 template string.
-        kwargs (dict): Additional context for the template rendering.
+            # Use psutil to monitor the process
+            if not procutil.is_running():  # Check if process is still running
+                bt.logging.error(f"Finetune: Server process terminated unexpectedly, check VRAM usage")
+                raise Exception("Server process terminated unexpectedly, potentially VRAM usage issue")
+            if server_process.poll() is not None:
+                bt.logging.error(f"Finetune: Server process terminated with code {server_process.poll()}")
+                raise Exception(f"Server process terminated with code {server_process.poll()}")
 
-    Returns:
-        str: The rendered template as a string.
-    """
-    template = Template(template_str)
-    def render(messages):
-        return template.render(messages=messages)
-    return render
+            response = requests.get(
+                f"{base_url}/v1/models",
+                headers={"Authorization": "Bearer None"},
+            )
+            if response.status_code == 200:
+                time.sleep(5)   
+                break
 
-def load_model_and_tokenizer(model_name: str, finetune_gpu_id: int) -> tuple[AutoModelForCausalLM, AutoTokenizer, callable]:
-    # Replace any forward slashes with dashes in model name
-    safe_model_name = model_name.replace('/', '-')
-    
-    cache_dir = os.path.join(os.getcwd(), "hf_cache") 
-    cache_path = os.path.join(cache_dir, safe_model_name)
-    if not os.path.exists(cache_path):
-        os.makedirs(cache_path, exist_ok=True)
-        
-    quant_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_use_double_quant=True,  
-        bnb_4bit_compute_dtype=torch.bfloat16,
-    )
-    
-    # Load tokenizer
-    tokenizer = AutoTokenizer.from_pretrained(
-        model_name,
-        cache_dir=f"model_cache_dir/{cache_path}",
-    )
-    
-    input_tokenizer = AutoTokenizer.from_pretrained(
-        model_name,
-        padding_side="left",
-        force_download=True,
-    )
-    output_tokenizer = AutoTokenizer.from_pretrained(
-        model_name,
-        padding_side="right",
-        force_download=True,
-    )
-    if input_tokenizer.pad_token is None:
-        input_tokenizer.pad_token = input_tokenizer.eos_token  # add a pad token if not present
-        input_tokenizer.pad_token_id = input_tokenizer.eos_token_id
-        output_tokenizer.pad_token = output_tokenizer.eos_token  # add a pad token if not present
-        output_tokenizer.pad_token_id = output_tokenizer.eos_token_id
-    # Load tokenizer config to get chat_template
-    
-    tokenizer_config = tokenizer.init_kwargs
-    # Extract the chat template if it exists
-    chat_template = tokenizer_config.get("chat_template")
-    renderer = get_renderer(chat_template)
-    try:
-        model = AutoModelForCausalLM.from_pretrained(
-            model_name,
-            quantization_config=quant_config,
-            attn_implementation="flash_attention_2",
-            torch_dtype=torch.bfloat16,
-            device_map={"": finetune_gpu_id},
-            cache_dir=f"model_cache_dir/{cache_path}",
+        except requests.exceptions.RequestException:
+            time.sleep(1)
+
+
+class ModelServer:
+    def __init__(self, model_name: str):
+        self.model_name = model_name
+        self.server_process = None
+        self.start_server()
+        self.llm = None
+
+    def invoke(self, messages: list[dict]):
+        return self.llm.invoke(messages).content
+
+    def start_server(self):
+        self.server_process = execute_shell_command(
+            f"""
+            {os.getcwd()}/.venvsglang/bin/python -m sglang.launch_server \
+            --port 12000 \ 
+            --host 0.0.0.0 \
+            --mem-fraction-static 0.5 \
+            --context-length 25000
+            """,
+            self.model_name
         )
 
-    except Exception as err:
         try:
-            print(
-                f"Error loading model in 4 bit quant with flash attention.: {err}. Trying vanilla load. This might cause OOM."
-            )
-            model = AutoModelForCausalLM.from_pretrained(
-                model_name,
-                device_map="auto",
-                cache_dir=f"model_cache_dir/{cache_path}",
-                # force_download=True
-            )
+            wait_for_server(f"http://localhost:12000", self.server_process, timeout=60*10)
+        except TimeoutError:
+            bt.logging.error(f"Finetune: Server did not become ready within timeout period")
+            self.cleanup()
+            raise TimeoutError("Server did not become ready within timeout period")
         except Exception as e:
-            raise Exception(f"Error loading model: {str(e)}")
-    
-    return model, tokenizer, renderer
+            bt.logging.error(f"Finetune: Error running model: {e}")
+            self.cleanup()
+            raise Exception(f"Error running model: {e}")
 
-def cleanup(model: AutoModelForCausalLM, tokenizer: AutoTokenizer):
-    # Release VRAM
-    with torch.no_grad():
-        model.cpu()
-        release_memory(model)
-        del model
-    
-    # Release tokenizer resources
-    release_memory(tokenizer) 
-    del tokenizer
-    
-    # Clear CUDA cache
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-        torch.cuda.synchronize()
-    
-    # Clear model cache
-    cache_dir = os.path.join(os.getcwd(), "hf_cache")
-    if os.path.exists(cache_dir):
-        shutil.rmtree(cache_dir)
-    
-    # Clear model cache dir
-    model_cache = os.path.join(os.getcwd(), "model_cache_dir") 
-    if os.path.exists(model_cache):
-        shutil.rmtree(model_cache)
+        self.llm = ChatOpenAI(
+            api_key="None",
+            base_url="http://localhost:12000",
+            model=self.model_name,
+        )
+
+    def cleanup(self):
+        if self.server_process:
+            try:
+                terminate_process(self.server_process)
+            except:
+                pass
+            self.server_process = None
+        delete_model_from_hf_cache(self.model_name)
+
+
+    def __del__(self):
+        self.cleanup()
