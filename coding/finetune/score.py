@@ -52,15 +52,20 @@ def score(validator, model_name: str, tasks: List[Task], codesim: CodeSimModel) 
     
     scores = []
     responses = []
-    # Create list of queries
-    queries = [task.query for task in tasks]
-    
-    # Make parallel calls using asyncio
-    responses = model_server.invoke_batch(queries)
-    
-    # Get references
-    references = [task.reference for task in tasks]
-    scores = codesim.similarity_batch(references, responses)
-    model_server.cleanup()
-    return sum(scores) / len(scores)
+    try:
+        # Create list of queries
+        queries = [task.query for task in tasks]
+        
+        # Make parallel calls using asyncio
+        responses = model_server.invoke_batch(queries)
+        
+        # Get references
+        references = [task.reference for task in tasks]
+        scores = codesim.similarity_batch(references, responses)
+        return sum(scores) / len(scores)
+    except Exception as e:
+        bt.logging.info(f"Error evaluating model {model_name}: {e}")
+        return 0.0
+    finally:
+        model_server.cleanup()
 

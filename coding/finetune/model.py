@@ -152,7 +152,13 @@ class ModelServer:
 
     def __del__(self):
         self.cleanup()
-
+        
+    def __enter__(self):
+        return self
+        
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.cleanup()
+        
 if __name__ == "__main__":
     # Test the model server with a simple prompt
     model_name = "TheBloke/Mistral-7B-Instruct-v0.2-GPTQ"
