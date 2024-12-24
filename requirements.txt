@@ -22,3 +22,4 @@ bitsandbytes
 flash_attn
 huggingface-hub
 bittensor-commit-reveal
+sglang
