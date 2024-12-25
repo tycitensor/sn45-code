@@ -8,10 +8,6 @@ from tqdm import tqdm
 import bittensor as bt
 from langchain_openai import ChatOpenAI
 from sglang.utils import terminate_process
-import shlex
-import subprocess
-import bittensor as bt
-from threading import Thread
 from coding.utils.shell import execute_shell_command
 
 MODEL_DIR = "~/.cache/huggingface/hub"
@@ -113,14 +109,14 @@ class ModelServer:
     def start_server(self):
         self.server_process = execute_shell_command(
             f"""
-            {os.getcwd()}/.venvsglang/bin/python -m sglang.launch_server \
-            --model-path {self.model_path} \
+            {os.getcwd()}/.venvsglang/bin/python -m vllm.entrypoints.openai.api_server \
+            --model {self.model_name} \
+            --enforce-eager \
             --port 12000 \ 
             --host 0.0.0.0 \
             --quantization fp8 \ 
-            --mem-fraction-static 0.5 \
-            --context-length 8096 \
-            --model {self.model_name}
+            --gpu-memory-utilization 0.5 \
+            --max-model-len 8096 \
             """,
             self.model_name
         )
@@ -134,13 +130,14 @@ class ModelServer:
 
             self.server_process = execute_shell_command(
                 f"""
-                {os.getcwd()}/.venvsglang/bin/python -m sglang.launch_server \
-                --model-path {self.model_path} \
-                --port 12000 \ 
+                {os.getcwd()}/.venvsglang/bin/python -m vllm.entrypoints.openai.api_server \
+                --model {self.model_name} \
+                --enforce-eager \
+                --port 12000 \
                 --host 0.0.0.0 \
-                --mem-fraction-static 0.5 \
-                --context-length 8096 \
-                --model {self.model_name}
+                --quantization fp8 \
+                --gpu-memory-utilization 0.5 \
+                --max-model-len 8096 \
                 """,
                 self.model_name
             )
@@ -181,7 +178,7 @@ class ModelServer:
 
 if __name__ == "__main__":
     # Test the model server with a simple prompt
-    model_name = "TheBloke/Mistral-7B-Instruct-v0.2-GPTQ"
+    model_name = "MistralAI/Mistral-7B-Instruct-v0.1"
     server = ModelServer(model_name)
     
     try:

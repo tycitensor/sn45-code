@@ -133,3 +133,4 @@ xformers==0.0.27.post2
 xxhash==3.5.0
 yarl==1.17.1
 zipp==3.21.0
+vllm
