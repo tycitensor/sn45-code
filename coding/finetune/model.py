@@ -159,13 +159,16 @@ class ModelServer:
         )
 
     def cleanup(self):
-        if self.server_process:
-            try:
-                terminate_process(self.server_process)
-            except:
-                pass
-            self.server_process = None
-        delete_model_from_hf_cache(self.model_name)
+        try:
+            if self.server_process:
+                try:
+                    terminate_process(self.server_process)
+                except:
+                    pass
+                self.server_process = None
+            delete_model_from_hf_cache(self.model_name)
+        except Exception as e:
+            pass
 
     def __del__(self):
         self.cleanup()
