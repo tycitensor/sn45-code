@@ -29,7 +29,7 @@ from .diffsim import DiffSimModel
 from .validcode import ValidCodeModel
 
 REWARD_MODELS = {
-    CodeSimModel().name: CodeSimModel,
+    "codesim": CodeSimModel,
     DiffSimModel().name: DiffSimModel,
     SpeedModel().name: SpeedModel, 
     ValidCodeModel().name: ValidCodeModel,

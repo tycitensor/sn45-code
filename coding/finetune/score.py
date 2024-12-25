@@ -1,11 +1,10 @@
 import bittensor as bt
-from typing import List
+from typing import List, Any
 from huggingface_hub import model_info
 from tqdm import tqdm
 
 from coding.tasks.task import Task
 from coding.finetune.evaluate import evaluate
-from coding.rewards.codesim import CodeSimModel
 from coding.finetune.model import ModelServer
 
 
@@ -15,7 +14,7 @@ def validate_model_info(model_name: str) -> bool:
     total_size = miner_model_info.safetensors.total
     return license in ["apache-2.0", "cc-by-nc-4.0", "mit"] and total_size < 10000000000
 
-def score(validator, model_name: str, tasks: List[Task], codesim: CodeSimModel) -> float:
+def score(validator, model_name: str, tasks: List[Task], codesim: Any) -> float:
     """
     Calculate the average score across multiple tasks for a given model.
 

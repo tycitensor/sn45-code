@@ -49,7 +49,7 @@ def bittensor_injector(self):
 
 
 class FinetunePipeline:
-    def __init__(self, config, competition_id: int, code_sim_model: CodeSimModel = CodeSimModel()):
+    def __init__(self, config, competition_id: int, code_sim_model):
         self.config = config
         bittensor_injector(self)
         self.competition_id = competition_id
@@ -203,7 +203,7 @@ class FinetunePipeline:
     #                 pass
                 
     @staticmethod
-    def start(config, code_sim_model: CodeSimModel = CodeSimModel()) -> FinetuneEventResults:
+    def start(config, code_sim_model) -> FinetuneEventResults:
         pipeline = FinetunePipeline(config, code_sim_model)
         result = pipeline.evaluate()
         # pipeline.cleanup()  # Ensure cleanup is called after evaluation
