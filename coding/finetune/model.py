@@ -115,7 +115,7 @@ class ModelServer:
             --port 12000 \ 
             --host 0.0.0.0 \
             --quantization fp8 \ 
-            --gpu-memory-utilization 0.5 \
+            --gpu-memory-utilization 0.6 \
             --max-model-len 8096 \
             """,
             self.model_name
@@ -135,8 +135,7 @@ class ModelServer:
                 --enforce-eager \
                 --port 12000 \
                 --host 0.0.0.0 \
-                --quantization fp8 \
-                --gpu-memory-utilization 0.5 \
+                --gpu-memory-utilization 0.6 \
                 --max-model-len 8096 \
                 """,
                 self.model_name
