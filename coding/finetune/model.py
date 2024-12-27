@@ -107,16 +107,15 @@ class ModelServer:
         return results
 
     def start_server(self):
-        if "phi" in self.model_name:
+        if "phi" in self.model_name.lower():
             self.server_process = execute_shell_command(
                 f"""
                 {os.getcwd()}/.venvsglang/bin/python -m sglang.launch_server \
                 --model {self.model_name} \
-                --enforce-eager \
                 --port 12000 \ 
                 --host 0.0.0.0 \
                 --quantization fp8 \ 
-                --gpu-memory-utilization 0.6 \
+                --mem-fraction-static 0.6 \
                 --max-model-len 8096 \
                 --disable-cuda-graph
                 """,
@@ -127,11 +126,10 @@ class ModelServer:
                 f"""
                 {os.getcwd()}/.venvsglang/bin/python -m sglang.launch_server \
                 --model {self.model_name} \
-                --enforce-eager \
                 --port 12000 \ 
                 --host 0.0.0.0 \
                 --quantization fp8 \ 
-                --gpu-memory-utilization 0.6 \
+                --mem-fraction-static 0.6 \
                 --max-model-len 8096 \
                 --attention-backend triton
                 """,
@@ -145,15 +143,14 @@ class ModelServer:
             self.server_process.kill()
             bt.logging.error(f"Finetune: Server did not become ready within timeout period")
 
-            if "phi" in self.model_name:
+            if "phi" in self.model_name.lower():
                 self.server_process = execute_shell_command(
                     f"""
                     {os.getcwd()}/.venvsglang/bin/python -m sglang.launch_server \
                     --model {self.model_name} \
-                    --enforce-eager \
                     --port 12000 \ 
                     --host 0.0.0.0 \
-                    --gpu-memory-utilization 0.6 \
+                    --mem-fraction-static 0.6 \
                     --max-model-len 8096 \
                     --disable-cuda-graph
                     """,
@@ -164,10 +161,9 @@ class ModelServer:
                     f"""
                     {os.getcwd()}/.venvsglang/bin/python -m sglang.launch_server \
                     --model {self.model_name} \
-                    --enforce-eager \
                     --port 12000 \ 
                     --host 0.0.0.0 \
-                    --gpu-memory-utilization 0.6 \
+                    --mem-fraction-static 0.6 \
                     --max-model-len 8096 \
                     --attention-backend triton
                     """,
