@@ -96,7 +96,10 @@ def score(self, model_name: str, tasks: List[Task], codesim: Any) -> float:
         return sum(scores) / len(scores)
     except Exception as e:
         bt.logging.info(f"Error evaluating model: {e}")
-        model_server.cleanup()
+        try:
+            model_server.cleanup()
+        except Exception as e:
+            pass
         return 0.0
     finally:
         cleanup_code_sim_model(self)
