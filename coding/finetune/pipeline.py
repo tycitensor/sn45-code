@@ -131,8 +131,7 @@ class FinetunePipeline:
             
             try:
                 model_score = score(
-                    self, tracking_info.model.model_name, self.tasks, self.code_sim_model
-                )
+                    self, tracking_info.model.model_name, self.tasks)
                 bt.logging.info(f"Finetune: Model score from FinetunePipeline: {model_score}")
                 tracking_info.score = model_score
             except Exception as e:

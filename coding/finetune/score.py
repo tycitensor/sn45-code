@@ -39,7 +39,7 @@ def validate_model_info(model_name: str) -> bool:
         bt.logging.info(f"Error validating model {model_name}: {e}")
         return False
 
-def score(self, model_name: str, tasks: List[Task], codesim: Any) -> float:
+def score(self, model_name: str, tasks: List[Task]) -> float:
     """
     Calculate the average score across multiple tasks for a given model.
 
@@ -92,7 +92,7 @@ def score(self, model_name: str, tasks: List[Task], codesim: Any) -> float:
         self.code_sim_model = CodeSimModel()
         # Get references
         references = [task.reference for task in tasks]
-        scores = codesim.similarity_batch(references, responses)
+        scores = self.code_sim_model.similarity_batch(references, responses)
         return sum(scores) / len(scores)
     except Exception as e:
         bt.logging.info(f"Error evaluating model: {e}")
