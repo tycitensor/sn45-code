@@ -1,12 +1,33 @@
 import bittensor as bt
 from typing import List, Any
 from huggingface_hub import model_info
-from tqdm import tqdm
+from concurrent.futures import ProcessPoolExecutor
 
 from coding.tasks.task import Task
 from coding.finetune.evaluate import evaluate
 from coding.finetune.model import ModelServer
-from concurrent.futures import ProcessPoolExecutor
+from coding.rewards.codesim import CodeSimModel
+
+
+def cleanup_code_sim_model(self):
+    try:
+        import torch
+        from accelerate.utils import release_memory
+        
+        torch.cuda.empty_cache()
+        with torch.no_grad():
+            self.code_sim_model.code_scorer._model.cpu()
+            release_memory(self.code_sim_model.code_scorer._model)
+            del self.code_sim_model.code_scorer._model
+        
+        with torch.no_grad():
+            self.code_sim_model.code_scorer._tokenizer.cpu()
+            release_memory(self.code_sim_model.code_scorer._tokenizer)
+            del self.code_sim_model.code_scorer._tokenizer
+        
+        del self.code_sim_model
+    except Exception as e:
+        pass
 
 def validate_model_info(model_name: str) -> bool:
     try:
@@ -18,7 +39,7 @@ def validate_model_info(model_name: str) -> bool:
         bt.logging.info(f"Error validating model {model_name}: {e}")
         return False
 
-def score(validator, model_name: str, tasks: List[Task], codesim: Any) -> float:
+def score(self, model_name: str, tasks: List[Task], codesim: Any) -> float:
     """
     Calculate the average score across multiple tasks for a given model.
 
@@ -66,7 +87,9 @@ def score(validator, model_name: str, tasks: List[Task], codesim: Any) -> float:
         
         # Make parallel calls using asyncio
         responses = model_server.invoke_batch(queries)
-        
+        model_server.cleanup()
+        del model_server
+        self.code_sim_model = CodeSimModel()
         # Get references
         references = [task.reference for task in tasks]
         scores = codesim.similarity_batch(references, responses)
@@ -76,6 +99,6 @@ def score(validator, model_name: str, tasks: List[Task], codesim: Any) -> float:
         model_server.cleanup()
         return 0.0
     finally:
-        model_server.cleanup()
-        del model_server
+        cleanup_code_sim_model(self)
+
 
