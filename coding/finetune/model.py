@@ -112,11 +112,12 @@ class ModelServer:
                 f"""
                 {os.getcwd()}/.venvsglang/bin/python -m sglang.launch_server \
                 --model {self.model_name} \
+                --model-path {self.model_path} \
                 --port 12000 \ 
                 --host 0.0.0.0 \
                 --quantization fp8 \ 
                 --mem-fraction-static 0.6 \
-                --max-model-len 8096 \
+                --context-length 8096 \
                 --disable-cuda-graph
                 """,
                 self.model_name
@@ -126,11 +127,12 @@ class ModelServer:
                 f"""
                 {os.getcwd()}/.venvsglang/bin/python -m sglang.launch_server \
                 --model {self.model_name} \
+                --model-path {self.model_path} \
                 --port 12000 \ 
                 --host 0.0.0.0 \
                 --quantization fp8 \ 
                 --mem-fraction-static 0.6 \
-                --max-model-len 8096 \
+                --context-length 8096 \
                 --attention-backend triton
                 """,
                 self.model_name
@@ -148,10 +150,11 @@ class ModelServer:
                     f"""
                     {os.getcwd()}/.venvsglang/bin/python -m sglang.launch_server \
                     --model {self.model_name} \
+                    --model-path {self.model_path} \
                     --port 12000 \ 
                     --host 0.0.0.0 \
                     --mem-fraction-static 0.6 \
-                    --max-model-len 8096 \
+                    --context-length 8096 \
                     --disable-cuda-graph
                     """,
                     self.model_name
@@ -161,10 +164,11 @@ class ModelServer:
                     f"""
                     {os.getcwd()}/.venvsglang/bin/python -m sglang.launch_server \
                     --model {self.model_name} \
+                    --model-path {self.model_path} \
                     --port 12000 \ 
                     --host 0.0.0.0 \
                     --mem-fraction-static 0.6 \
-                    --max-model-len 8096 \
+                    --context-length 8096 \
                     --attention-backend triton
                     """,
                     self.model_name
