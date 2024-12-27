@@ -33,7 +33,7 @@ class CodeSimModel(BaseRewardModel):
         return normalize_cosim(score)
     
     def similarity_batch(self, reference: str, completions: List[str]) -> List[float]:
-        if not reference or not completions:
+        if not references or not completions:
             return [0] * len(completions)
 
         # Filter out None or empty strings and keep track of their indices
@@ -43,9 +43,12 @@ class CodeSimModel(BaseRewardModel):
 
         # Unzip the indices and valid completions
         indices, filtered_completions = zip(*valid_completions)
-
+        
+        if not isinstance(references, list):
+            references = [references] * len(filtered_completions)
+        
         # Score only the valid completions
-        P, R, F1 = self.code_scorer.score(filtered_completions, [reference] * len(filtered_completions))
+        P, R, F1 = self.code_scorer.score(filtered_completions, references)
         scores = F1.tolist()
 
         # Initialize a result list with zeros for all completions
