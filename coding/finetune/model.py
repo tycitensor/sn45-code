@@ -84,38 +84,21 @@ class ModelServer:
         response = await self.llm.ainvoke(messages)
         return response.content
     
-    def invoke_batch(self, message_batches: list[list[dict]], batch_size: int = 10):
-        """Run multiple message batches in parallel
-        
-        Args:
-            message_batches: List of message batches, where each batch is a list of message dicts
-            batch_size: Number of batches to run in parallel
-        
-        Returns:
-            List of responses in same order as input batches
-        """
+    async def _invoke_batch_async(self, message_batches, batch_size=10):
+        """Async function to process all batches."""
         results = []
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        
-        try:
-            for i in tqdm(range(0, len(message_batches), batch_size), desc="Processing batches"):
-                batch = message_batches[i:i + batch_size]
-                
-                async def run_batch():
-                    tasks = []
-                    for messages in batch:
-                        tasks.append(self.llm.ainvoke(messages))
-                    responses = await asyncio.gather(*tasks)
-                    return [r.content for r in responses]
-                
-                batch_results = loop.run_until_complete(run_batch())
-                results.extend(batch_results)
-                
-        finally:
-            loop.close()
-            
+        for i in tqdm(range(0, len(message_batches), batch_size), desc="Processing batches"):
+            batch = message_batches[i : i + batch_size]
+            # Schedule all tasks in this batch concurrently
+            tasks = [self.llm.ainvoke(messages) for messages in batch]
+            # Wait for them all
+            responses = await asyncio.gather(*tasks)
+            # Collect results
+            results.extend(response.content for response in responses)
         return results
+    
+    def invoke_batch(self, message_batches, batch_size=10):
+        return asyncio.run(self._invoke_batch_async(message_batches, batch_size))
     
     def start_server(self):
         if "phi" not in self.model_name.lower():

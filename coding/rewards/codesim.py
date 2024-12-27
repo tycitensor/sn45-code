@@ -32,7 +32,7 @@ class CodeSimModel(BaseRewardModel):
         score = F1.tolist()[0]
         return normalize_cosim(score)
     
-    def similarity_batch(self, reference: str, completions: List[str]) -> List[float]:
+    def similarity_batch(self, references: str|list, completions: List[str]) -> List[float]:
         if not references or not completions:
             return [0] * len(completions)
 
