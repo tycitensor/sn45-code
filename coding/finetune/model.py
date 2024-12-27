@@ -74,7 +74,7 @@ class ModelServer:
         self.server_process = None
         self.start_server()
         # random port between {self.port} and 15999
-        self.port = random.randint({self.port}, 15999)
+        self.port = random.randint(12000, 15999)
 
     def invoke(self, messages: list[dict]):
         return self.llm.invoke(messages).content
