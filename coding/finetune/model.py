@@ -71,10 +71,11 @@ class ModelServer:
     def __init__(self, model_name: str):
         self.model_path = f"{model_name}"
         self.model_name = model_name
-        self.server_process = None
-        self.start_server()
         # random port between 12000 and 15999
         self.port = random.randint(12000, 15999)
+        self.server_process = None
+        self.start_server()
+        
 
     def invoke(self, messages: list[dict]):
         return self.llm.invoke(messages).content
