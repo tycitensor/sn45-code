@@ -2,6 +2,7 @@ import os
 import time
 import shutil
 import psutil
+import random
 import asyncio
 import requests
 from tqdm import tqdm   
@@ -72,6 +73,8 @@ class ModelServer:
         self.model_name = model_name
         self.server_process = None
         self.start_server()
+        # random port between {self.port} and 15999
+        self.port = random.randint({self.port}, 15999)
 
     def invoke(self, messages: list[dict]):
         return self.llm.invoke(messages).content
@@ -113,7 +116,7 @@ class ModelServer:
                 {os.getcwd()}/.venvsglang/bin/python -m sglang.launch_server \
                 --model {self.model_name} \
                 --model-path {self.model_path} \
-                --port 12000 \ 
+                --port {self.port} \ 
                 --host 0.0.0.0 \
                 --quantization fp8 \ 
                 --mem-fraction-static 0.6 \
@@ -128,7 +131,7 @@ class ModelServer:
                 {os.getcwd()}/.venvsglang/bin/python -m sglang.launch_server \
                 --model {self.model_name} \
                 --model-path {self.model_path} \
-                --port 12000 \ 
+                --port {self.port} \ 
                 --host 0.0.0.0 \
                 --quantization fp8 \ 
                 --mem-fraction-static 0.6 \
@@ -139,7 +142,7 @@ class ModelServer:
             )
         # Wait for the server to be ready
         try:
-            wait_for_server(f"http://localhost:12000", self.server_process, timeout=60*15)
+            wait_for_server(f"http://localhost:{self.port}", self.server_process, timeout=60*15)
         except Exception as e:
             terminate_process(self.server_process)
             self.server_process.kill()
@@ -151,7 +154,7 @@ class ModelServer:
                     {os.getcwd()}/.venvsglang/bin/python -m sglang.launch_server \
                     --model {self.model_name} \
                     --model-path {self.model_path} \
-                    --port 12000 \ 
+                    --port {self.port} \ 
                     --host 0.0.0.0 \
                     --mem-fraction-static 0.6 \
                     --context-length 8096 \
@@ -165,7 +168,7 @@ class ModelServer:
                     {os.getcwd()}/.venvsglang/bin/python -m sglang.launch_server \
                     --model {self.model_name} \
                     --model-path {self.model_path} \
-                    --port 12000 \ 
+                    --port {self.port} \ 
                     --host 0.0.0.0 \
                     --mem-fraction-static 0.6 \
                     --context-length 8096 \
@@ -175,7 +178,7 @@ class ModelServer:
                 )
 
             try:
-                wait_for_server(f"http://localhost:12000", self.server_process, timeout=60*15)
+                wait_for_server(f"http://localhost:{self.port}", self.server_process, timeout=60*15)
             except TimeoutError:
                 bt.logging.error(f"Finetune: Server did not become ready within timeout period")
                 self.cleanup()
@@ -188,7 +191,7 @@ class ModelServer:
 
         self.llm = ChatOpenAI(
             api_key="None",
-            base_url="http://localhost:12000/v1",
+            base_url="http://localhost:{self.port}/v1",
             model=self.model_name,
         )
 
