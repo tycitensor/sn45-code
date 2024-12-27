@@ -95,21 +95,28 @@ class ModelServer:
             List of responses in same order as input batches
         """
         results = []
-        for i in tqdm(range(0, len(message_batches), batch_size), desc="Processing batches"):
-            batch = message_batches[i:i + batch_size]
-            # Run batch in parallel using asyncio
-            async def run_batch():
-                tasks = []
-                for messages in batch:
-                    tasks.append(self.llm.ainvoke(messages))
-                responses = await asyncio.gather(*tasks)
-                return [r.content for r in responses]
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        try:
+            for i in tqdm(range(0, len(message_batches), batch_size), desc="Processing batches"):
+                batch = message_batches[i:i + batch_size]
+                
+                async def run_batch():
+                    tasks = []
+                    for messages in batch:
+                        tasks.append(self.llm.ainvoke(messages))
+                    responses = await asyncio.gather(*tasks)
+                    return [r.content for r in responses]
+                
+                batch_results = loop.run_until_complete(run_batch())
+                results.extend(batch_results)
+                
+        finally:
+            loop.close()
             
-            # Run the async batch and collect results
-            batch_results = asyncio.run(run_batch())
-            results.extend(batch_results)
         return results
-
+    
     def start_server(self):
         if "phi" not in self.model_name.lower():
             self.server_process = execute_shell_command(
