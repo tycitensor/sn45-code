@@ -7,6 +7,7 @@ import traceback
 import bittensor as bt
 from typing import List
 from pydantic import BaseModel
+from accelerate.utils import release_memory
 
 from .tracker import gather_all_trackers
 
@@ -19,6 +20,25 @@ from coding.schemas.tracking import TrackingInfo
 from coding.tasks.bigcodebench import BigCodeBenchTask
 from coding.datasets.bigcodebench import BigCodeBenchDataset
 
+def cleanup_code_sim_model(self):
+    try:
+        import torch
+        torch.cuda.empty_cache()
+        with torch.no_grad():
+            self.code_sim_model.code_scorer._model.cpu()
+            release_memory(self.code_sim_model.code_scorer._model)
+            del self.code_sim_model.code_scorer._model
+        
+        with torch.no_grad():
+            self.code_sim_model.code_scorer._tokenizer.cpu()
+            release_memory(self.code_sim_model.code_scorer._tokenizer)
+            del self.code_sim_model.code_scorer._tokenizer
+        
+        del self.code_sim_model
+    except Exception as e:
+        pass
+    
+    
 class FinetuneEventResults(BaseModel):
     trackers: List[TrackingInfo]
     competition_id: int = COMPETITION_ID
@@ -49,11 +69,11 @@ def bittensor_injector(self):
 
 
 class FinetunePipeline:
-    def __init__(self, config, competition_id: int, code_sim_model):
+    def __init__(self, config, competition_id: int):
         self.config = config
         bittensor_injector(self)
         self.competition_id = competition_id
-        self.code_sim_model = code_sim_model
+        self.code_sim_model = CodeSimModel()
         self.trackers: List[TrackingInfo] = []
         self.dataset = BigCodeBenchDataset(config=self.config)
         
@@ -105,6 +125,8 @@ class FinetunePipeline:
             self.store_unfinished_trackers(new_trackers)
         
         for tracking_info in new_trackers:
+            cleanup_code_sim_model(self)
+            self.code_sim_model = CodeSimModel()
             
             # Check if the model has already been scored
             previous_score = next((tracker.score for tracker in self.trackers if tracker.model.model_name == tracking_info.model.model_name), None)

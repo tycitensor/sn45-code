@@ -67,6 +67,10 @@ async def process_response(uid: int, async_generator: Awaitable):
             # Assuming chunk holds the last value yielded which should be a synapse
             if isinstance(synapse, StreamCodeSynapse):
                 return synapse
+            else:
+                return StreamCodeSynapse(
+                    completion=buffer
+                )
 
         bt.logging.debug(
             f"Synapse is not StreamCodeSynapse. Miner uid {uid} completion set to '' "
@@ -83,10 +87,10 @@ async def process_response(uid: int, async_generator: Awaitable):
         )
 
         return failed_synapse
-    finally:
-        return StreamCodeSynapse(
-            completion=buffer
-        )
+    # finally:
+        # return StreamCodeSynapse(
+            # completion=buffer
+        # )
 
 
 async def handle_response(responses: Dict[int, Awaitable]) -> List[StreamResult]:
@@ -188,7 +192,6 @@ async def forward(self, synapse: StreamCodeSynapse):
             finetune_pipeline = FinetunePipeline(
                 config=self.config,
                 competition_id=COMPETITION_ID,
-                code_sim_model=CodeSimModel(code_scorer=self.code_scorer),
             )
             self.finetune_eval_future = self.executor.submit(finetune_pipeline.evaluate)
     # Check if evaluation is complete

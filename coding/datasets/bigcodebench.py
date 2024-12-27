@@ -1,5 +1,6 @@
 import re
 import os
+import bittensor as bt
 from pydantic import BaseModel
 from datasets import load_dataset
 from langchain_openai import ChatOpenAI
@@ -67,6 +68,7 @@ class BigCodeBenchDataset(Dataset):
             "tags": [],
             "extras": {},
         }
+        
     def search(
         self,
     ):

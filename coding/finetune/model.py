@@ -68,7 +68,7 @@ def wait_for_server(base_url: str, server_process, timeout: int = None) -> None:
 
 class ModelServer:
     def __init__(self, model_name: str):
-        self.model_path = f"{MODEL_DIR}/{model_name}"
+        self.model_path = f"{model_name}"
         self.model_name = model_name
         self.server_process = None
         self.start_server()
@@ -107,48 +107,83 @@ class ModelServer:
         return results
 
     def start_server(self):
-        self.server_process = execute_shell_command(
-            f"""
-            {os.getcwd()}/.venvsglang/bin/python -m vllm.entrypoints.openai.api_server \
-            --model {self.model_name} \
-            --enforce-eager \
-            --port 12000 \ 
-            --host 0.0.0.0 \
-            --quantization fp8 \ 
-            --gpu-memory-utilization 0.6 \
-            --max-model-len 8096 \
-            """,
-            self.model_name
-        )
-
+        if "phi" in self.model_name:
+            self.server_process = execute_shell_command(
+                f"""
+                {os.getcwd()}/.venvsglang/bin/python -m sglang.launch_server \
+                --model {self.model_name} \
+                --enforce-eager \
+                --port 12000 \ 
+                --host 0.0.0.0 \
+                --quantization fp8 \ 
+                --gpu-memory-utilization 0.6 \
+                --max-model-len 8096 \
+                --disable-cuda-graph
+                """,
+                self.model_name
+            )
+        else:
+            self.server_process = execute_shell_command(
+                f"""
+                {os.getcwd()}/.venvsglang/bin/python -m sglang.launch_server \
+                --model {self.model_name} \
+                --enforce-eager \
+                --port 12000 \ 
+                --host 0.0.0.0 \
+                --quantization fp8 \ 
+                --gpu-memory-utilization 0.6 \
+                --max-model-len 8096 \
+                --attention-backend triton
+                """,
+                self.model_name
+            )
         # Wait for the server to be ready
         try:
             wait_for_server(f"http://localhost:12000", self.server_process, timeout=60*15)
         except Exception as e:
             terminate_process(self.server_process)
+            self.server_process.kill()
             bt.logging.error(f"Finetune: Server did not become ready within timeout period")
 
-            self.server_process = execute_shell_command(
-                f"""
-                {os.getcwd()}/.venvsglang/bin/python -m vllm.entrypoints.openai.api_server \
-                --model {self.model_name} \
-                --enforce-eager \
-                --port 12000 \
-                --host 0.0.0.0 \
-                --gpu-memory-utilization 0.6 \
-                --max-model-len 8096 \
-                """,
-                self.model_name
-            )
+            if "phi" in self.model_name:
+                self.server_process = execute_shell_command(
+                    f"""
+                    {os.getcwd()}/.venvsglang/bin/python -m sglang.launch_server \
+                    --model {self.model_name} \
+                    --enforce-eager \
+                    --port 12000 \ 
+                    --host 0.0.0.0 \
+                    --gpu-memory-utilization 0.6 \
+                    --max-model-len 8096 \
+                    --disable-cuda-graph
+                    """,
+                    self.model_name
+                )
+            else:
+                self.server_process = execute_shell_command(
+                    f"""
+                    {os.getcwd()}/.venvsglang/bin/python -m sglang.launch_server \
+                    --model {self.model_name} \
+                    --enforce-eager \
+                    --port 12000 \ 
+                    --host 0.0.0.0 \
+                    --gpu-memory-utilization 0.6 \
+                    --max-model-len 8096 \
+                    --attention-backend triton
+                    """,
+                    self.model_name
+                )
 
             try:
-                wait_for_server(f"http://localhost:12000", self.server_process, timeout=60*20)
+                wait_for_server(f"http://localhost:12000", self.server_process, timeout=60*15)
             except TimeoutError:
                 bt.logging.error(f"Finetune: Server did not become ready within timeout period")
                 self.cleanup()
                 raise TimeoutError("Server did not become ready within timeout period")
             except Exception as e:
                 bt.logging.error(f"Finetune: Error running model: {e}")
+                self.server_process.kill()
+                self.cleanup()
                 raise Exception(f"Error running model: {e}")
 
         self.llm = ChatOpenAI(
@@ -166,6 +201,7 @@ class ModelServer:
                     pass
                 self.server_process = None
             delete_model_from_hf_cache(self.model_name)
+            self.server_process.kill()
         except Exception as e:
             pass
 
