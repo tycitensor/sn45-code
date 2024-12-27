@@ -73,7 +73,7 @@ class ModelServer:
         self.model_name = model_name
         self.server_process = None
         self.start_server()
-        # random port between {self.port} and 15999
+        # random port between 12000 and 15999
         self.port = random.randint(12000, 15999)
 
     def invoke(self, messages: list[dict]):
@@ -191,7 +191,7 @@ class ModelServer:
 
         self.llm = ChatOpenAI(
             api_key="None",
-            base_url="http://localhost:{self.port}/v1",
+            base_url=f"http://localhost:{self.port}/v1",
             model=self.model_name,
         )
 
