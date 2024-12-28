@@ -265,7 +265,7 @@ class BaseValidatorNeuron(BaseNeuron):
                 forward_scores_hotkeys[hotkey]["score"] = (forward_scores_hotkeys[hotkey]["score"] * 0.5 + finetune_scores_hotkeys[hotkey]["score"] * 0.5)
         
         # now convert back to array where the index is the uid
-        combined_weights = np.zeros_like(forward_scores)
+        combined_weights = forward_scores
         for hotkey, data in forward_scores_hotkeys.items():
             combined_weights[data["uid"]] = data["score"]
 
