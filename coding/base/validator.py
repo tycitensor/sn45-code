@@ -261,7 +261,9 @@ class BaseValidatorNeuron(BaseNeuron):
         
         finetune_scores = np.zeros_like(forward_scores)
         for tracker in finetune_trackers:
-            finetune_scores[get_uid_from_hotkey(self, tracker.hotkey)] = tracker.score
+            uid = get_uid_from_hotkey(self, tracker.hotkey)
+            if uid is not None:
+                finetune_scores[uid] = tracker.score
         
         bt.logging.info(f"finetune_scores: {finetune_scores}")
         
