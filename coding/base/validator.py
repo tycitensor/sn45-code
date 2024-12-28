@@ -263,6 +263,8 @@ class BaseValidatorNeuron(BaseNeuron):
         for hotkey in forward_scores_hotkeys:
             if hotkey in finetune_scores_hotkeys:
                 forward_scores_hotkeys[hotkey]["score"] = (forward_scores_hotkeys[hotkey]["score"] * 0.5 + finetune_scores_hotkeys[hotkey]["score"] * 0.5)
+            else:
+                forward_scores_hotkeys[hotkey]["score"] = forward_scores_hotkeys[hotkey]["score"] * 0.5
         
         # now convert back to array where the index is the uid
         combined_weights = forward_scores
