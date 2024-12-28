@@ -32,7 +32,7 @@ from coding.base.neuron import BaseNeuron
 from coding.protocol import StreamCodeSynapse
 from coding.utils.config import add_validator_args
 from coding.utils.exceptions import MaxRetryError
-from coding.utils.uids import get_hotkey_from_uid
+from coding.utils.uids import get_hotkey_from_uid, get_uid_from_hotkey
 
 class BaseValidatorNeuron(BaseNeuron):
     """
@@ -252,30 +252,24 @@ class BaseValidatorNeuron(BaseNeuron):
         bt.logging.info(f"forward_scores: {forward_scores}")
         # If no finetune results yet, return just forward scores
         if not hasattr(self, 'finetune_results') or not self.finetune_results:
-            return forward_scores
-        forward_scores_hotkeys = {get_hotkey_from_uid(self, uid): {"score": score, "uid": uid} for uid, score in enumerate(forward_scores)}
+            return forward_scores * 0.5
+        
         
         # get latest finetune results 
         latest_competition_id = max(self.finetune_results.keys())
         finetune_trackers = self.finetune_results[latest_competition_id].trackers
-        finetune_scores_hotkeys = {tracker.hotkey: {"score": tracker.score} for tracker in finetune_trackers}
-        # if they have the same hotkey, we need to combine the scores
-        for hotkey in forward_scores_hotkeys:
-            if hotkey in finetune_scores_hotkeys:
-                forward_scores_hotkeys[hotkey]["score"] = (forward_scores_hotkeys[hotkey]["score"] * 0.5 + finetune_scores_hotkeys[hotkey]["score"] * 0.5)
-            else:
-                forward_scores_hotkeys[hotkey]["score"] = forward_scores_hotkeys[hotkey]["score"] * 0.5
         
-        # now convert back to array where the index is the uid
-        combined_weights = forward_scores
-        for hotkey, data in forward_scores_hotkeys.items():
-            combined_weights[data["uid"]] = data["score"]
-
+        finetune_scores = np.zeros_like(forward_scores)
+        for tracker in finetune_trackers:
+            finetune_scores[get_uid_from_hotkey(self, tracker.hotkey)] = tracker.score
+        bt.logging.info(f"finetune_scores: {finetune_scores}")
+        
+        combined_scores = forward_scores * 0.5 + finetune_scores * 0.5
         # Set bottom 10% of scores to 0
-        cutoff = np.percentile(combined_weights, 10)
-        combined_weights[combined_weights <= cutoff] = 0
-        bt.logging.info(f"combined_weights: {combined_weights}")
-        return combined_weights
+        cutoff = np.percentile(combined_scores, 10)
+        combined_scores[combined_scores <= cutoff] = 0
+        bt.logging.info(f"combined_scores: {combined_scores}")
+        return combined_scores
     
     def set_weights(self):
         """
