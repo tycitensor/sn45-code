@@ -258,7 +258,7 @@ class BaseValidatorNeuron(BaseNeuron):
         # get latest finetune results 
         latest_competition_id = max(self.finetune_results.keys())
         finetune_trackers = self.finetune_results[latest_competition_id].trackers
-        finetune_scores_hotkeys = {tracker.model.model_name: {"score": tracker.score} for tracker in finetune_trackers}
+        finetune_scores_hotkeys = {tracker.hotkey: {"score": tracker.score} for tracker in finetune_trackers}
         # if they have the same hotkey, we need to combine the scores
         for hotkey in forward_scores_hotkeys:
             if hotkey in finetune_scores_hotkeys:
