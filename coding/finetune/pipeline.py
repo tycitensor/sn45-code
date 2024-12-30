@@ -31,6 +31,16 @@ class FinetuneEventResults(BaseModel):
             "trackers": [tracker.model_dump() for tracker in self.trackers],
             "competition_id": self.competition_id,
         }
+    
+    def public_state_dict(self):
+        competition_id = COMPETITION_ID
+        trackers = [tracker.model_dump() for tracker in self.trackers]
+        for tracker in trackers:
+            tracker["model"] = None
+        return {
+            "trackers": trackers,
+            "competition_id": competition_id,
+        }
 
 
 def generate_bigcode_tasks(ds: BigCodeBenchDataset, n: int = 1) -> List[BigCodeBenchTask]:
