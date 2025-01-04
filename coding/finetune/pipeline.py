@@ -190,7 +190,7 @@ class FinetunePipeline:
                 sleep(2)
                 try:
                     response = requests.post(
-                        f"http://localhost:3000/call",
+                        f"http://{os.environ['DOCKER_HOST_IP']}:3000/call",
                         json={
                             "repo_location": "/app/repo",
                             "issue_description": task.query,
