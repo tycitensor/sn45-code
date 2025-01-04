@@ -38,6 +38,27 @@ class LLMClient:
 
         result = response.json()
         return result["result"], result["total_tokens"]
+    
+    def embed(self, query: str) -> list[float]:
+        """
+        Get embeddings for text using the embedding API endpoint
+
+        Args:
+            query (str): The text to get embeddings for
+
+        Returns:
+            list[float]: Vector embedding of the input text
+
+        Raises:
+            requests.exceptions.RequestException: If API call fails
+        """
+        payload = {"query": query}
+
+        response = requests.post(f"{self.base_url}/embed", json=payload)
+        response.raise_for_status()
+
+        result = response.json()
+        return result["vector"]
 
 class SWEBase(ABC):
     def __init__(self):

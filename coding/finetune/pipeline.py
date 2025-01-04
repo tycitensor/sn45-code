@@ -89,14 +89,15 @@ def verify_logic(logic: dict) -> tuple[bool, str]:
         )
         
     return True, "Logic is valid"
+
 class FinetunePipeline:
     def __init__(
-        self, config, code_sim_model
+        self, config
     ):
         self.config = config
         # TODO uncomment
         # bittensor_injector(self)
-        self.code_sim_model = code_sim_model
+        self.code_sim_model = CodeSimModel()
         self.scores = []
         self.tracking_logics: List[TrackingInfo] = []
         self.dataset = SWEBenchDataset()
@@ -272,7 +273,3 @@ class FinetunePipeline:
                 os.remove(file)
             if file.startswith("results_") and file.endswith(".pkl"):
                 os.remove(file)
-
-
-# Register cleanup to be called when the process exits
-atexit.register(FinetunePipeline.cleanup)

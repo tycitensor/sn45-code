@@ -23,7 +23,6 @@ async def forward(self, synapse: StreamCodeSynapse):
             self.finetune_result = None
             finetune_pipeline = FinetunePipeline(
                 config=self.config,
-                code_sim_model=CodeSimModel(code_scorer=self.code_scorer),
             )
             self.finetune_eval_future = self.executor.submit(finetune_pipeline.evaluate)
     # Check if evaluation is complete

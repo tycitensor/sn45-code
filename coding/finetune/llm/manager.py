@@ -7,7 +7,7 @@ class LLMManager:
 
     """Manager for interacting with LLM API endpoints"""
     
-    def __init__(self, base_url: str = "http://host.docker.internal:25000"):
+    def __init__(self, base_url: str = f"http://localhost:25000"):
         """
         Initialize LLM manager
         
