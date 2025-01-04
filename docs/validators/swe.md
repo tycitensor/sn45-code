@@ -1,14 +1,9 @@
 # SWE Start
 
-Set the `LLM_AUTH_KEY` environment variable to a random string. This MUST be random, do not copy it.
-
-```
-export LLM_AUTH_KEY=1234567890
-```
 
 ## Remote Server Setup
 
-You should use a separate server from the one you run the validator on. This is to ensure security and avoid any potential issues.
+You should use a separate server from the one you run the validator on for this. This is to ensure security and avoid any potential issues.
 
 ### Setup Docker
 
@@ -22,7 +17,7 @@ sudo systemctl edit docker.service
 ```bash
 [Service]
 ExecStart=
-ExecStart=/usr/bin/dockerd -H fd:// -H tcp://127.0.0.1:2375
+ExecStart=/usr/bin/dockerd -H fd:// -H tcp://0.0.0.0:2375
 ```
 
 ```bash
@@ -91,4 +86,25 @@ sudo iptables -A OUTPUT -j DROP
 sudo iptables-save | sudo tee /etc/iptables/rules.v4
 ```
 
+## Testing Docker Remote Access
+
+From the server you are running the validator on (NOT THE ONE YOU RAN THESE COMMANDS ON), run the following command:
+
+```bash
+curl <docker-server-ip>:2375
+```
+
+that should return `{"message":"page not found"}`
+
+Next to test further run:
+
+```bash
+DOCKER_HOST=tcp://<docker-server-ip>:2375 docker run --rm ubuntu bash -c "sleep 600"
+```
+
+While that command is running you should be able to go onto the docker server and see the container running.
+
+```bash
+docker ps
+```
 
