@@ -1,5 +1,5 @@
 import bittensor as bt
-from datetime import datetime
+from datetime import datetime, timezone
 
 from coding.utils.logging import log_event
 from coding.finetune import FinetunePipeline
@@ -18,9 +18,7 @@ async def forward(self, synapse: StreamCodeSynapse):
 
     """
     bt.logging.info("🚀 Starting forward loop...")
-    # TODO fix the competition end date checking , it is fixed in the main branch
-    # check if the competition has ended and evaluation not started
-    if datetime.now() > datetime.strptime(COMPETITION_END_DATE, "%Y-%m-%d"):
+    if datetime.now(timezone.utc) > datetime.strptime(COMPETITION_END_DATE, "%Y-%m-%d").replace(tzinfo=timezone.utc):
         if not self.finetune_results and not hasattr(self, 'finetune_eval_future'):
             self.finetune_result = None
             finetune_pipeline = FinetunePipeline(
