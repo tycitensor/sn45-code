@@ -54,7 +54,32 @@ class LLMClient:
             response = self.chat_models[llm_name].invoke(query)
             # ChatOpenAI doesn't provide token count, so return -1
             return response.content, -1
+    
+    def embed(self, query: str) -> list[float]:
+        """
+        Get embeddings for text using the embedding API endpoint or local embeddings
 
+        Args:
+            query (str): The text to get embeddings for
+
+        Returns:
+            list[float]: Vector embedding of the input text
+
+        Raises:
+            requests.exceptions.RequestException: If API call fails when using server
+        """
+        if self.use_server:
+            payload = {"query": query}
+            response = requests.post(f"{self.base_url}/embed", json=payload)
+            response.raise_for_status()
+            result = response.json()
+            return result["vector"]
+        else:
+            # Use local embeddings
+            from langchain_openai import OpenAIEmbeddings
+            embeddings = OpenAIEmbeddings()
+            return embeddings.embed_query(query)
+        
 class SWEBase(ABC):
     def __init__(self):
         self.llm = LLMClient()
