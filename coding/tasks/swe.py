@@ -79,48 +79,55 @@ def chunk_patch(patch: Patch) -> List[PatchChunk]:
     chunks = []
     current_chunk = []
     current_file = None
+    
+    # Group edits by file and line number
+    file_edits = {}
+    for edit in patch.edits:
+        if edit.file_name not in file_edits:
+            file_edits[edit.file_name] = {}
+        if edit.line_number not in file_edits[edit.file_name]:
+            file_edits[edit.file_name][edit.line_number] = []
+        file_edits[edit.file_name][edit.line_number].append(edit)
 
-    for i, edit in enumerate(patch.edits):
-        # Start new chunk if file changes or line numbers not consecutive
-        if not current_chunk:
-            current_chunk.append(edit)
-            current_file = edit.file_name
-        elif (
-            edit.file_name == current_file
-            and edit.line_number == current_chunk[-1].line_number + 1
-        ):
-            current_chunk.append(edit)
-        else:
-            # Convert chunk to PatchChunk before appending
-            if current_chunk:
-                start_idx = current_chunk[0].line_number
-                end_idx = current_chunk[-1].line_number
-                content = "\n".join(edit.line_content for edit in current_chunk)
-                new_content = "\n".join(edit.new_line_content for edit in current_chunk)
-                chunks.append(PatchChunk(
-                    file_name=current_file,
-                    start_index=start_idx,
-                    end_index=end_idx,
-                    content=content,
-                    new_content=new_content
-                ))
-            current_chunk = [edit]
-            current_file = edit.file_name
-
-        # Add final chunk
-        if i == len(patch.edits) - 1:
-            if current_chunk:
-                start_idx = current_chunk[0].line_number
-                end_idx = current_chunk[-1].line_number
-                content = "\n".join(edit.line_content for edit in current_chunk)
-                new_content = "\n".join(edit.new_line_content for edit in current_chunk)
-                chunks.append(PatchChunk(
-                    file_name=current_file,
-                    start_index=start_idx,
-                    end_index=end_idx,
-                    content=content,
-                    new_content=new_content
-                ))
+    # Process each file's edits
+    for file_name, line_edits in file_edits.items():
+        current_chunk = []
+        prev_line = None
+        
+        # Sort line numbers
+        for line_num in sorted(line_edits.keys()):
+            if prev_line is None or line_num <= prev_line + 1:
+                current_chunk.extend(line_edits[line_num])
+            else:
+                # Create chunk for previous group
+                if current_chunk:
+                    start_idx = current_chunk[0].line_number
+                    end_idx = current_chunk[-1].line_number
+                    content = "\n".join(e.line_content for e in current_chunk if e.line_content)
+                    new_content = "\n".join(e.new_line_content for e in current_chunk if e.new_line_content)
+                    chunks.append(PatchChunk(
+                        file_name=file_name,
+                        start_index=start_idx,
+                        end_index=end_idx,
+                        content=content,
+                        new_content=new_content
+                    ))
+                current_chunk = line_edits[line_num]
+            prev_line = line_num
+            
+        # Add final chunk for this file
+        if current_chunk:
+            start_idx = current_chunk[0].line_number
+            end_idx = current_chunk[-1].line_number
+            content = "\n".join(e.line_content for e in current_chunk if e.line_content)
+            new_content = "\n".join(e.new_line_content for e in current_chunk if e.new_line_content)
+            chunks.append(PatchChunk(
+                file_name=file_name,
+                start_index=start_idx,
+                end_index=end_idx,
+                content=content,
+                new_content=new_content
+            ))
 
     return chunks
 
@@ -152,6 +159,7 @@ class SWEBenchTask(Task):
         self.pull_number = context.extras["pull_number"]
 
     def score(self, patch: Patch, token_count: int):
+        print("valid patch", self.patch)
         valid_num_lines = {}  # file name -> num lines
         miner_num_lines = {}
 
@@ -183,14 +191,14 @@ class SWEBenchTask(Task):
                 lines_in_miner += len(set(valid_lines) & set(miner_lines))
                 total_lines += len(valid_lines)
         percent_lines_in_miner = lines_in_miner / total_lines
-
+        print("percent lines in miner", percent_lines_in_miner)
         # Group edits into chunks by consecutive line numbers
         valid_chunks = chunk_patch(self.patch)
         miner_chunks = chunk_patch(patch)
 
         chunk_score = 0
         total_chunk_score = 0
-
+        print("valid chunks", valid_chunks)
         # find chunks that share an index in the same file
         for valid_chunk in valid_chunks:
             exists = False
@@ -199,16 +207,15 @@ class SWEBenchTask(Task):
                     miner_chunk.file_name == valid_chunk.file_name
                     and abs(miner_chunk.start_index - valid_chunk.start_index) <= 2
                 ):
-                    miner_chunk_content = "\n".join(
-                        [edit.line_content for edit in miner_chunk]
-                    )
-                    valid_chunk_content = "\n".join(
-                        [edit.line_content for edit in valid_chunk]
-                    )
+                    print("old miner chunk content", miner_chunk.content)
+                    print("old valid chunk content", valid_chunk.content)
+                    print("new miner chunk content", miner_chunk.new_content)
+                    print("new valid chunk content", valid_chunk.new_content)
                     # TODO this has to be a score between the original vs valid and the miner
-                    chunk_score += self.code_scorer(
-                        miner_chunk_content, valid_chunk_content
-                    )
+                    # chunk_score += self.code_scorer(
+                    #     miner_chunk.new_content, valid_chunk.new_content
+                    # )
+                    chunk_score += 1
                     total_chunk_score += 1
                     exists = True
                     break
@@ -216,7 +223,7 @@ class SWEBenchTask(Task):
                 total_chunk_score += 1
 
         chunk_percent = chunk_score / total_chunk_score
-
+        print("chunk percent", chunk_percent)
         score = (5 * percent_lines_in_miner + 5 * chunk_percent) / 10
 
         return score

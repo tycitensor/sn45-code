@@ -16,7 +16,7 @@ from coding.schemas import Patch
 from coding.schemas.context import Context
 from coding.rewards.codesim import CodeSimModel
 from coding.schemas.tracking import TrackingInfo, TaskResult
-from coding.constants import COMPETITION_ID, ALLOWED_MODULES, NUM_ALLOWED_CHARACTERS
+from coding.constants import COMPETITION_ID, ALLOWED_MODULES, NUM_ALLOWED_CHARACTERS, ALLOWED_IMPORTS
 
 from coding.tasks.swe import SWEBenchTask
 from coding.datasets.swe import SWEBenchDataset
@@ -53,7 +53,9 @@ def bittensor_injector(self):
 
 
 def verify_logic(logic: dict) -> tuple[bool, str]:
-    allowed_modules = ALLOWED_MODULES
+    # Dictionary mapping modules to allowed functions/imports
+    allowed_modules = ALLOWED_MODULES.copy()
+    
     for module in logic:
         # Handle folder paths by taking first component
         module_name = module.split("/")[0].split(".")[0]
@@ -62,7 +64,7 @@ def verify_logic(logic: dict) -> tuple[bool, str]:
             
     for key, value in logic.items():
         if value:
-            # Create expanded allowed modules list that includes submodules
+            # Create expanded allowed modules list that includes submodules and specific imports
             expanded_allowed = set()
             for mod in allowed_modules:
                 expanded_allowed.add(mod)
@@ -70,8 +72,8 @@ def verify_logic(logic: dict) -> tuple[bool, str]:
                 for used_mod in value.split():
                     if used_mod.startswith(f"{mod}."):
                         expanded_allowed.add(used_mod)
-                        
-            usage_pass, usage_msg = verify_code_usage(value, list(expanded_allowed))
+                    # Check for specific allowed imports like "from os import getenv"
+            usage_pass, usage_msg = verify_code_usage(value, list(expanded_allowed), ALLOWED_IMPORTS)
             if not usage_pass:
                 return False, usage_msg
                 
@@ -89,7 +91,7 @@ def verify_logic(logic: dict) -> tuple[bool, str]:
     return True, "Logic is valid"
 class FinetunePipeline:
     def __init__(
-        self, config, code_sim_model: CodeSimModel
+        self, config, code_sim_model
     ):
         self.config = config
         # TODO uncomment

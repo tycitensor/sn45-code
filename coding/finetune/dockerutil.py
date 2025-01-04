@@ -7,13 +7,15 @@ from coding.constants import COMPETITION_ID
 from ..helpers.git import GitRepo
 
 
-def build_docker_container(logic_files: dict, hotkey: str) -> str:
+def build_docker_container(logic_files: dict, hotkey: str, repo_files: dict) -> str:
     """
     Builds a Docker container for evaluating model logic.
 
     Args:
         logic_files (dict): Dictionary mapping filenames to file contents
         hotkey (str): Unique identifier for the logic
+        repo_files (dict): Dictionary mapping filenames to file contents to copy to repo
+        repo_path (str): Path to copy repo files to
 
     Returns:
         str: ID of the built container
@@ -32,6 +34,17 @@ def build_docker_container(logic_files: dict, hotkey: str) -> str:
             with open(file_path, "w", encoding="latin-1") as f:
                 f.write(content)
             print(f"Wrote {file_path}")
+
+        # Write repo files to repo path
+        for filename, content in repo_files.items():
+            file_path = os.path.join(temp_dir, "repo", filename)
+            # Create all parent directories
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            # Create the file and write content
+            with open(file_path, "w", encoding="latin-1") as f:
+                f.write(content)
+            print(f"Wrote repo file {file_path}")
+
         # Copy Dockerfile and server files
         swe_server_path = Path(__file__).parent / "swe-server"
         for item in swe_server_path.glob("*"):
@@ -56,7 +69,6 @@ def build_docker_container(logic_files: dict, hotkey: str) -> str:
         except docker.errors.APIError as e:
             print(f"Docker API error: {str(e)}")
             raise
-
 
 def run_docker_container(
     image_id: str, repo: GitRepo, hotkey: str
@@ -91,7 +103,7 @@ def run_docker_container(
             detach=True,
             ports={"3000/tcp": 3000},
             extra_hosts={"host.docker.internal": "host-gateway"},
-            volumes={repo.path: {"bind": "/app/repo", "mode": "ro"}},
+            # volumes={repo.path: {"bind": "/app/repo", "mode": "ro"}},
             environment={"HOST_IP": os.getenv("HOST_IP", "localhost")}
         )
         # Start the container after creation

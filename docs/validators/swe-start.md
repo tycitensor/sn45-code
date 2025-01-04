@@ -1,4 +1,4 @@
-## SWE Start
+# SWE Start
 
 Set the `LLM_AUTH_KEY` environment variable to a random string. This MUST be random, do not copy it.
 
@@ -6,37 +6,38 @@ Set the `LLM_AUTH_KEY` environment variable to a random string. This MUST be ran
 export LLM_AUTH_KEY=1234567890
 ```
 
+## Remote Server Setup
+
+You should use a separate server from the one you run the validator on. This is to ensure security and avoid any potential issues.
+
+### Setup Docker
+
 Install docker: https://docs.docker.com/engine/install/ubuntu/
 setup https://docs.docker.com/engine/daemon/remote-access/#configuring-remote-access-with-daemonjson with 0.0.0.0:2375
 
-setup ufw
-
 ```bash
-sudo ufw allow 2375/tcp
-sudo ufw allow 22/tcp
-
-sudo ufw enable
-```
-
-## setup squid
-
-```bash
-# Install Squid
-sudo apt install squid -y
-
-# Edit the config file
-sudo nano /etc/squid/squid.conf
+sudo systemctl edit docker.service
 ```
 
 ```bash
-# Allow specific domains
-acl allowed_sites dstdomain .docker.io .docker.com
-http_access allow allowed_sites
-# Deny everything else
-http_access deny all
+[Service]
+ExecStart=
+ExecStart=/usr/bin/dockerd -H fd:// -H tcp://127.0.0.1:2375
 ```
 
-## setup crontab
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart docker.service
+```
+
+### Configure UFW
+
+```bash
+sudo ufw disable
+```
+
+
+### Crontab for docker registry
 
 ```bash
 #!/bin/bash
@@ -58,7 +59,7 @@ sudo systemctl restart docker
 
 
 
-## setup iptables 
+### IPTables
 The order of the rules is important.
 
 ```bash

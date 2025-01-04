@@ -85,5 +85,4 @@ def create_patch(original_files: Dict[str, str], edited_files: Dict[str, str]) -
             elif not line.startswith('@@'):
                 line_num += 1
             j += 1
-    
     return Patch(edits=edits)

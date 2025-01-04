@@ -20,7 +20,33 @@ ALLOWED_MODULES = [
     "abc",
     "coding.finetune.llm.client",
     "coding.schemas.swe",
-    "requests"
+    "requests",
+    "difflib",
+    "logging",
+    "time",
+    "datetime",
+    "random",
+    "sklearn",
+    "argparse",
+    "uuid",
+    "pandas",
+    "numpy",
+    "tqdm",
+    "collections",
+    "platform",
+    "re",
+    "traceback",
+    "typing",
+    "resource",
+    "concurrent",
+    "io",
+    "tokenize",
+    "pathlib",
+    "threading"
 ]
+
+ALLOWED_IMPORTS = {
+    'os': ['getenv', 'path', 'environ', 'makedirs', 'rm', 'walk', 'sep', 'remove'],
+}
 
 NUM_ALLOWED_CHARACTERS = 500000
