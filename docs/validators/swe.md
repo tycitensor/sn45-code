@@ -33,6 +33,7 @@ sudo ufw disable
 
 
 ### Crontab for docker registry
+Create a file in `/etc/cron.daily/dockerio` with the following content:
 
 ```bash
 #!/bin/bash
@@ -50,6 +51,11 @@ done
 sudo iptables -A OUTPUT -m set --match-set dockerio dst -p tcp --dport 443 -j ACCEPT
 sudo iptables -A OUTPUT -m set --match-set dockerio dst -p tcp --dport 80 -j ACCEPT
 sudo systemctl restart docker
+```
+
+Ensure the file is executable:
+```bash
+sudo chmod +x /etc/cron.daily/dockerio
 ```
 
 
