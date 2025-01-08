@@ -134,10 +134,6 @@ class FinetunePipeline:
             
             bt.logging.info(f"Finetune: Evaluating hotkey: {tracking_info.hotkey}")
             
-            # ensure competition_id is equal to current competition_id
-            if tracking_info.model.competition_id != COMPETITION_ID:
-                tracking_info.score = 0.0
-                continue
             
             try:
                 model_score = score(
