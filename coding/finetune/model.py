@@ -7,11 +7,17 @@ import asyncio
 import requests
 from tqdm import tqdm   
 import bittensor as bt
+from transformers import AutoConfig
 from langchain_openai import ChatOpenAI
 from sglang.utils import terminate_process
 from coding.utils.shell import execute_shell_command
 
 MODEL_DIR = "~/.cache/huggingface/hub"
+
+def is_phi_model(model_name: str):
+    config = AutoConfig.from_pretrained(model_name)
+    return "phi3" in config.model_type.lower()
+
 
 # Delete the model from the huggingface cache when we're done serving it so we don't run out of disk space
 def delete_model_from_hf_cache(model_name: str):
@@ -101,7 +107,7 @@ class ModelServer:
         return asyncio.run(self._invoke_batch_async(message_batches, batch_size))
     
     def start_server(self):
-        if "phi" not in self.model_name.lower():
+        if not is_phi_model(self.model_name):
             self.server_process = execute_shell_command(
                 f"""
                 {os.getcwd()}/.venvsglang/bin/python -m sglang.launch_server \
@@ -139,7 +145,7 @@ class ModelServer:
             self.server_process.kill()
             bt.logging.error(f"Finetune: Server did not become ready within timeout period")
 
-            if "phi" not in self.model_name.lower():
+            if not is_phi_model(self.model_name):
                 self.server_process = execute_shell_command(
                     f"""
                     {os.getcwd()}/.venvsglang/bin/python -m sglang.launch_server \
