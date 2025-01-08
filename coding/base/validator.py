@@ -364,7 +364,7 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # Compute forward pass rewards, assumes uids are mutually exclusive.
         # shape: [ metagraph.n ]
-        step_rewards = np.zeros_like(self.scores)
+        step_rewards = self.scores.copy()
         step_rewards[uids] = rewards
         bt.logging.info(f"Scattered rewards: {rewards}")
 
