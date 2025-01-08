@@ -170,15 +170,31 @@ class ModelServer:
 
             try:
                 wait_for_server(f"http://localhost:{self.port}", self.server_process, timeout=60*15)
-            except TimeoutError:
-                bt.logging.error(f"Finetune: Server did not become ready within timeout period")
-                self.cleanup()
-                raise TimeoutError("Server did not become ready within timeout period")
             except Exception as e:
-                bt.logging.error(f"Finetune: Error running model: {e}")
+                # it might be a phi model, try again
+                terminate_process(self.server_process)
                 self.server_process.kill()
-                self.cleanup()
-                raise Exception(f"Error running model: {e}")
+                self.server_process = execute_shell_command(
+                    f"""
+                    {os.getcwd()}/.venvsglang/bin/python -m sglang.launch_server \
+                    --model {self.model_name} \
+                    --model-path {self.model_path} \
+                    --port {self.port} \ 
+                    --host 0.0.0.0 \
+                    --mem-fraction-static 0.6 \
+                    --context-length 8096 \
+                    --attention-backend triton
+                    """,
+                    self.model_name
+                )
+                try:
+                    wait_for_server(f"http://localhost:{self.port}", self.server_process, timeout=60*15)
+                except Exception as e:
+                    bt.logging.error(f"Finetune: Server did not become ready within timeout period")
+                    self.server_process.kill()
+                    self.cleanup()
+                    raise Exception(f"Error running model {e}")
+            
 
         self.llm = ChatOpenAI(
             api_key="None",
