@@ -267,7 +267,7 @@ class BaseValidatorNeuron(BaseNeuron):
         
         bt.logging.info(f"finetune_scores: {finetune_scores}")
         
-        combined_scores = forward_scores * 0.5 + finetune_scores * 0.5
+        combined_scores = forward_scores * 0.2 + finetune_scores * 0.8
         # Set bottom 10% of scores to 0
         cutoff = np.percentile(combined_scores, 10)
         combined_scores[combined_scores <= cutoff] = 0
