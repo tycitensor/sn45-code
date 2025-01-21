@@ -296,7 +296,7 @@ def add_validator_args(cls, parser):
         "--neuron.finetune_test_size",
         type=int,
         help="The number of finetune tasks to generate and score with.",
-        default=1000,
+        default=100,
     )
     
 
@@ -311,7 +311,8 @@ def config(cls):
     bt.subtensor.add_args(parser)
     bt.logging.add_args(parser)
     bt.axon.add_args(parser)
-    cls.add_args(parser)
+    if cls is not None: 
+        cls.add_args(parser)
     bt.trace() # TODO add if statement for if they want this
     bt.debug()
     return bt.config(parser)

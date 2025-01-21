@@ -112,17 +112,22 @@ pm2 start --name llm-server.25000 "python3 app.py"
 
 Ensure that the port 25000 is open on your machine and accessable from the Docker server.
 
-You can restrict the port to only be accessable from the Docker server by running the following command:
+Ensure that ufw is enabled on your machine, after doing so you can restrict the port to only be accessable from the Docker server by running the following commands:
 
 ```bash 
 sudo ufw allow from <docker-server-ip> to any port 25000
+sudo ufw deny 25000
+sudo ufw reload
 ```
+
 
 Test that the port is open by running the following command from the docker server:
 
 ```bash
 curl <validator-ip>:25000
 ```
+
+The command should return the response: `{"detail":"Not Found"}`. If it does not, then the port is not open or accessable from the Docker server.
 
 #### Setup IP Addresses
 

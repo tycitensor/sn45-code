@@ -1,20 +1,19 @@
 import os
+import asyncio
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional, Dict, List
 from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from dotenv import load_dotenv
 
-models = {
-    "gpt-4o": ChatOpenAI(model="gpt-4o"),
-    "gpt-3.5-turbo": ChatOpenAI(model="gpt-3.5-turbo"),
-    "gpt-4o-mini": ChatOpenAI(model="gpt-4o-mini"),
-    # "claude-3-5-sonnet": ChatAnthropic(model="claude-3-5-sonnet"),
-    # "gemini-2.0-flash-exp": ChatGoogleGenerativeAI(model="gemini-2.0-flash-exp"),
-}
+load_dotenv("../../../.env")
 
-embedder = OpenAIEmbeddings(model="text-embedding-3-small")
+if not os.getenv("LLM_AUTH_KEY"):
+    raise ValueError("LLM_AUTH_KEY environment variable not set")
+
+
 
 # Track token usage and current active key
 token_usage: Dict[str, int] = {}
@@ -80,9 +79,18 @@ async def get_count(auth_key: str = Depends(verify_auth)):
 
 @app.post("/call", response_model=LLMResponse)
 async def call_llm(request: LLMRequest):
+    models = {
+        "gpt-4o": ChatOpenAI(model="gpt-4o"),
+        "gpt-3.5-turbo": ChatOpenAI(model="gpt-3.5-turbo"),
+        "gpt-4o-mini": ChatOpenAI(model="gpt-4o-mini"),
+        "claude-3-5-sonnet": ChatAnthropic(model="claude-3-5-sonnet-latest"),
+        "gemini-2.0-flash-exp": ChatGoogleGenerativeAI(model="gemini-2.0-flash-exp"),
+    }
+
     global current_key
     try:
         # Verify we have an active key
+        # TODO remove this when token count is implemented
         if not current_key:
         #    raise HTTPException(
         #        status_code=400,
@@ -92,7 +100,20 @@ async def call_llm(request: LLMRequest):
             token_usage[current_key] = 0
             
         llm = models[request.llm_name]
-        response = llm.invoke(request.query)
+        
+        max_retries = 10
+        retry_delay = 20  # seconds
+        
+        for attempt in range(max_retries):
+            try:
+                response = llm.invoke(request.query)
+                break
+            except Exception as e:
+                if attempt < max_retries - 1 and "429" in str(e):
+                    # Rate limit hit, wait and retry
+                    await asyncio.sleep(retry_delay)
+                    continue
+                raise
         
         # Get token usage from response
         tokens = response.usage_metadata.get('total_tokens', 0)
@@ -107,9 +128,9 @@ async def call_llm(request: LLMRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @app.post("/embed", response_model=EmbeddingResponse)
 async def get_embeddings(request: EmbeddingRequest):
+    embedder = OpenAIEmbeddings(model="text-embedding-3-small")
     try:
         vector = embedder.embed_query(request.query)
         return EmbeddingResponse(vector=vector)

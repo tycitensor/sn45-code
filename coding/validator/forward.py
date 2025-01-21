@@ -5,7 +5,7 @@ from coding.utils.logging import log_event
 from coding.finetune import FinetunePipeline
 from coding.protocol import StreamCodeSynapse
 from coding.rewards.codesim import CodeSimModel
-from coding.constants import COMPETITION_END_DATE
+from coding.constants import COMPETITION_END_DATE, COMPETITION_ID
 
 async def forward(self, synapse: StreamCodeSynapse):
     """
@@ -27,7 +27,7 @@ async def forward(self, synapse: StreamCodeSynapse):
             self.finetune_eval_future = self.executor.submit(finetune_pipeline.evaluate)
     # Check if evaluation is complete
     if hasattr(self, 'finetune_eval_future') and self.finetune_eval_future.done():
-        self.finetune_results = self.finetune_eval_future.result()
+        self.finetune_results[COMPETITION_ID] = self.finetune_eval_future.result()
         delattr(self, 'finetune_eval_future')  # Remove the future after getting results
     
     self.update_scores()
@@ -36,6 +36,6 @@ async def forward(self, synapse: StreamCodeSynapse):
         self,
         {
             "step": self.step,
-            **(self.finetune_results.__state_dict__() if hasattr(self, 'finetune_results') else {}),
+            **(self.finetune_results[COMPETITION_ID].__state_dict__() if self.finetune_results else {}),
         },
     )

@@ -1,8 +1,10 @@
-COMPETITION_ID = 1
+COMPETITION_ID = 3
 
-COMPETITION_END_DATE = "2024-11-13"
+COMPETITION_END_DATE = "2025-01-22"
 
 ALLOWED_MODULES = [
+    "langchain_community",
+    "langchain_openai",
     "ast",
     "sentence_transformers",
     "networkx",
@@ -49,4 +51,4 @@ ALLOWED_IMPORTS = {
     'os': ['getenv', 'path', 'environ', 'makedirs', 'rm', 'walk', 'sep', 'remove'],
 }
 
-NUM_ALLOWED_CHARACTERS = 500000
+NUM_ALLOWED_CHARACTERS = 1000000

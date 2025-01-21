@@ -189,33 +189,25 @@ class SWEBenchTask(Task):
                     if edit.file_name == file_name
                 ]
                 lines_in_miner += len(set(valid_lines) & set(miner_lines))
-                total_lines += len(valid_lines)
-        percent_lines_in_miner = lines_in_miner / total_lines
-        print("percent lines in miner", percent_lines_in_miner)
+                total_lines += len(set(valid_lines))
+        percent_lines_in_miner = lines_in_miner / total_lines if total_lines > 0 else 0
         # Group edits into chunks by consecutive line numbers
         valid_chunks = chunk_patch(self.patch)
         miner_chunks = chunk_patch(patch)
 
         chunk_score = 0
         total_chunk_score = 0
-        print("valid chunks", valid_chunks)
         # find chunks that share an index in the same file
         for valid_chunk in valid_chunks:
             exists = False
             for miner_chunk in miner_chunks:
                 if (
                     miner_chunk.file_name == valid_chunk.file_name
-                    and abs(miner_chunk.start_index - valid_chunk.start_index) <= 2
+                    and abs(miner_chunk.start_index - valid_chunk.start_index) <= 10
                 ):
-                    print("old miner chunk content", miner_chunk.content)
-                    print("old valid chunk content", valid_chunk.content)
-                    print("new miner chunk content", miner_chunk.new_content)
-                    print("new valid chunk content", valid_chunk.new_content)
-                    # TODO this has to be a score between the original vs valid and the miner
-                    # chunk_score += self.code_scorer(
-                    #     miner_chunk.new_content, valid_chunk.new_content
-                    # )
-                    chunk_score += 1
+                    chunk_score += self.code_scorer(
+                        miner_chunk.new_content, valid_chunk.new_content
+                    )
                     total_chunk_score += 1
                     exists = True
                     break
@@ -223,7 +215,6 @@ class SWEBenchTask(Task):
                 total_chunk_score += 1
 
         chunk_percent = chunk_score / total_chunk_score
-        print("chunk percent", chunk_percent)
         score = (5 * percent_lines_in_miner + 5 * chunk_percent) / 10
 
         return score

@@ -51,6 +51,7 @@ class Validator(BaseValidatorNeuron):
     def __init__(self, config=None):
         if not config:
             config = util_config(self)
+        self.finetune_results = {}
         super(Validator, self).__init__(config=config)
 
         bt.logging.info("load_state()")
@@ -64,12 +65,11 @@ class Validator(BaseValidatorNeuron):
             if p > 0
         ]
         self.executor = ThreadPoolExecutor()
-        self.finetune_results = []
         # Load the reward pipeline
         self.reward_pipeline = RewardPipeline(
             selected_tasks=self.active_tasks,
             device=self.device,
-            code_scorer=self.code_scorer,
+            code_scorer=None,
         )
 
     def _forward(

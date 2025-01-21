@@ -12,6 +12,7 @@ class Edit(BaseModel):
 class Patch(BaseModel):
     edits: list[Edit]
 
+# if host ip is localhost itll fail, need to get docker host ip
 class LLMClient:
     def __init__(self, base_url: str = f"http://{os.getenv('HOST_IP', 'localhost')}:25000"):
         """Initialize LLM client with API server URL"""

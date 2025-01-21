@@ -70,14 +70,10 @@ class SWEBenchDataset(Dataset):
 
     def __init__(
         self,
-        seed=None,
     ):
-        if seed is None:
-            seed = random.randint(0, 1000)
-        self.seed = seed
+        pass
 
     def get(self, n=100, selector: Selector = Selector()) -> dict:
-        random.seed(self.seed)
         package_name = selector(get_top_pip_packages())
         package_info = get_package_stats(package_name)
         token = os.environ.get("GITHUB_TOKEN", None)
@@ -89,11 +85,14 @@ class SWEBenchDataset(Dataset):
             token,
         )
 
+        # Check repo size before proceeding
+        if repo.size > 1024 * 1024 * 1024:  # 1GB in bytes
+            raise Exception(f"Repository {package_info['github']} is too large (>1GB)")
+
         valid_pull = None
         err_count = 0
         pulls = [pull for pull in repo.get_all_pulls(state="closed")]
         random.shuffle(pulls)
-        # TODO either shuffle the pulls or grab every valid pull and randomly select one of those
         for pull in pulls:
             try:
                 if valid_pull or err_count > 5:
@@ -115,7 +114,6 @@ class SWEBenchDataset(Dataset):
             "content": diff_text,
             "extras": dict(pull_number=pull_data["pull_number"], base_commit=pull_data["base_commit"]),
         }
-
     def search(self, query, selector: Selector = None, **kwargs):
         pass
 
