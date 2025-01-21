@@ -1,11 +1,13 @@
 import bittensor as bt
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from coding.utils.logging import log_event
 from coding.finetune import FinetunePipeline
 from coding.protocol import StreamCodeSynapse
 from coding.rewards.codesim import CodeSimModel
 from coding.constants import COMPETITION_END_DATE, COMPETITION_ID
+
+
 
 async def forward(self, synapse: StreamCodeSynapse):
     """
@@ -18,7 +20,9 @@ async def forward(self, synapse: StreamCodeSynapse):
 
     """
     bt.logging.info("🚀 Starting forward loop...")
-    if datetime.now(timezone.utc) > datetime.strptime(COMPETITION_END_DATE, "%Y-%m-%d").replace(tzinfo=timezone.utc):
+    eastern = timezone(timedelta(hours=-5))  # EST is UTC-5
+    end_time = datetime.strptime(COMPETITION_END_DATE, "%Y-%m-%d").replace(hour=18, tzinfo=eastern)
+    if datetime.now(eastern) > end_time:
         if not self.finetune_results and not hasattr(self, 'finetune_eval_future'):
             self.finetune_result = None
             finetune_pipeline = FinetunePipeline(
