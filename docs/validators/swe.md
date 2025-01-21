@@ -3,7 +3,7 @@
 
 ## Remote Server Setup
 
-You should use a separate server from the one you run the validator on for this. This is to ensure security and avoid any potential issues. I recommend using a digital ocean droplet.
+You should use a separate server from the one you run the validator on for this. This is to ensure security and avoid any potential issues. I recommend using a digital ocean droplet. A small one is fine, maybe 2-4gb of ram. 
 
 ### Setup Docker
 
