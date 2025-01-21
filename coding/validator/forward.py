@@ -1,3 +1,4 @@
+from time import sleep
 import bittensor as bt
 from datetime import datetime, timezone, timedelta
 
@@ -20,6 +21,9 @@ async def forward(self, synapse: StreamCodeSynapse):
 
     """
     bt.logging.info("🚀 Starting forward loop...")
+    if not FinetunePipeline.tasks_exist(self.config):
+        FinetunePipeline.generate_tasks(self.config)
+    
     eastern = timezone(timedelta(hours=-5))  # EST is UTC-5
     end_time = datetime.strptime(COMPETITION_END_DATE, "%Y-%m-%d").replace(hour=18, tzinfo=eastern)
     if datetime.now(eastern) > end_time:
@@ -43,3 +47,4 @@ async def forward(self, synapse: StreamCodeSynapse):
             **(self.finetune_results[COMPETITION_ID].__state_dict__() if self.finetune_results else {}),
         },
     )
+    sleep(30)

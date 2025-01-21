@@ -289,6 +289,17 @@ class FinetunePipeline:
                 "trackers": self.trackers
             }, f)
 
+    @staticmethod
+    def generate_tasks(config) -> List[SWEBenchTask]:
+        dataset = SWEBenchDataset()
+        tasks = generate_swe_tasks(dataset, config.neuron.finetune_test_size)
+        with open(f"{config.neuron.full_path}/tasks_{COMPETITION_ID}.pkl", "wb") as f:
+            pickle.dump(tasks, f)
+    
+    @staticmethod
+    def tasks_exist(config):
+        return os.path.exists(f"{config.neuron.full_path}/tasks_{COMPETITION_ID}.pkl")
+    
     def cleanup(self):
         """
         Delete the tasks file and any other task files
