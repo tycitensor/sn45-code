@@ -44,7 +44,11 @@ ALLOWED_MODULES = [
     "io",
     "tokenize",
     "pathlib",
-    "threading"
+    "threading",
+    "jsonlines",
+    "tiktoken",
+    "openai",
+    "anthropic"
 ]
 
 ALLOWED_IMPORTS = {
