@@ -1,11 +1,11 @@
 import re
 from pydantic import BaseModel
 from typing import Callable, List, Dict
+from code_bert_score import BERTScorer
 
 from .task import Task
 from coding.helpers.git import GitRepo
 from coding.schemas import Context, Patch, Edit
-
 
 class PatchChunk(BaseModel):
     file_name: str
@@ -150,7 +150,10 @@ class SWEBenchTask(Task):
         self, llm: Callable, context: Context, code_scorer: Callable = None, **kwargs
     ):
         self.repo = GitRepo(context.title, context.extras["base_commit"])
-        self.code_scorer = code_scorer
+        if code_scorer is None:
+            self.code_scorer = BERTScorer(lang="python")
+        else:
+            self.code_scorer = code_scorer
         self.context = context
         self.patch: Patch = parse_diff(context.content)
         self.query = context.topic
