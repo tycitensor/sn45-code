@@ -24,12 +24,10 @@ import threading
 import bittensor as bt
 import numpy as np
 
-from typing import Awaitable
 from traceback import print_exception
 
 from coding.mock import MockDendrite
 from coding.base.neuron import BaseNeuron
-from coding.protocol import StreamCodeSynapse
 from coding.utils.config import add_validator_args
 from coding.utils.exceptions import MaxRetryError
 from coding.utils.uids import get_hotkey_from_uid, get_uid_from_hotkey
@@ -243,37 +241,6 @@ class BaseValidatorNeuron(BaseNeuron):
             self.is_running = False
             bt.logging.debug("Stopped")
 
-    def combine_scores(self) -> np.ndarray:
-        """Combine the scores from the finetune results with the scores from the forward pass.
-        
-        If no finetune results exist yet, returns just the forward scores.
-        """
-        forward_scores = self.scores
-        bt.logging.info(f"forward_scores: {forward_scores}")
-        # If no finetune results yet, return just forward scores
-        if not hasattr(self, 'finetune_results') or not self.finetune_results:
-            return forward_scores * 0.5
-        
-        
-        # get latest finetune results 
-        latest_competition_id = max(self.finetune_results.keys())
-        finetune_trackers = self.finetune_results[latest_competition_id].trackers
-        
-        finetune_scores = np.zeros_like(forward_scores)
-        for tracker in finetune_trackers:
-            uid = get_uid_from_hotkey(self, tracker.hotkey)
-            if uid is not None:
-                finetune_scores[uid] = tracker.score
-        
-        bt.logging.info(f"finetune_scores: {finetune_scores}")
-        
-        combined_scores = forward_scores * 0.2 + finetune_scores * 0.8
-        # Set bottom 10% of scores to 0
-        cutoff = np.percentile(combined_scores, 10)
-        combined_scores[combined_scores <= cutoff] = 0
-        bt.logging.info(f"combined_scores: {combined_scores}")
-        return combined_scores
-    
     def set_weights(self):
         """
         Sets the validator weights to the metagraph hotkeys based on the scores it has received from the miners. The weights determine the trust and incentive level the validator assigns to miner nodes on the network.
@@ -281,10 +248,7 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # Check if self.scores contains any NaN values and log a warning if it does.
         for _ in range(1):
-            # Calculate the average reward for each uid across non-zero values.
-            # Replace any NaN values with 0.
-            combined_scores = self.combine_scores()
-            raw_weights = np.divide(combined_scores, np.sum(combined_scores, axis=0))
+            raw_weights = np.divide(self.scores, np.sum(self.scores, axis=0))
 
             # Process the raw weights to final_weights via subtensor limitations.
             (
@@ -359,20 +323,19 @@ class BaseValidatorNeuron(BaseNeuron):
         # Update the hotkeys.
         self.hotkeys = copy.deepcopy(self.metagraph.hotkeys)
 
-    def update_scores(self, rewards, uids):
+    def update_scores(self):
         """Performs exponential moving average on the scores based on the rewards received from the miners."""
-
-        # Compute forward pass rewards, assumes uids are mutually exclusive.
-        # shape: [ metagraph.n ]
-        step_rewards = self.scores.copy()
-        step_rewards[uids] = rewards
-        bt.logging.info(f"Scattered rewards: {rewards}")
-
-        # Update scores with rewards produced by this step.
-        # shape: [ metagraph.n ]
-        alpha = self.config.neuron.moving_average_alpha
-        self.scores = alpha * step_rewards + (1 - alpha) * self.scores
-        self.scores = np.maximum(self.scores - 0.001, 0)
+        if not self.finetune_results:
+            return
+        latest_competition_id = max(self.finetune_results.keys())
+        finetune_scores = np.zeros(self.metagraph.n)
+        for tracker in self.finetune_results[latest_competition_id].trackers:
+            finetune_scores[tracker.uid] = tracker.score
+        
+        max_score = np.max(finetune_scores)
+        threshold = max_score * 0.9  # 90% of max score
+        finetune_scores[finetune_scores < threshold] = 0
+        self.scores = finetune_scores
         bt.logging.info(f"Updated moving avg scores: {self.scores}")
 
     def save_state(self):
@@ -419,3 +382,6 @@ class BaseValidatorNeuron(BaseNeuron):
         if "finetune_items" in state:
             for key, value in state["finetune_items"]:
                 self.finetune_results[key] = value
+    
+    
+    

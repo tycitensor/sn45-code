@@ -30,13 +30,9 @@ from typing import Awaitable, Tuple
 from code_bert_score import BERTScorer
 from langchain_openai import ChatOpenAI
 from concurrent.futures import ThreadPoolExecutor
-
-from coding.datasets import DatasetManager
-from coding.validator import forward, forward_organic_synapse
+from coding.validator import forward
 from coding.rewards.pipeline import RewardPipeline
 from coding.protocol import StreamCodeSynapse
-from coding.datasets import DatasetManager
-from coding.repl import REPLClient
 
 # import base validator class which takes care of most of the boilerplate
 from coding.utils.config import config as util_config
@@ -60,14 +56,6 @@ class Validator(BaseValidatorNeuron):
         bt.logging.info("load_state()")
         self.load_state()
 
-        self.llm = ChatOpenAI(
-            base_url=self.config.neuron.model_url,
-            model_name=self.config.neuron.model_id,
-            api_key=self.config.neuron.vllm_api_key,
-        ) 
-        self.repl = REPLClient()
-        self.code_scorer = BERTScorer(lang="python")
-        self.dataset_manager = DatasetManager(self.config)
         self.active_tasks = [
             task
             for task, p in zip(
@@ -80,7 +68,7 @@ class Validator(BaseValidatorNeuron):
         self.reward_pipeline = RewardPipeline(
             selected_tasks=self.active_tasks,
             device=self.device,
-            code_scorer=self.code_scorer,
+            code_scorer=None,
         )
 
     def _forward(
@@ -91,19 +79,20 @@ class Validator(BaseValidatorNeuron):
         """
         forward method that is called when the validator is queried with an axon
         """
-        response = forward_organic_synapse(self, synapse=synapse)
+        return forward(self, synapse)
+        # # response = forward_organic_synapse(self, synapse=synapse)
 
-        def _run():
-            asyncio.run(forward(self, synapse))
+        # def _run():
+        #     asyncio.run(forward(self, synapse))
 
-        if random.random() < self.config.neuron.percent_organic_score:
-            try:
-                loop = asyncio.get_running_loop()
-                loop.create_task(forward(self, synapse))
-            except RuntimeError:  # No event loop running
-                threading.Thread(target=_run).start()
-            # return the response
-        return response
+        # if random.random() < self.config.neuron.percent_organic_score:
+        #     try:
+        #         loop = asyncio.get_running_loop()
+        #         loop.create_task(forward(self, synapse))
+        #     except RuntimeError:  # No event loop running
+        #         threading.Thread(target=_run).start()
+        #     # return the response
+        # return response
 
     async def forward(self, synapse: StreamCodeSynapse) -> Awaitable:
         """

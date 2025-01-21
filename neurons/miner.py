@@ -30,8 +30,8 @@ import coding
 # import base miner class which takes care of most of the boilerplate
 from coding.base.miner import BaseMinerNeuron
 from coding.utils.config import config as util_config
-from coding.protocol import StreamCodeSynapse, HFModelSynapse
-from coding.miners.finetune import miner_process as miner_process_fine_tuning
+from coding.protocol import StreamCodeSynapse, LogicSynapse
+from coding.miners.swe import miner_process as miner_process_swe
 
 class Miner(BaseMinerNeuron):
     """
@@ -47,7 +47,7 @@ class Miner(BaseMinerNeuron):
             config = util_config(self)
         self.forward_capabilities = [
             {'forward': self.forward, 'blacklist': self.blacklist, 'priority': self.priority},
-            {'forward': self.forward_hf_model, 'blacklist': self.blacklist_hf_model, 'priority': self.priority_hf_model},
+            {'forward': self.forward_swe, 'blacklist': self.blacklist_swe, 'priority': self.priority_swe},
         ]
         super().__init__(config=config)
         miner_name = f"coding.miners.{config.miner.name}_miner"  # if config and config.miner else "bitagent.miners.t5_miner"
@@ -58,18 +58,18 @@ class Miner(BaseMinerNeuron):
 
         self.miner_init(self)
 
-    async def forward_hf_model(
-        self, synapse: HFModelSynapse
-    ) -> HFModelSynapse:
-        return miner_process_fine_tuning(self, synapse)
+    async def forward_swe(
+        self, synapse: LogicSynapse
+    ) -> LogicSynapse:
+        return miner_process_swe(self, synapse)
     
-    async def blacklist_hf_model(
-        self, synapse: HFModelSynapse
+    async def blacklist_swe(
+        self, synapse: LogicSynapse
     ) -> typing.Tuple[bool, str]:
         return await self.blacklist(synapse)
     
-    async def priority_hf_model(
-        self, synapse: HFModelSynapse
+    async def priority_swe(
+        self, synapse: LogicSynapse
     ) -> float:
         return await self.priority(synapse)
     

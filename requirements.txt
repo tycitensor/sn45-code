@@ -20,6 +20,10 @@ accelerate
 transformers
 bitsandbytes
 flash_attn
+langchain-anthropic
+fastapi
+pydantic
+langchain-google-genai
 huggingface-hub
 bittensor-commit-reveal
 sglang

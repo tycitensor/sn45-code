@@ -65,34 +65,35 @@ def get_top_pip_packages():
     return packages
 
 
-class SWEDataset(Dataset):
-    name = "swe"
+class SWEBenchDataset(Dataset):
+    name = "swebench"
 
     def __init__(
         self,
-        seed=None,
     ):
-        if seed is None:
-            seed = random.randint(0, 1000)
-        self.seed = seed
+        pass
 
     def get(self, n=100, selector: Selector = Selector()) -> dict:
-        random.seed(self.seed)
         package_name = selector(get_top_pip_packages())
         package_info = get_package_stats(package_name)
         token = os.environ.get("GITHUB_TOKEN", None)
         if not token:
             raise Exception("GITHUB_TOKEN not set")
-
         repo = SWERepo(
             package_info["github"].split("/")[-2],
             package_info["github"].split("/")[-1],
             token,
         )
 
+        # Check repo size before proceeding
+        if repo.size > 1024 * 1024 * 1024:  # 1GB in bytes
+            raise Exception(f"Repository {package_info['github']} is too large (>1GB)")
+
         valid_pull = None
         err_count = 0
-        for pull in repo.get_all_pulls():
+        pulls = [pull for pull in repo.get_all_pulls(state="closed")]
+        random.shuffle(pulls)
+        for pull in pulls:
             try:
                 if valid_pull or err_count > 5:
                     break
@@ -113,7 +114,6 @@ class SWEDataset(Dataset):
             "content": diff_text,
             "extras": dict(pull_number=pull_data["pull_number"], base_commit=pull_data["base_commit"]),
         }
-
     def search(self, query, selector: Selector = None, **kwargs):
         pass
 

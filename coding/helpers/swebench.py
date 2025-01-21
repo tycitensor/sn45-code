@@ -26,6 +26,7 @@ class Repo:
         self.token = token
         self.api = GhApi(token=token)
         self.repo = self.call_api(self.api.repos.get, owner=owner, repo=name)
+        self.size = self.repo.size if self.repo else 0
 
     def call_api(self, func: Callable, **kwargs) -> dict|None:
         """

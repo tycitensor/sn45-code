@@ -1,10 +1,11 @@
+from typing import List
 from pydantic import BaseModel
 
 from .model import Model
 
 class TrackingInfo(BaseModel):
-    model: Model
+    logic: dict
     block: int
     hotkey: str
     uid: int
-    score: float
+    score: float = 0.0

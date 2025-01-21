@@ -23,7 +23,6 @@ from abc import ABC
 from dataclasses import dataclass, field
 from typing import List, Union, Any, Dict, Callable
 
-from coding.repl import REPLClient
 from coding.schemas import Context, File
 
 
@@ -54,7 +53,6 @@ class Task(ABC):
     query_system_prompt: str = ""
     query_prompt: str = ""
     llm: Callable = None
-    repl: REPLClient = None
     code_scorer: Callable = None
     extra_info: Dict = field(default_factory=dict)
 

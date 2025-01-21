@@ -23,7 +23,7 @@ import random
 from typing import Callable
 
 from .task import Task
-from .swe import SWETask
+from .swe import SWEBenchTask
 # from .debug import DebugTask
 from .fim import FillInMiddleTask
 from .repofile import RepoFileTask
@@ -39,15 +39,13 @@ TASKS = {
     CompletionTask.name: CompletionTask,
     RepoFileTask.name: RepoFileTask,
     # DebugTask.name: DebugTask,
-    SWETask.name: SWETask,
-    BigCodeBenchTask.name: BigCodeBenchTask,
+    SWEBenchTask.name: SWEBenchTask,
 }
 
-from coding.repl import REPLClient
 from coding.schemas import Context
 from coding.helpers import Selector
 from coding.protocol import StreamCodeSynapse
-from coding.datasets import TheStackDataset, PipDataset, SWEDataset, BigCodeBenchDataset, DatasetManager
+from coding.datasets import TheStackDataset, PipDataset, SWEBenchDataset, DatasetManager
 
 TASK_REGISTRY = {
     RepoCompletionTask.name: [TheStackDataset.name],
@@ -55,8 +53,7 @@ TASK_REGISTRY = {
     CompletionTask.name: [TheStackDataset.name],
     RepoFileTask.name: [TheStackDataset.name],
     # DebugTask.name: [PipDataset.name],
-    SWETask.name: [SWEDataset.name],
-    BigCodeBenchTask.name: [BigCodeBenchDataset.name],
+    SWEBenchTask.name: [SWEBenchDataset.name],
 }
 
 
@@ -64,7 +61,7 @@ def create_task(
     llm,
     task_name: str,
     selector: Selector = random.choice,
-    repl: REPLClient = REPLClient(),
+    repl = None,
     code_scorer: Callable = None,
     dataset_manager: DatasetManager = None
 ) -> Task:
@@ -100,13 +97,11 @@ def create_task(
 def create_organic_task(
     llm,
     synapse: StreamCodeSynapse,
-    repl: REPLClient = REPLClient(),
 ) -> Task:
     """Create a task from the given synapse and LLM pipeline."""
 
     return OrganicConvoTask(
         llm=llm,
         context=Context(messages=synapse.messages, files=synapse.files),
-        repl=repl,
     )
  

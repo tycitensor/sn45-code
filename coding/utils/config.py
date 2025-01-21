@@ -311,7 +311,8 @@ def config(cls):
     bt.subtensor.add_args(parser)
     bt.logging.add_args(parser)
     bt.axon.add_args(parser)
-    cls.add_args(parser)
+    if cls is not None: 
+        cls.add_args(parser)
     bt.trace() # TODO add if statement for if they want this
     bt.debug()
     return bt.config(parser)

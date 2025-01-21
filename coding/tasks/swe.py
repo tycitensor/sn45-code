@@ -1,107 +1,139 @@
 import re
-import json
-import time
-import requests
+from pydantic import BaseModel
 from typing import Callable, List, Dict
-from dataclasses import dataclass, field
+from code_bert_score import BERTScorer
 
 from .task import Task
-from coding.schemas import Context, File
-from coding.rewards.reward import BatchRewardOutput, RewardEvent
+from coding.helpers.git import GitRepo
 from coding.rewards.codesim import CodeSimModel
+from coding.schemas import Context, Patch, Edit
+
+class PatchChunk(BaseModel):
+    file_name: str
+    start_index: int
+    end_index: int
+    content: str
+    new_content: str
 
 
-# TODO decide if should move diff stuff and downloading to dataset
-@dataclass
-class Diff:
-    file: str
-    edited_lines: List[tuple] = field(
-        default_factory=list
-    )  # +/- , line number , line content
-
-
-def parse_diff(diff_text: str, no_title=False) -> List[Diff]:
+def parse_diff(diff_text: str, no_title=False) -> Patch:
     diff_pattern = r"^diff --git a\/(.+?) b\/(.+?)$"
     line_change_pattern = r"^@@ -(\d+),\d+ \+(\d+),\d+ @@"
-    diff_objects = []
+    edits = []
 
-    current_diff = None
+    current_file = None
     old_file_line_num = 0
     new_file_line_num = 0
-    
+
     for line in diff_text.splitlines():
         diff_match = re.match(diff_pattern, line)
         if diff_match:
-            # When we encounter a new file diff, add the previous diff object
-            if current_diff:
-                diff_objects.append(current_diff)
-            current_diff = Diff(file=diff_match.group(2))
+            current_file = diff_match.group(2)
             old_file_line_num = 0
             new_file_line_num = 0
             continue
-        elif no_title and not current_diff:
-            # Handle case where title (file name) is not provided
-            current_diff = Diff(file="")
+        elif no_title and not current_file:
+            current_file = ""
             old_file_line_num = 0
             new_file_line_num = 0
             continue
 
         line_change_match = re.match(line_change_pattern, line)
-        
+
         if line_change_match:
-            # Capture the starting line numbers for old and new files
             old_file_line_num = int(line_change_match.group(1))
             new_file_line_num = int(line_change_match.group(2))
             continue
 
         if line.startswith("+") and not line.startswith("+++"):
             # Line added in new file
-            current_diff.edited_lines.append(("+", new_file_line_num, line[1:].strip()))
-            new_file_line_num += 1  # Increment only the new file line number
+            edits.append(
+                Edit(
+                    file_name=current_file,
+                    line_number=new_file_line_num,
+                    line_content="",
+                    new_line_content=line[1:].strip(),
+                )
+            )
+            new_file_line_num += 1
         elif line.startswith("-") and not line.startswith("---"):
             # Line removed from old file
-            current_diff.edited_lines.append(("-", old_file_line_num, line[1:].strip()))
-            old_file_line_num += 1  # Increment only the old file line number
+            edits.append(
+                Edit(
+                    file_name=current_file,
+                    line_number=old_file_line_num,
+                    line_content=line[1:].strip(),
+                    new_line_content="",
+                )
+            )
+            old_file_line_num += 1
         elif line.startswith(" "):
             # Context lines (lines present in both old and new files)
             old_file_line_num += 1
             new_file_line_num += 1
 
-    # Append the last diff object if exists
-    if current_diff:
-        diff_objects.append(current_diff)
-
-    return diff_objects
+    return Patch(edits=edits)
 
 
-def download_git_file(repo_name, commit_sha, file_path):
-    # Construct the URL for the file in the specific commit
-    file_url = f"https://api.github.com/repos/{repo_name}/contents/{file_path}?ref={commit_sha}"
-    file_response = requests.get(file_url)
+# TODO ensure chunks within 2 lines of each other are grouped together
+def chunk_patch(patch: Patch) -> List[PatchChunk]:
+    chunks = []
+    current_chunk = []
+    current_file = None
+    
+    # Group edits by file and line number
+    file_edits = {}
+    for edit in patch.edits:
+        if edit.file_name not in file_edits:
+            file_edits[edit.file_name] = {}
+        if edit.line_number not in file_edits[edit.file_name]:
+            file_edits[edit.file_name][edit.line_number] = []
+        file_edits[edit.file_name][edit.line_number].append(edit)
 
-    if file_response.status_code == 200:
-        # The response is JSON containing file info, including the download URL
-        file_info = file_response.json()
-        download_url = file_info["download_url"]
+    # Process each file's edits
+    for file_name, line_edits in file_edits.items():
+        current_chunk = []
+        prev_line = None
+        
+        # Sort line numbers
+        for line_num in sorted(line_edits.keys()):
+            if prev_line is None or line_num <= prev_line + 1:
+                current_chunk.extend(line_edits[line_num])
+            else:
+                # Create chunk for previous group
+                if current_chunk:
+                    start_idx = current_chunk[0].line_number
+                    end_idx = current_chunk[-1].line_number
+                    content = "\n".join(e.line_content for e in current_chunk if e.line_content)
+                    new_content = "\n".join(e.new_line_content for e in current_chunk if e.new_line_content)
+                    chunks.append(PatchChunk(
+                        file_name=file_name,
+                        start_index=start_idx,
+                        end_index=end_idx,
+                        content=content,
+                        new_content=new_content
+                    ))
+                current_chunk = line_edits[line_num]
+            prev_line = line_num
+            
+        # Add final chunk for this file
+        if current_chunk:
+            start_idx = current_chunk[0].line_number
+            end_idx = current_chunk[-1].line_number
+            content = "\n".join(e.line_content for e in current_chunk if e.line_content)
+            new_content = "\n".join(e.new_line_content for e in current_chunk if e.new_line_content)
+            chunks.append(PatchChunk(
+                file_name=file_name,
+                start_index=start_idx,
+                end_index=end_idx,
+                content=content,
+                new_content=new_content
+            ))
 
-        # Fetch the file content
-        content_response = requests.get(download_url)
+    return chunks
 
-        if content_response.status_code == 200:
-            # Return the file content
-            return content_response.content
-        else:
-            raise Exception(
-                f"Failed to download {file_path} from commit {commit_sha}. HTTP Status Code: {content_response.status_code}"
-            )
-    else:
-        raise Exception(
-            f"Failed to get file info for {file_path} from commit {commit_sha}. HTTP Status Code: {file_response.status_code}"
-        )
-
-
-class SWETask(Task):
-    name: str = "swe"
+class SWEBenchTask(Task):
+    name: str = "swebench"
     desc: str = "given a github issue corrrectly solve it"
     goal: str = "return the valid patch"
     reward_definition: str = [
@@ -118,124 +150,75 @@ class SWETask(Task):
     def __init__(
         self, llm: Callable, context: Context, code_scorer: Callable = None, **kwargs
     ):
-        self.llm = llm
+        self.repo = GitRepo(context.title, context.extras["base_commit"])
+        if code_scorer is None:
+            self.code_scorer = CodeSimModel()
+        else:
+            self.code_scorer = code_scorer
         self.context = context
-        self.diffs: List[Diff] = parse_diff(context.content)
+        self.patch: Patch = parse_diff(context.content)
+        self.query = context.topic
+        # self.repo = context.title
+        self.base_commit = context.extras["base_commit"]
+        self.pull_number = context.extras["pull_number"]
 
-        self.context.files = [
-            File(
-                path=diff.file,
-                content=download_git_file(
-                    context.title, context.extras["base_commit"], diff.file
-                ),
-            )
-            for diff in self.diffs
-        ]
-        self.timeout = 20 + 20*len(self.context.files)
+    def score(self, patch: Patch, token_count: int):
+        print("valid patch", self.patch)
+        valid_num_lines = {}  # file name -> num lines
+        miner_num_lines = {}
 
-        # TODO uncomment if want to rename
-        # renaming the files
-        # for idx, file in enumerate(self.diffs):
-        #     id = str(uuid.uuid4())[0:5]
-        #     self.diffs[idx].file = id
-        #     self.context.files[idx].path = id
+        for edit in self.patch.edits:
+            if edit.file_name not in valid_num_lines:
+                valid_num_lines[edit.file_name] = 0
+            valid_num_lines[edit.file_name] += 1
 
-        self.files = self.context.files
-        self.query = (
-            """Given the following issue and files, please return a patch file that would fix the issue. An example of what you should return is
-<patch> diff --git a/example.txt b/example.txt
-index e69de29..d95f3ad 100644
---- a/example.txt
-+++ b/example.txt
-@@ -1,3 +1,3 @@
--Hello, world!
-+Hello, universe!
- 
- This is a simple text file.
--The end.
-+Goodbye, world! </patch>
-The following issue is:\n\n
-"""
-            + self.context.topic
-        )  # problem statement
-        # TODO potentially dont initiate CodeSimModel and instead just move the cosim function out and just import that
-        self.codesim = CodeSimModel(code_scorer=code_scorer)
-        
-        self.topic = context.title
-        self.subtopic = context.topic
-        self.tags = context.tags
-        
+            if edit.file_name not in miner_num_lines:
+                miner_num_lines[edit.file_name] = 0
+            miner_num_lines[edit.file_name] += 1
 
-    def score(self, completion):
-        try:
-            completion = json.loads(completion)
-        except:
-            return 0
-        
-        if not completion:
-            return 0
-        
-        total_points = len(self.diffs)  # one point per file
-        points = 0
-        # check if the diff file names match the ones in the github issue
-        for diff in self.diffs:
-            if diff.file not in completion.keys():
-                continue
+        # see which lines in valid patch are in miner patch and find percent
+        # miner can edit extra lines but not less
+        total_lines = 0
+        lines_in_miner = 0
+        for file_name in valid_num_lines:
+            if file_name in miner_num_lines:
+                valid_lines = [
+                    edit.line_number
+                    for edit in self.patch.edits
+                    if edit.file_name == file_name
+                ]
+                miner_lines = [
+                    edit.line_number
+                    for edit in patch.edits
+                    if edit.file_name == file_name
+                ]
+                lines_in_miner += len(set(valid_lines) & set(miner_lines))
+                total_lines += len(set(valid_lines))
+        percent_lines_in_miner = lines_in_miner / total_lines if total_lines > 0 else 0
+        # Group edits into chunks by consecutive line numbers
+        valid_chunks = chunk_patch(self.patch)
+        miner_chunks = chunk_patch(patch)
 
-            miner_diffs = parse_diff(completion[diff.file], no_title=True)
-            if not miner_diffs:
-                return 0
-            else:
-                miner_diff = miner_diffs[0]
-            total_line_points = len(diff.edited_lines)
-            line_points = 0
-            for edit, line_num, content in diff.edited_lines:
-                if line_num not in [line[1] for line in miner_diff.edited_lines]:
-                    continue
-                # find the miners edited line that has the same line number
-                for miner_line in miner_diff.edited_lines:
-                    miner_edit, miner_line_num, miner_content = miner_line
-                    if miner_line_num == line_num:
-                        if (
-                            miner_edit == "-"
-                            and miner_content == content
-                            and miner_edit == edit
-                        ):
-                            line_points += 1
-                        if miner_edit == "+" and miner_edit == edit:
-                            line_points += 1 * self.codesim.similarity(content, miner_content)
-            if line_points != 0:
-                points += 1 * (line_points / total_line_points)
-        if points == 0:
-            return 0
-        return points / total_points
+        chunk_score = 0
+        total_chunk_score = 0
+        # find chunks that share an index in the same file
+        for valid_chunk in valid_chunks:
+            exists = False
+            for miner_chunk in miner_chunks:
+                if (
+                    miner_chunk.file_name == valid_chunk.file_name
+                    and abs(miner_chunk.start_index - valid_chunk.start_index) <= 10
+                ):
+                    chunk_score += self.code_scorer.similarity(
+                        miner_chunk.new_content, valid_chunk.new_content
+                    )
+                    total_chunk_score += 1
+                    exists = True
+                    break
+            if not exists:
+                total_chunk_score += 1
 
-    def reward(self, completions: List[str]) -> BatchRewardOutput:
-        rewards = []
-        timings = []
+        chunk_percent = chunk_score / total_chunk_score
+        score = (5 * percent_lines_in_miner + 5 * chunk_percent) / 10
 
-        for completion in completions:
-            t0 = time.time()
-            try:
-                rewards.append(self.score(completion))
-            except:
-                rewards.append(0)
-            timings.append(time.time() - t0)
-        output = BatchRewardOutput(rewards=rewards, timings=timings, extra_info={})
-
-        return output
-
-    def reward_apply(self, response_event, reward_type) -> RewardEvent:
-        t0 = time.time()
-        batch_rewards_output = self.reward(response_event.completions)
-        batch_rewards_time = time.time() - t0
-
-        return RewardEvent(
-            model_name=self.name,
-            rewards=batch_rewards_output.rewards,
-            rewards_normalized=batch_rewards_output.rewards_normalized,
-            model_type=reward_type,
-            batch_time=batch_rewards_time,
-            extra_info=batch_rewards_output.extra_info,
-            timings=batch_rewards_output.timings,
-        )
+        return score
