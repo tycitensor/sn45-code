@@ -51,11 +51,11 @@ class FinetuneEventResults(BaseModel):
 
 
 
-def generate_swe_tasks(ds: SWEBenchDataset, n: int = 1000) -> List[SWEBenchTask]:
+def generate_swe_tasks(ds: SWEBenchDataset, n: int = 1000, code_scorer =  None) -> List[SWEBenchTask]:
     tasks = []
     while len(tasks) < n:
         try:
-            tasks.append(SWEBenchTask(llm=None, context=Context(**ds.get())))
+            tasks.append(SWEBenchTask(llm=None, context=Context(**ds.get()), code_scorer=code_scorer))
         except Exception as e:
             bt.logging.error(f"Error generating task: {e}")
             print(traceback.format_exc())
@@ -116,7 +116,6 @@ class FinetunePipeline:
         self.code_sim_model = CodeSimModel()
         self.trackers = []
         self.dataset = SWEBenchDataset()
-        self.load_tasks()
         self.load_results()
         self.llm_manager = LLMManager()
         
@@ -124,6 +123,8 @@ class FinetunePipeline:
             self.load_logics()
         else:
             self.tracking_logics = tracking_logics
+        
+        self.load_tasks()
 
         # Register cleanup to be called when the object is deleted
         # self._finalizer = weakref.finalize(self, self.cleanup)
@@ -132,8 +133,10 @@ class FinetunePipeline:
         if os.path.exists(f"{self.config.neuron.full_path}/tasks_{COMPETITION_ID}.pkl"):
             with open(f"{self.config.neuron.full_path}/tasks_{COMPETITION_ID}.pkl", "rb") as f:
                 self.tasks = pickle.load(f)[:self.config.neuron.finetune_test_size]
+                for task in self.tasks:
+                    task.code_scorer = self.code_sim_model
         else:
-            self.tasks = generate_swe_tasks(self.dataset, self.config.neuron.finetune_test_size)
+            self.tasks = generate_swe_tasks(self.dataset, self.config.neuron.finetune_test_size, code_scorer=self.code_sim_model)
             self.store_tasks()
 
     def load_results(self):
@@ -265,6 +268,8 @@ class FinetunePipeline:
 
     def store_tasks(self):
         with open(f"{self.config.neuron.full_path}/tasks_{COMPETITION_ID}.pkl", "wb") as f:
+            for task in self.tasks:
+                task.code_scorer = None
             pickle.dump(self.tasks, f)
 
     def store_results(self):
@@ -295,39 +300,3 @@ class FinetunePipeline:
                 os.remove(os.path.join(self.config.neuron.full_path, file))
             if file.startswith("results_") and file.endswith(".pkl"):
                 os.remove(os.path.join(self.config.neuron.full_path, file))
-
-if __name__ == "__main__":
-    config = util_config(None)
-    parser = argparse.ArgumentParser()
-    add_validator_args(config, parser)
-    config.netuid = 1
-    config.neuron = type('Neuron', (), {'full_path': "tests", "finetune_test_size": 100})()
-    test_submission_dir = "notebooks/test-submission"
-    logic = {}
-    # Read all files in test-submission directory
-    for root, dirs, files in os.walk(test_submission_dir):
-        # Skip __pycache__ directories
-        if '__pycache__' in dirs:
-            dirs.remove('__pycache__')
-            
-        # Get relative path from test_submission_dir
-        rel_path = os.path.relpath(root, test_submission_dir)
-        
-        # Process all files in current directory
-        for filename in files:
-            # Skip __pycache__ files
-            if '__pycache__' in filename:
-                continue
-                
-            file_path = os.path.join(root, filename)
-            # Get the relative path for the logic dict key
-            if rel_path == '.':
-                logic_key = filename
-            else:
-                logic_key = os.path.join(rel_path, filename)
-                
-            with open(file_path, 'r', encoding='latin-1') as f:
-                logic[logic_key] = f.read()
-    tracking_logics = [TrackingInfo(logic=logic, hotkey="hotkey1", uid=1, score=0.0, block=0)]
-    pipeline = FinetunePipeline(config, tracking_logics)
-    pipeline.evaluate()
