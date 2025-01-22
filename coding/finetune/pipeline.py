@@ -177,7 +177,7 @@ class FinetunePipeline:
                 )
                 tracker.logic = {}
                 continue
-
+        
         bt.logging.info(f"Beginning evaluation of {len(self.tasks)} tasks...")
         for tracker_idx, tracking_logic in enumerate(self.tracking_logics):
             bt.logging.info(f"Processing tracker {tracker_idx + 1}/{len(self.tracking_logics)}")
@@ -199,33 +199,22 @@ class FinetunePipeline:
 
 
             # Otherwise, evaluate the logic
-            bt.logging.info(f"Initializing LLM for hotkey {tracking_logic.hotkey}...")
+            bt.logging.info(f"Initializing LLM key for hotkey {tracking_logic.hotkey}...")
             self.llm_manager.init_key(tracking_logic.hotkey)
             bt.logging.info(f"Starting docker container for hotkey {tracking_logic.hotkey}...")
             scores = []
             for task in self.tasks:
-                build_docker_container(tracker.logic, tracker.hotkey, task.repo.files)
+                build_docker_container(tracking_logic.logic, tracking_logic.hotkey, task.repo.files)
                 # sleep(20)
                 try:
                     bt.logging.info(f"Making request to container for hotkey {tracking_logic.hotkey}...")
-                    # response = requests.post(
-                    #     f"http://{os.environ['DOCKER_HOST_IP']}:3000/call",
-                    #     json={
-                    #         "repo_location": "/app/repo",
-                    #         "issue_description": task.query,
-                    #     },
-                    #     timeout=360,
-                    # )
                     result = run_docker_container_from_base( 
                         f"swe-logic-{str(tracking_logic.hotkey)}-{COMPETITION_ID}".lower(),
                         task.repo,
                         tracking_logic.hotkey,
                         task.query,
-                        tracker.logic
+                        tracking_logic.logic
                     )
-                    # print("result: ", result)
-                    # response.raise_for_status()
-                    # result = response.json()["result"]
                     patch = Patch(**result)
                     bt.logging.info(f"Scoring response for hotkey {tracking_logic.hotkey}...")
                     # TODO in the next comp uncomment the below
@@ -238,11 +227,6 @@ class FinetunePipeline:
                     bt.logging.error(f"Request failed for hotkey {tracking_logic.hotkey}: {e}")
                     print(traceback.format_exc())
                     scores.append(0)
-                # try:
-                #     container.stop()
-                #     # container.remove()
-                #     container.image.remove(force=True)
-                #     del container
                 print(f"Average score for hotkey {tracking_logic.hotkey}: {sum(scores) / len(scores)}")
 
             tracking_logic.score = sum(scores) / len(scores)

@@ -195,7 +195,6 @@ def run_docker_container_from_base(
     """
     # Initialize Docker client
     client = docker.from_env()
-
     container_name = f"swe-logic-{str(hotkey)}-{COMPETITION_ID}".lower()
     with tempfile.TemporaryDirectory() as temp_dir:
         # Write logic files to temp directory
@@ -254,9 +253,6 @@ def run_docker_container_from_base(
             # Execute runner.py in container
             exec_result, logs = exec_container_with_timeout(container, "python3 -u /app/runner.py", 600)
             logs = logs.decode('utf-8')
-            # print("===== CONTAINER LOGS =====")
-            # print(logs)
-            # print("===== CONTAINER LOGS =====")
 
             # Parse the patch from the logs
             patch_line = next(line for line in reversed(logs.split('\n')) if line.startswith('Patch:'))
