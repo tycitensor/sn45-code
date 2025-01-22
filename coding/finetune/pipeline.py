@@ -284,6 +284,8 @@ class FinetunePipeline:
         code_scorer = CodeSimModel()
         tasks = generate_swe_tasks(dataset, config.neuron.finetune_test_size, code_scorer=code_scorer)
         with open(f"{config.neuron.full_path}/tasks_{COMPETITION_ID}.pkl", "wb") as f:
+            for task in tasks:
+                task.code_scorer = None
             pickle.dump(tasks, f)
     
     @staticmethod
@@ -301,3 +303,5 @@ class FinetunePipeline:
                 os.remove(os.path.join(self.config.neuron.full_path, file))
             if file.startswith("results_") and file.endswith(".pkl"):
                 os.remove(os.path.join(self.config.neuron.full_path, file))
+
+

@@ -24,3 +24,4 @@ langchain-google-genai
 huggingface-hub
 bittensor-commit-reveal
 zmq
+grpcio
