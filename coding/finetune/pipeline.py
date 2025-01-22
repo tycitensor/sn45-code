@@ -281,7 +281,8 @@ class FinetunePipeline:
     @staticmethod
     def generate_tasks(config) -> List[SWEBenchTask]:
         dataset = SWEBenchDataset()
-        tasks = generate_swe_tasks(dataset, config.neuron.finetune_test_size)
+        code_scorer = CodeSimModel()
+        tasks = generate_swe_tasks(dataset, config.neuron.finetune_test_size, code_scorer=code_scorer)
         with open(f"{config.neuron.full_path}/tasks_{COMPETITION_ID}.pkl", "wb") as f:
             pickle.dump(tasks, f)
     
