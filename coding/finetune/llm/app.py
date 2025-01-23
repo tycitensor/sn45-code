@@ -101,7 +101,7 @@ async def call_llm(request: LLMRequest):
             
         llm = models[request.llm_name]
         
-        max_retries = 10
+        max_retries = 50
         retry_delay = 20  # seconds
         
         for attempt in range(max_retries):
@@ -109,7 +109,7 @@ async def call_llm(request: LLMRequest):
                 response = llm.invoke(request.query)
                 break
             except Exception as e:
-                if attempt < max_retries - 1 and "429" in str(e):
+                if attempt < max_retries - 1 and ("429" in str(e) or "529" in str(e)):
                     # Rate limit hit, wait and retry
                     await asyncio.sleep(retry_delay)
                     continue
