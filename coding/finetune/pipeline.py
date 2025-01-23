@@ -207,7 +207,7 @@ class FinetunePipeline:
             bt.logging.info(f"Starting docker container for hotkey {tracking_logic.hotkey}...")
             scores = []
             for task in self.tasks:
-                build_docker_container(tracking_logic.logic, tracking_logic.hotkey, task.repo.files)
+                # build_docker_container(tracking_logic.logic, tracking_logic.hotkey, task.repo.files)
                 # sleep(20)
                 try:
                     bt.logging.info(f"Making request to container for hotkey {tracking_logic.hotkey}...")
