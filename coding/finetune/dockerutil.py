@@ -191,13 +191,13 @@ def run_docker_container(
     
 
 def run_docker_container_from_base(
-    image_id: str, repo: GitRepo, hotkey: str, issue_description: str, logic_files: dict
+    container_name: str, repo: GitRepo, hotkey: str, issue_description: str, logic_files: dict
 ) -> dict:
     """
     Runs a Docker container for evaluating model logic.
 
     Args:
-        image_id (str): ID of the Docker image to run
+        container_name (str): Name of the Docker container to run
         repo (GitRepo): Git repository object containing code to evaluate
         hotkey (str): Unique identifier for the logic
         issue_description (str): Description of the issue to fix
@@ -207,7 +207,7 @@ def run_docker_container_from_base(
     """
     # Initialize Docker client
     client = docker.from_env()
-    container_name = f"swe-logic-{str(hotkey)}-{COMPETITION_ID}".lower()
+    # container_name = f"swe-logic-{str(hotkey)}-{COMPETITION_ID}".lower()
     with tempfile.TemporaryDirectory() as temp_dir:
         # Write logic files to temp directory
         for filename, content in logic_files.items():
@@ -250,7 +250,7 @@ def run_docker_container_from_base(
                 image="brokespace/swe-server:latest",
                 name=container_name,
                 detach=True,
-                ports={"3000/tcp": 3000},
+                # ports={"3000/tcp": 3000},
                 extra_hosts={"host.docker.internal": "host-gateway"},
                 environment={"HOST_IP": os.getenv("HOST_IP", "localhost"), "ISSUE_DESCRIPTION": issue_description},
                 command="sleep infinity"
