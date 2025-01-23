@@ -1,16 +1,14 @@
 import os
-import copy
 import pickle
 import argparse
-import requests
 import traceback
-from time import sleep
 import bittensor as bt
 from typing import List
 from pydantic import BaseModel
 from .tracker import gather_all_logics
-from .dockerutil import build_docker_container, run_docker_container, run_docker_container_from_base
-from ..helpers.git import GitRepo
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+from .dockerutil import run_docker_container_from_base
 
 from coding.schemas import Patch
 from coding.schemas.context import Context
@@ -107,6 +105,7 @@ def verify_logic(logic: dict) -> tuple[bool, str]:
         
     return True, "Logic is valid"
 
+
 class FinetunePipeline:
     def __init__(
         self, config, tracking_logics: List[TrackingInfo] = None,
@@ -164,7 +163,7 @@ class FinetunePipeline:
             trackers=self.trackers
         )
 
-    # TODO add time taken
+    # TODO add time taken and handle race condition due to parallel execution
     def evaluate(self) -> FinetuneEventResults:
         # gather all logics
         bt.logging.info("Gathering all logics...")
@@ -206,31 +205,48 @@ class FinetunePipeline:
             self.llm_manager.init_key(tracking_logic.hotkey)
             bt.logging.info(f"Starting docker container for hotkey {tracking_logic.hotkey}...")
             scores = []
-            for task in self.tasks:
-                # build_docker_container(tracking_logic.logic, tracking_logic.hotkey, task.repo.files)
-                # sleep(20)
-                try:
-                    bt.logging.info(f"Making request to container for hotkey {tracking_logic.hotkey}...")
-                    result = run_docker_container_from_base( 
-                        f"swe-logic-{str(tracking_logic.hotkey)}-{COMPETITION_ID}".lower(),
-                        task.repo,
-                        tracking_logic.hotkey,
-                        task.query,
-                        tracking_logic.logic
-                    )
-                    patch = Patch(**result)
-                    bt.logging.info(f"Scoring response for hotkey {tracking_logic.hotkey}...")
-                    # TODO in the next comp uncomment the below
-                    # score = task.score(patch, self.llm_manager.get_count())
-                    score = task.score(patch, 1)
-                    self.llm_manager.reset_count()
-                    bt.logging.info(f"Score for hotkey {tracking_logic.hotkey}: {score}")
-                    scores.append(score)
-                except Exception as e:
-                    bt.logging.error(f"Request failed for hotkey {tracking_logic.hotkey}: {e}")
-                    print(traceback.format_exc())
-                    scores.append(0)
-                print(f"Average score for hotkey {tracking_logic.hotkey}: {sum(scores) / len(scores)}")
+            # Create a thread pool to process tasks in parallel
+            with ThreadPoolExecutor() as executor:
+                def process_task(task_data):
+                    task_idx, task = task_data
+                    try:
+                        bt.logging.info(f"Making request to container for hotkey {tracking_logic.hotkey}...")
+                        result = run_docker_container_from_base(
+                            f"swe-logic-{str(tracking_logic.hotkey)}-{COMPETITION_ID}-{task_idx}".lower(),
+                            task.repo,
+                            tracking_logic.hotkey, 
+                            task.query,
+                            tracking_logic.logic
+                        )
+                        patch = Patch(**result)
+                        bt.logging.info(f"Scoring response for hotkey {tracking_logic.hotkey}...")
+                        # TODO in the next comp uncomment the below
+                        # score = task.score(patch, self.llm_manager.get_count())
+                        score = task.score(patch, 1)
+                        self.llm_manager.reset_count()
+                        bt.logging.info(f"Score for hotkey {tracking_logic.hotkey}: {score}")
+                        return score
+                    except Exception as e:
+                        bt.logging.error(f"Request failed for hotkey {tracking_logic.hotkey}: {e}")
+                        print(traceback.format_exc())
+                        return 0
+
+                # Process tasks in batches of 5
+                batch_size = 5
+                for i in range(0, len(self.tasks), batch_size):
+                    batch = list(enumerate(self.tasks[i:i+batch_size]))
+                    
+                    # Submit batch of tasks to thread pool
+                    future_to_task = {executor.submit(process_task, (task_idx, task)): task 
+                                    for task_idx, task in batch}
+
+                    # Collect results for this batch as they complete
+                    for future in as_completed(future_to_task):
+                        score = future.result()
+                        scores.append(score)
+                        print(f"Average score for hotkey {tracking_logic.hotkey}: {sum(scores) / len(scores)}")
+                        
+                    bt.logging.info(f"Completed batch {i//batch_size + 1}/{(len(self.tasks) + batch_size - 1)//batch_size}")
 
             tracking_logic.score = sum(scores) / len(scores)
             self.trackers.append(tracking_logic)
@@ -303,5 +319,4 @@ class FinetunePipeline:
                 os.remove(os.path.join(self.config.neuron.full_path, file))
             if file.startswith("results_") and file.endswith(".pkl"):
                 os.remove(os.path.join(self.config.neuron.full_path, file))
-
 
