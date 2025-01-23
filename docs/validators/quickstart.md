@@ -108,7 +108,7 @@ Start the server:
 ```bash
 source .venv/bin/activate
 cd coding/finetune/llm
-pm2 start --name llm-server.25000 "python3 app.py"
+pm2 start --name llm-server.25000 "gunicorn app:app --workers 5 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:25000 --timeout 800"
 ```
 
 Ensure that the port 25000 is open on your machine and accessable from the Docker server.

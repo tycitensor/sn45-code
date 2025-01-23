@@ -25,3 +25,4 @@ huggingface-hub
 bittensor-commit-reveal
 zmq
 grpcio
+gunicorn
