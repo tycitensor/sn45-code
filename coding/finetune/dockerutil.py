@@ -209,9 +209,12 @@ def run_docker_container_from_base(
     client = docker.from_env()
     # container_name = f"swe-logic-{str(hotkey)}-{COMPETITION_ID}".lower()
     with tempfile.TemporaryDirectory() as temp_dir:
-        # Write logic files to temp directory
+        code_dir = os.path.join(temp_dir, "code")
+        os.makedirs(code_dir)
+
+        # Write logic files to code directory
         for filename, content in logic_files.items():
-            file_path = os.path.join(temp_dir, filename)
+            file_path = os.path.join(code_dir, filename)
             # Create all parent directories
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
             # Create the file and write content
@@ -231,11 +234,11 @@ def run_docker_container_from_base(
         swe_server_path = Path(__file__).parent / "swe-server"
         for item in swe_server_path.glob("*"):
             if item.is_file():
-                dest_path = os.path.join(temp_dir, item.name)
+                dest_path = os.path.join(code_dir, item.name)
                 with open(item, "rb") as src, open(dest_path, "wb") as dst:
                     dst.write(src.read())
             elif item.is_dir():
-                dest_dir = os.path.join(temp_dir, item.name)
+                dest_dir = os.path.join(code_dir, item.name)
                 os.system(f"cp -r {item} {dest_dir}")
 
         try:
@@ -263,9 +266,8 @@ def run_docker_container_from_base(
             os.system(f"docker cp {temp_dir}/. {container_name}:/app/")
             
             # Execute runner.py in container
-            exec_result, logs = exec_container_with_timeout(container, "python3 -u /app/runner.py", 600)
+            exec_result, logs = exec_container_with_timeout(container, "python3 -u /app/code/runner.py", 600)
             logs = logs.decode('utf-8')
-            
             # Parse the patch from the logs
             patch_line = next(line for line in reversed(logs.split('\n')) if line.startswith('Patch:'))
             try:
