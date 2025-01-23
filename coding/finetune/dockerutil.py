@@ -12,7 +12,7 @@ from ..helpers.git import GitRepo
 def exec_container_with_timeout(container, command, timeout):
     """
     Executes a command in a Docker container with a timeout.
-    
+
     Args:
         container: The Docker container object.
         command: The command to execute.
@@ -40,9 +40,21 @@ def exec_container_with_timeout(container, command, timeout):
     thread.join(timeout)
 
     if thread.is_alive():
-        raise TimeoutError(f"The command '{command}' exceeded the timeout of {timeout} seconds.")
+        # Kill the container if the timeout is exceeded
+        try:
+            container.kill()
+        except Exception as kill_exception:
+            raise RuntimeError(
+                f"Failed to kill the container after timeout: {kill_exception}"
+            )
+
+        raise TimeoutError(
+            f"The command '{command}' exceeded the timeout of {timeout} seconds and the container was killed."
+        )
+
     if exception:
         raise exception
+
     return exec_result, logs
 
 def build_docker_container(logic_files: dict, hotkey: str, repo_files: dict) -> str:
