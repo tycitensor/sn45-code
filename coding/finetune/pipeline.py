@@ -124,10 +124,21 @@ class FinetunePipeline:
             self.tracking_logics = tracking_logics
         
         self.load_tasks()
-
+        self.load_completed_trackers()
         # Register cleanup to be called when the object is deleted
         # self._finalizer = weakref.finalize(self, self.cleanup)
 
+    def load_completed_trackers(self):
+        if os.path.exists(f"{self.config.neuron.full_path}/completed_trackers_{COMPETITION_ID}.pkl"):
+            with open(f"{self.config.neuron.full_path}/completed_trackers_{COMPETITION_ID}.pkl", "rb") as f:
+                self.completed_trackers = pickle.load(f)
+        else:
+            self.completed_trackers = []
+    
+    def store_completed_trackers(self):
+        with open(f"{self.config.neuron.full_path}/completed_trackers_{COMPETITION_ID}.pkl", "wb") as f:
+            pickle.dump(self.completed_trackers, f)
+    
     def load_tasks(self):
         if os.path.exists(f"{self.config.neuron.full_path}/tasks_{COMPETITION_ID}.pkl"):
             with open(f"{self.config.neuron.full_path}/tasks_{COMPETITION_ID}.pkl", "rb") as f:
@@ -163,7 +174,8 @@ class FinetunePipeline:
             trackers=self.trackers
         )
 
-    # TODO add time taken and handle race condition due to parallel execution
+    # TODO add time taken and handle race condition due to parallel execution 
+    # make use the same docker container for each task , where task repo files are copied over needs to change
     def evaluate(self) -> FinetuneEventResults:
         # gather all logics
         bt.logging.info("Gathering all logics...")
@@ -231,23 +243,35 @@ class FinetunePipeline:
                         print(traceback.format_exc())
                         return 0
 
-                # Process tasks in batches of 5
-                batch_size = 5
-                for i in range(0, len(self.tasks), batch_size):
-                    batch = list(enumerate(self.tasks[i:i+batch_size]))
+                # Keep track of active futures and tasks
+                active_futures = {}
+                task_queue = list(enumerate(self.tasks))
+                task_idx = 0
+
+                # Start initial batch of 8 tasks
+                while len(active_futures) < 8 and task_queue:
+                    task_data = task_queue.pop(0)
+                    future = executor.submit(process_task, task_data)
+                    active_futures[future] = task_data
+
+                # Process remaining tasks as others complete
+                while active_futures:
+                    completed_future = next(as_completed(active_futures))
+                    task_data = active_futures.pop(completed_future)
                     
-                    # Submit batch of tasks to thread pool
-                    future_to_task = {executor.submit(process_task, (task_idx, task)): task 
-                                    for task_idx, task in batch}
-
-                    # Collect results for this batch as they complete
-                    for future in as_completed(future_to_task):
-                        score = future.result()
-                        scores.append(score)
-                        print(f"Average score for hotkey {tracking_logic.hotkey}: {sum(scores) / len(scores)}")
+                    # Get score from completed task
+                    score = completed_future.result()
+                    scores.append(score)
+                    print(f"Average score for hotkey {tracking_logic.hotkey}: {sum(scores) / len(scores)}")
+                    
+                    # Start next task if any remain
+                    if task_queue:
+                        task_data = task_queue.pop(0)
+                        future = executor.submit(process_task, task_data)
+                        active_futures[future] = task_data
                         
-                    bt.logging.info(f"Completed batch {i//batch_size + 1}/{(len(self.tasks) + batch_size - 1)//batch_size}")
-
+                    task_idx += 1
+                    bt.logging.info(f"Completed task {task_idx}/{len(self.tasks)}")
             tracking_logic.score = sum(scores) / len(scores)
             self.trackers.append(tracking_logic)
             self.store_results()
