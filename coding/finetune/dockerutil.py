@@ -265,7 +265,7 @@ def run_docker_container_from_base(
             # Execute runner.py in container
             exec_result, logs = exec_container_with_timeout(container, "python3 -u /app/runner.py", 600)
             logs = logs.decode('utf-8')
-
+            
             # Parse the patch from the logs
             patch_line = next(line for line in reversed(logs.split('\n')) if line.startswith('Patch:'))
             try:
@@ -275,15 +275,20 @@ def run_docker_container_from_base(
                 # Fall back to safely evaluating as literal Python dict
                 patch_dict = ast.literal_eval(patch_line.replace('Patch:', '').strip())
 
-            # Cleanup container
-            try:
-                container.stop(timeout=1)
-                container.remove(force=True)
-            except:
-                pass
-
             return patch_dict
 
         except docker.errors.APIError as e:
             print(f"Docker API error: {str(e)}")
             raise
+        
+        finally:
+            # Cleanup container
+            try:
+                container.stop(timeout=1)
+            except:
+                pass
+            
+            try:
+                container.remove(force=True)
+            except:
+                pass
