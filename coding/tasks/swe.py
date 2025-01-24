@@ -1,4 +1,5 @@
 import re
+import bittensor as bt
 from pydantic import BaseModel
 from typing import Callable, List, Dict
 from code_bert_score import BERTScorer
@@ -14,7 +15,6 @@ class PatchChunk(BaseModel):
     end_index: int
     content: str
     new_content: str
-
 
 def parse_diff(diff_text: str, no_title=False) -> Patch:
     diff_pattern = r"^diff --git a\/(.+?) b\/(.+?)$"
@@ -163,7 +163,23 @@ class SWEBenchTask(Task):
         self.pull_number = context.extras["pull_number"]
 
     def score(self, patch: Patch, token_count: int):
-        print("valid patch", self.patch)
+        bt.logging.info(f"Scoring patch")
+        num_valid_lines = len(self.patch.edits)
+        num_miner_lines = len(patch.edits)
+        
+        # Checking to see if the miner changed more than what was needed
+        lines_over_percent = 1
+        
+        if num_valid_lines > 20:
+            if num_miner_lines / num_valid_lines > 3:
+                lines_over_percent -= ((num_miner_lines - (num_valid_lines * 2)) / num_valid_lines) * 0.1
+        else:
+            if num_miner_lines / num_valid_lines > 7:
+                lines_over_percent -= ((num_miner_lines - (num_valid_lines * 2)) / num_valid_lines) * 0.1
+        
+        if lines_over_percent <= 0:
+            return 0
+        
         valid_num_lines = {}  # file name -> num lines
         miner_num_lines = {}
 
@@ -178,7 +194,7 @@ class SWEBenchTask(Task):
 
         # see which lines in valid patch are in miner patch and find percent
         # miner can edit extra lines but not less
-        total_lines = 0
+        total_valid_lines = 0
         lines_in_miner = 0
         for file_name in valid_num_lines:
             if file_name in miner_num_lines:
@@ -193,8 +209,11 @@ class SWEBenchTask(Task):
                     if edit.file_name == file_name
                 ]
                 lines_in_miner += len(set(valid_lines) & set(miner_lines))
-                total_lines += len(set(valid_lines))
-        percent_lines_in_miner = lines_in_miner / total_lines if total_lines > 0 else 0
+                total_valid_lines += len(set(valid_lines))
+        percent_lines_in_miner = lines_in_miner / total_valid_lines if total_valid_lines > 0 else 0
+        
+        
+        
         # Group edits into chunks by consecutive line numbers
         valid_chunks = chunk_patch(self.patch)
         miner_chunks = chunk_patch(patch)
@@ -219,6 +238,6 @@ class SWEBenchTask(Task):
                 total_chunk_score += 1
 
         chunk_percent = chunk_score / total_chunk_score
-        score = (5 * percent_lines_in_miner + 5 * chunk_percent) / 10
+        score = ((5 * percent_lines_in_miner + 5 * chunk_percent) / 10) * lines_over_percent
 
         return score
