@@ -48,7 +48,8 @@ ALLOWED_MODULES = [
     "jsonlines",
     "tiktoken",
     "openai",
-    "anthropic"
+    "anthropic",
+    "google"
 ]
 
 ALLOWED_IMPORTS = {
