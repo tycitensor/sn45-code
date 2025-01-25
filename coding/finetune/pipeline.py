@@ -71,6 +71,9 @@ def verify_logic(logic: dict) -> tuple[bool, str]:
     # Dictionary mapping modules to allowed functions/imports
     allowed_modules = ALLOWED_MODULES.copy()
     
+    # Define allowed file extensions
+    allowed_extensions = {'.yaml', '.py', '.txt', '.json'}
+    
     for module in logic:
         # Handle folder paths by taking first component
         module_name = module.split("/")[0].split(".")[0]
@@ -79,6 +82,11 @@ def verify_logic(logic: dict) -> tuple[bool, str]:
             
     for key, value in logic.items():
         if value:
+            # Check if the file extension is allowed
+            file_extension = key.split('.')[-1]
+            if f".{file_extension}" not in allowed_extensions:
+                return False, f"File extension .{file_extension} is not allowed."
+            
             # Create expanded allowed modules list that includes submodules and specific imports
             expanded_allowed = set()
             for mod in allowed_modules:
@@ -104,7 +112,6 @@ def verify_logic(logic: dict) -> tuple[bool, str]:
         )
         
     return True, "Logic is valid"
-
 
 class FinetunePipeline:
     def __init__(
