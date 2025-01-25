@@ -161,6 +161,9 @@ class SWEBenchTask(Task):
         # self.repo = context.title
         self.base_commit = context.extras["base_commit"]
         self.pull_number = context.extras["pull_number"]
+        self.topic = context.title
+        self.subtopic = context.topic
+        self.tags = context.tags
 
     def score(self, patch: Patch, token_count: int):
         bt.logging.info(f"Scoring patch")
