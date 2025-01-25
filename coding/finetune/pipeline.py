@@ -111,7 +111,11 @@ class FinetunePipeline:
         self, config, tracking_logics: List[TrackingInfo] = None,
     ):
         self.config = config
-        bittensor_injector(self)
+        try:
+            bittensor_injector(self)
+        except Exception as e:
+            bt.logging.error(f"Error injecting bittensor: {e}")
+            print(traceback.format_exc())
         self.code_sim_model = CodeSimModel()
         self.trackers = []
         self.dataset = SWEBenchDataset()
@@ -191,7 +195,8 @@ class FinetunePipeline:
                 )
                 tracker.logic = {}
                 continue
-        
+            bt.logging.info(f"Logic for hotkey {tracker.hotkey} passed verification.")
+
         bt.logging.info(f"Beginning evaluation of {len(self.tasks)} tasks...")
         for tracker_idx, tracking_logic in enumerate(self.tracking_logics):
             bt.logging.info(f"Processing tracker {tracker_idx + 1}/{len(self.tracking_logics)}")
@@ -208,9 +213,7 @@ class FinetunePipeline:
                 tracking_logic.score = previous_tracker.score
                 if tracking_logic.hotkey != previous_tracker.hotkey:
                     self.trackers.append(tracking_logic)
-                    self.store_results()
                 continue
-
 
             # Otherwise, evaluate the logic
             bt.logging.info(f"Initializing LLM key for hotkey {tracking_logic.hotkey}...")
@@ -218,11 +221,14 @@ class FinetunePipeline:
             bt.logging.info(f"Starting docker container for hotkey {tracking_logic.hotkey}...")
             scores = []
             # Create a thread pool to process tasks in parallel
+            bt.logging.info("Starting thread pool for task processing...")
             with ThreadPoolExecutor() as executor:
+                bt.logging.info("Thread pool started.")
                 def process_task(task_data):
+                    bt.logging.info(f"Processing task {task_data}...")
                     task_idx, task = task_data
                     try:
-                        bt.logging.info(f"Making request to container for hotkey {tracking_logic.hotkey}...")
+                        bt.logging.info(f"Making request to container for hotkey {tracking_logic.hotkey}, task index {task_idx}...")
                         result = run_docker_container_from_base(
                             f"swe-logic-{str(tracking_logic.hotkey)}-{COMPETITION_ID}-{task_idx}".lower(),
                             task.repo,
@@ -231,15 +237,15 @@ class FinetunePipeline:
                             tracking_logic.logic
                         )
                         patch = Patch(**result)
-                        bt.logging.info(f"Scoring response for hotkey {tracking_logic.hotkey}...")
+                        bt.logging.info(f"Scoring response for hotkey {tracking_logic.hotkey}, task index {task_idx}...")
                         # TODO in the next comp uncomment the below
                         # score = task.score(patch, self.llm_manager.get_count())
                         score = task.score(patch, 1)
                         self.llm_manager.reset_count()
-                        bt.logging.info(f"Score for hotkey {tracking_logic.hotkey}: {score}")
+                        bt.logging.info(f"Score for hotkey {tracking_logic.hotkey}, task index {task_idx}: {score}")
                         return score
                     except Exception as e:
-                        bt.logging.error(f"Request failed for hotkey {tracking_logic.hotkey}: {e}")
+                        bt.logging.error(f"Request failed for hotkey {tracking_logic.hotkey}, task index {task_idx}: {e}")
                         print(traceback.format_exc())
                         return 0
 
@@ -249,11 +255,13 @@ class FinetunePipeline:
                 task_idx = 0
 
                 # Start initial batch of 8 tasks
+                bt.logging.info("Starting initial batch of 8 tasks...")
                 while len(active_futures) < 8 and task_queue:
                     task_data = task_queue.pop(0)
                     future = executor.submit(process_task, task_data)
                     active_futures[future] = task_data
-
+                
+                bt.logging.info(f"Task queue drained, active futures left: {len(active_futures)}")
                 # Process remaining tasks as others complete
                 while active_futures:
                     completed_future = next(as_completed(active_futures))
@@ -262,7 +270,7 @@ class FinetunePipeline:
                     # Get score from completed task
                     score = completed_future.result()
                     scores.append(score)
-                    print(f"Average score for hotkey {tracking_logic.hotkey}: {sum(scores) / len(scores)}")
+                    bt.logging.info(f"Average score for hotkey {tracking_logic.hotkey}: {sum(scores) / len(scores)}")
                     
                     # Start next task if any remain
                     if task_queue:
@@ -271,7 +279,7 @@ class FinetunePipeline:
                         active_futures[future] = task_data
                         
                     task_idx += 1
-                    bt.logging.info(f"Completed task {task_idx}/{len(self.tasks)}")
+                    bt.logging.info(f"Completed task {task_idx}/{len(self.tasks)} for hotkey {tracking_logic.hotkey}")
             tracking_logic.score = sum(scores) / len(scores)
             self.trackers.append(tracking_logic)
             self.store_results()
@@ -280,9 +288,9 @@ class FinetunePipeline:
             bt.logging.info(f"Final score for hotkey {tracking_logic.hotkey}: {tracking_logic.score}")
             
         bt.logging.info("Evaluation complete!")
+        self.store_results()
 
         return self.results
-    
     def __str__(self):
         return f"{self.__class__.__name__}(scores={self.scores!r}, models={self.tracking_logics!r})"
 
@@ -313,10 +321,15 @@ class FinetunePipeline:
             pickle.dump(self.tasks, f)
 
     def store_results(self):
-        with open(f"{self.config.neuron.full_path}/results_{COMPETITION_ID}.pkl", "wb") as f:
-            pickle.dump({
-                "trackers": self.trackers
-            }, f)
+        results_file = f"{self.config.neuron.full_path}/results_{COMPETITION_ID}.pkl"
+        temp_file = results_file + ".tmp"
+        
+        # Write to a temp file first
+        with open(temp_file, "wb") as f:
+            pickle.dump({"trackers": self.trackers}, f)
+        
+        # Replace the old file with the new
+        os.replace(temp_file, results_file)
 
     @staticmethod
     def generate_tasks(config) -> List[SWEBenchTask]:
@@ -343,4 +356,3 @@ class FinetunePipeline:
                 os.remove(os.path.join(self.config.neuron.full_path, file))
             if file.startswith("results_") and file.endswith(".pkl"):
                 os.remove(os.path.join(self.config.neuron.full_path, file))
-
