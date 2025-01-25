@@ -135,9 +135,9 @@ The command should return the response: `{"detail":"Not Found"}`. If it does not
 Setup the IP addresses in the .env file like this:
 
 ```
-DOCKER_HOST_IP=tcp://<docker-server-ip>:2375
+DOCKER_HOST_IP=<docker-server-ip>
 HOST_IP=<validator-server-ip>
-DOCKER_HOST=<docker-server-ip>
+DOCKER_HOST=tcp://<docker-server-ip>:2375
 ```
 
 #### Setup LLM Auth Key
