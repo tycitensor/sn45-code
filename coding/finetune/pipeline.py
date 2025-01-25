@@ -225,7 +225,7 @@ class FinetunePipeline:
             with ThreadPoolExecutor() as executor:
                 bt.logging.info("Thread pool started.")
                 def process_task(task_data):
-                    bt.logging.info(f"Processing task {task_data}...")
+                    bt.logging.info(f"Processing task...")
                     task_idx, task = task_data
                     try:
                         bt.logging.info(f"Making request to container for hotkey {tracking_logic.hotkey}, task index {task_idx}...")
