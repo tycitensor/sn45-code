@@ -49,7 +49,9 @@ ALLOWED_MODULES = [
     "tiktoken",
     "openai",
     "anthropic",
-    "google"
+    "google",
+    "langchain_anthropic",
+    "langchain_google_genai"
 ]
 
 ALLOWED_IMPORTS = {
