@@ -51,7 +51,9 @@ ALLOWED_MODULES = [
     "anthropic",
     "google",
     "langchain_anthropic",
-    "langchain_google_genai"
+    "langchain_google_genai",
+    "langchain_core",
+    "langchain_community",
 ]
 
 ALLOWED_IMPORTS = {
