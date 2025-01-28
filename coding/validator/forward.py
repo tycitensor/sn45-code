@@ -43,7 +43,7 @@ async def forward(self, synapse: StreamCodeSynapse):
         self,
         {
             "step": self.step,
-            **(self.finetune_results[COMPETITION_ID].__state_dict__() if self.finetune_results else {}),
+            **(self.finetune_results[COMPETITION_ID].__state_dict__() if COMPETITION_ID in self.finetune_results else {}),
         },
     )
     sleep(30)
