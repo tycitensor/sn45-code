@@ -172,12 +172,7 @@ class FinetunePipeline:
             pickle.dump(self.tracking_logics, f)
     
     def load_logics(self):
-        if os.path.exists(f"{self.config.neuron.full_path}/logics_{COMPETITION_ID}.pkl"):
-            with open(f"{self.config.neuron.full_path}/logics_{COMPETITION_ID}.pkl", "rb") as f:
-                self.tracking_logics = pickle.load(f)
-        else:
-            self.tracking_logics = gather_all_logics(self)
-            self.store_logics()
+        self.tracking_logics = gather_all_logics(self)
     
     @property
     def results(self) -> FinetuneEventResults:
