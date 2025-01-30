@@ -296,8 +296,9 @@ class FinetunePipeline:
             
         bt.logging.info("Evaluation complete!")
         self.store_results()
-
+        self.verify_results()
         return self.results
+    
     def __str__(self):
         return f"{self.__class__.__name__}(scores={self.scores!r}, models={self.tracking_logics!r})"
 
@@ -351,6 +352,18 @@ class FinetunePipeline:
     @staticmethod
     def tasks_exist(config):
         return os.path.exists(f"{config.neuron.full_path}/tasks_{COMPETITION_ID}.pkl")
+    
+    def verify_results(self):
+        scores = []
+        for tracker in self.trackers:
+            scores.append(tracker.score)
+        # if all the scores are 0 then we need to rerun the tasks
+        self.trackers = []
+        # delete the results file
+        if all(score == 0 for score in scores):
+            if os.path.exists(f"{self.config.neuron.full_path}/results_{COMPETITION_ID}.pkl"):
+                os.remove(f"{self.config.neuron.full_path}/results_{COMPETITION_ID}.pkl")
+            self.evaluate()
     
     def cleanup(self):
         """
