@@ -229,6 +229,9 @@ class FinetunePipeline:
             previous_tracker = next((tracker for tracker in self.trackers if str(tracker.logic) == str(tracker.logic)), None)
             if previous_tracker is not None:
                 bt.logging.info(f"Finetune: Using previously evaluated score for hotkey: {tracker.hotkey}")
+                # if a tracker had a score before, add the block number to the score_timestamps
+                if tracker.score > 0:
+                    tracker.score_timestamps.append(self.metagraph.block)
                 tracker.score = previous_tracker.score
                 if tracker.hotkey != previous_tracker.hotkey:
                     self.trackers.append(tracker)
