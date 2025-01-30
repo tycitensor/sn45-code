@@ -39,11 +39,6 @@ async def forward(self, synapse: StreamCodeSynapse):
                     tracker.score == 0
                     for tracker in self.finetune_results[COMPETITION_ID].trackers
                 )
-            or (
-                COMPETITION_ID in self.finetune_results
-                and FinetunePipeline.empty_logics_exist(self.config)
-                and (datetime.now(eastern) - end_time).days <= 2
-            )
             )
         ) and not hasattr(self, "finetune_eval_future"):
             finetune_pipeline = FinetunePipeline(

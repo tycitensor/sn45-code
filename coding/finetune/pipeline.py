@@ -175,11 +175,11 @@ class FinetunePipeline:
         if os.path.exists(f"{self.config.neuron.full_path}/logics_{COMPETITION_ID}.pkl"):
             with open(f"{self.config.neuron.full_path}/logics_{COMPETITION_ID}.pkl", "rb") as f:
                 self.tracking_logics = pickle.load(f)
-            for tracker in self.tracking_logics:
-                if tracker.logic == {}:
-                    new_tracker = regrab_tracker(tracker, self)
-                    self.tracking_logics[self.tracking_logics.index(tracker)] = new_tracker
-            self.store_logics()
+            # for tracker in self.tracking_logics:
+            #     if tracker.logic == {}:
+            #         new_tracker = regrab_tracker(tracker, self)
+            #         self.tracking_logics[self.tracking_logics.index(tracker)] = new_tracker
+            # self.store_logics()
         else:
             self.tracking_logics = gather_all_logics(self)
             self.store_logics()
