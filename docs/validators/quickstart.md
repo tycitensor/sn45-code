@@ -12,6 +12,8 @@ You must have the following things:
 - Google Gemini API Key
 - Github Token
 - Wandb account
+- Docker on validator machine
+- Docker on a docker server (see below, digital ocean droplet is recommended)
 
 ## Getting started
 
@@ -46,6 +48,7 @@ python3 -m pip install --use-deprecated=legacy-resolver -r requirements.txt
 python3 -m pip install --use-deprecated=legacy-resolver -e .
 python3 -m pip uninstall uvloop # b/c it causes issues with threading/loops
 ```
+
 
 
 #### Setup your dotenv
@@ -94,6 +97,10 @@ Place the api key in the .env file like this:
 GOOGLE_API_KEY=<your gemini api key>
 ```
 
+
+#### Install Docker (ON VALIDATOR MACHINE)
+
+See instructions [here](https://docs.docker.com/engine/install/)
 
 #### Setup Docker Server
 
