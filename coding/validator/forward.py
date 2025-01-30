@@ -27,7 +27,7 @@ async def forward(self, synapse: StreamCodeSynapse):
     eastern = timezone(timedelta(hours=-5))  # EST is UTC-5
     end_time = datetime.strptime(COMPETITION_END_DATE, "%Y-%m-%d").replace(hour=18, tzinfo=eastern)
     if datetime.now(eastern) > end_time:
-        if COMPETITION_ID not in self.finetune_results and not hasattr(self, 'finetune_eval_future'):
+        if (COMPETITION_ID not in self.finetune_results or (COMPETITION_ID in self.finetune_results and all(tracker.score == 0 for tracker in self.finetune_results[COMPETITION_ID].trackers))) and not hasattr(self, 'finetune_eval_future'):
             finetune_pipeline = FinetunePipeline(
                 config=self.config,
             )
