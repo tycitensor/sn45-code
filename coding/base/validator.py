@@ -337,7 +337,7 @@ class BaseValidatorNeuron(BaseNeuron):
             finetune_scores[tracker.uid] = tracker.score
         
         max_score = np.max(finetune_scores)
-        threshold = max_score - 0.1  # within 0.1 of max score
+        threshold = max_score - 0.17  # within 0.18 of max score
         finetune_scores[finetune_scores < threshold] = 0
         self.scores = finetune_scores
         bt.logging.info(f"Updated moving avg scores: {self.scores}")
