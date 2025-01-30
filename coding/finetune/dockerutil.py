@@ -340,6 +340,9 @@ def test_docker_container():
             # Execute runner.py in container
             exec_result, logs = exec_container_with_timeout(container, "python3 -u /app/code/test.py", 600)
             logs = logs.decode('utf-8')
+            print("===== TEST CONTAINER LOGS =====")
+            print(logs)
+            print("===== TEST CONTAINER LOGS =====")
             if "The test passed" in logs:
                 return True
             else:
@@ -360,3 +363,8 @@ def test_docker_container():
                 container.remove(force=True)
             except:
                 pass
+
+if __name__ == "__main__":
+    import dotenv
+    dotenv.load_dotenv()
+    print(test_docker_container())

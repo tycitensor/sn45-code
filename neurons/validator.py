@@ -37,7 +37,7 @@ from coding.protocol import StreamCodeSynapse
 # import base validator class which takes care of most of the boilerplate
 from coding.utils.config import config as util_config
 from coding.base.validator import BaseValidatorNeuron
-
+from coding.finetune.dockerutil import test_docker_container
 class Validator(BaseValidatorNeuron):
     """
     Your validator neuron class. You should use this class to define your validator's behavior. In particular, you should replace the forward function with your own logic.
@@ -70,6 +70,11 @@ class Validator(BaseValidatorNeuron):
             device=self.device,
             code_scorer=None,
         )
+
+        test_result = test_docker_container()
+        if not test_result:
+            bt.logging.error("Docker container test failed, exiting.")
+            sys.exit(1)
 
     def _forward(
         self, synapse: StreamCodeSynapse
