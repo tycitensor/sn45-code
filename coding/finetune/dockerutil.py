@@ -268,7 +268,6 @@ def run_docker_container_from_base(
             # Execute runner.py in container
             exec_result, logs = exec_container_with_timeout(container, "python3 -u /app/code/runner.py", 600)
             logs = logs.decode('utf-8')
-            # Parse the patch from the logs
             patch_line = next(line for line in reversed(logs.split('\n')) if line.startswith('Patch:'))
             try:
                 # First try parsing as JSON
@@ -278,6 +277,73 @@ def run_docker_container_from_base(
                 patch_dict = ast.literal_eval(patch_line.replace('Patch:', '').strip())
 
             return patch_dict
+
+        except docker.errors.APIError as e:
+            print(f"Docker API error: {str(e)}")
+            raise
+        
+        finally:
+            # Cleanup container
+            try:
+                container.stop(timeout=1)
+            except:
+                pass
+            
+            try:
+                container.remove(force=True)
+            except:
+                pass
+
+
+def test_docker_container():
+    client = docker.from_env()
+    container_name = "swe-server"
+    with tempfile.TemporaryDirectory() as temp_dir:
+        code_dir = os.path.join(temp_dir, "code")
+        os.makedirs(code_dir)
+
+        # Copy Dockerfile and server files
+        swe_server_path = Path(__file__).parent / "swe-server"
+        for item in swe_server_path.glob("*"):
+            if item.is_file():
+                dest_path = os.path.join(code_dir, item.name)
+                with open(item, "rb") as src, open(dest_path, "wb") as dst:
+                    dst.write(src.read())
+            elif item.is_dir():
+                dest_dir = os.path.join(code_dir, item.name)
+                os.system(f"cp -r {item} {dest_dir}")
+
+        try:
+            # Remove any existing container with the same name
+            try:
+                existing = client.containers.get(container_name)
+                existing.remove(force=True)
+            except docker.errors.NotFound:
+                pass
+
+            container = client.containers.create(
+                image="brokespace/swe-server:latest",
+                name=container_name,
+                detach=True,
+                # ports={"3000/tcp": 3000},
+                extra_hosts={"host.docker.internal": "host-gateway"},
+                environment={"HOST_IP": os.getenv("HOST_IP", "localhost")},
+                command="sleep infinity"
+            )
+
+            # Start the container
+            container.start()
+
+            # Copy files from temp_dir into container
+            os.system(f"docker cp {temp_dir}/. {container_name}:/app/")
+            
+            # Execute runner.py in container
+            exec_result, logs = exec_container_with_timeout(container, "python3 -u /app/code/test.py", 600)
+            logs = logs.decode('utf-8')
+            if "The test passed" in logs:
+                return True
+            else:
+                return False
 
         except docker.errors.APIError as e:
             print(f"Docker API error: {str(e)}")
