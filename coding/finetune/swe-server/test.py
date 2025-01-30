@@ -4,11 +4,11 @@ llm = LLMClient()
 
 passing = True
 response, _ = llm("say the word happy", "gpt-4o")
-if "happy" not in response:
+if "happy" not in response.lower():
     passing = False
 
 response, _ = llm("say the word sad", "gpt-4o")
-if "sad" not in response:
+if "sad" not in response.lower():
     passing = False
 
 print("The test passed" if passing else "The test failed")
