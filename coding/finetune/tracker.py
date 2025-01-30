@@ -25,3 +25,17 @@ def gather_all_logics(validator) -> List[TrackingInfo]:
         )
         for i, synapse in enumerate(responses)
     ]
+
+def regrab_tracker(tracker: TrackingInfo, validator) -> TrackingInfo:
+    uid = tracker.uid
+    if tracker.hotkey != get_hotkey_from_uid(validator, uid):
+        return tracker
+    synapse = LogicSynapse()
+    logic_synapse = validator.dendrite.query(axons=[validator.metagraph.axons[uid]], synapse=synapse, timeout=45, deserialize=False)[0]
+    return TrackingInfo(
+        logic=logic_synapse.logic,
+        block=validator.metagraph.block,
+        hotkey=get_hotkey_from_uid(validator, uid),
+        uid=uid,
+        score=0.0,
+    )

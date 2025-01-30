@@ -9,7 +9,6 @@ from coding.rewards.codesim import CodeSimModel
 from coding.constants import COMPETITION_END_DATE, COMPETITION_ID
 
 
-
 async def forward(self, synapse: StreamCodeSynapse):
     """
     The forward function is called by the validator every time step.
@@ -21,29 +20,52 @@ async def forward(self, synapse: StreamCodeSynapse):
 
     """
     bt.logging.info("🚀 Starting forward loop...")
-    if not FinetunePipeline.tasks_exist(self.config) and COMPETITION_ID not in self.finetune_results:
+    if (
+        not FinetunePipeline.tasks_exist(self.config)
+        and COMPETITION_ID not in self.finetune_results
+    ):
         FinetunePipeline.generate_tasks(self.config)
-    
+
     eastern = timezone(timedelta(hours=-5))  # EST is UTC-5
-    end_time = datetime.strptime(COMPETITION_END_DATE, "%Y-%m-%d").replace(hour=18, tzinfo=eastern)
+    end_time = datetime.strptime(COMPETITION_END_DATE, "%Y-%m-%d").replace(
+        hour=18, tzinfo=eastern
+    )
     if datetime.now(eastern) > end_time:
-        if (COMPETITION_ID not in self.finetune_results or (COMPETITION_ID in self.finetune_results and all(tracker.score == 0 for tracker in self.finetune_results[COMPETITION_ID].trackers))) and not hasattr(self, 'finetune_eval_future'):
+        if (
+            COMPETITION_ID not in self.finetune_results
+            or (
+                COMPETITION_ID in self.finetune_results
+                and all(
+                    tracker.score == 0
+                    for tracker in self.finetune_results[COMPETITION_ID].trackers
+                )
+            or (
+                COMPETITION_ID in self.finetune_results
+                and FinetunePipeline.empty_logics_exist(self.config)
+                and (datetime.now(eastern) - end_time).days <= 2
+            )
+            )
+        ) and not hasattr(self, "finetune_eval_future"):
             finetune_pipeline = FinetunePipeline(
                 config=self.config,
             )
             self.finetune_eval_future = self.executor.submit(finetune_pipeline.evaluate)
     # Check if evaluation is complete
-    if hasattr(self, 'finetune_eval_future') and self.finetune_eval_future.done():
+    if hasattr(self, "finetune_eval_future") and self.finetune_eval_future.done():
         self.finetune_results[COMPETITION_ID] = self.finetune_eval_future.result()
-        delattr(self, 'finetune_eval_future')  # Remove the future after getting results
-    
+        delattr(self, "finetune_eval_future")  # Remove the future after getting results
+
     self.update_scores()
 
     log_event(
         self,
         {
             "step": self.step,
-            **(self.finetune_results[COMPETITION_ID].__state_dict__() if COMPETITION_ID in self.finetune_results else {}),
+            **(
+                self.finetune_results[COMPETITION_ID].__state_dict__()
+                if COMPETITION_ID in self.finetune_results
+                else {}
+            ),
         },
     )
     sleep(30)

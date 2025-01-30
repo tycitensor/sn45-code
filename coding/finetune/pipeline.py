@@ -5,7 +5,7 @@ import traceback
 import bittensor as bt
 from typing import List
 from pydantic import BaseModel
-from .tracker import gather_all_logics
+from .tracker import gather_all_logics, regrab_tracker
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .dockerutil import run_docker_container_from_base
@@ -175,6 +175,11 @@ class FinetunePipeline:
         if os.path.exists(f"{self.config.neuron.full_path}/logics_{COMPETITION_ID}.pkl"):
             with open(f"{self.config.neuron.full_path}/logics_{COMPETITION_ID}.pkl", "rb") as f:
                 self.tracking_logics = pickle.load(f)
+            for tracker in self.tracking_logics:
+                if tracker.logic == {}:
+                    new_tracker = regrab_tracker(tracker, self)
+                    self.tracking_logics[self.tracking_logics.index(tracker)] = new_tracker
+            self.store_logics()
         else:
             self.tracking_logics = gather_all_logics(self)
             self.store_logics()
@@ -352,6 +357,15 @@ class FinetunePipeline:
     @staticmethod
     def tasks_exist(config):
         return os.path.exists(f"{config.neuron.full_path}/tasks_{COMPETITION_ID}.pkl")
+    
+    @staticmethod
+    def empty_logics_exist(config):
+        # load the logics file
+        if not os.path.exists(f"{config.neuron.full_path}/logics_{COMPETITION_ID}.pkl"):
+            return False
+        with open(f"{config.neuron.full_path}/logics_{COMPETITION_ID}.pkl", "rb") as f:
+            logics = pickle.load(f)
+        return any(logic == {} for logic in logics)
     
     def verify_results(self):
         scores = []
