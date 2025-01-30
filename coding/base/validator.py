@@ -332,6 +332,7 @@ class BaseValidatorNeuron(BaseNeuron):
         if not self.finetune_results:
             return
         latest_competition_id = max(self.finetune_results.keys())
+        bt.logging.info(f"latest_competition_id: {latest_competition_id} from {self.finetune_results.keys()}")
         finetune_scores = np.zeros(self.metagraph.n)
         for tracker in self.finetune_results[latest_competition_id].trackers:
             finetune_scores[tracker.uid] = tracker.score
