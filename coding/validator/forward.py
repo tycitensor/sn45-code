@@ -20,31 +20,13 @@ async def forward(self, synapse: StreamCodeSynapse):
 
     """
     bt.logging.info("🚀 Starting forward loop...")
-    if (
-        not FinetunePipeline.tasks_exist(self.config)
-        and COMPETITION_ID not in self.finetune_results
-    ):
+    if not FinetunePipeline.tasks_exist(self.config):
         FinetunePipeline.generate_tasks(self.config)
-
-    eastern = timezone(timedelta(hours=-5))  # EST is UTC-5
-    end_time = datetime.strptime(COMPETITION_END_DATE, "%Y-%m-%d").replace(
-        hour=18, tzinfo=eastern
-    )
-    if datetime.now(eastern) > end_time:
-        if (
-            COMPETITION_ID not in self.finetune_results
-            or (
-                COMPETITION_ID in self.finetune_results
-                and all(
-                    tracker.score == 0
-                    for tracker in self.finetune_results[COMPETITION_ID].trackers
-                )
-            )
-        ) and not hasattr(self, "finetune_eval_future"):
-            finetune_pipeline = FinetunePipeline(
-                config=self.config,
-            )
-            self.finetune_eval_future = self.executor.submit(finetune_pipeline.evaluate)
+    if not hasattr(self, 'finetune_eval_future'):
+        finetune_pipeline = FinetunePipeline(
+            config=self.config,
+        )
+        self.finetune_eval_future = self.executor.submit(finetune_pipeline.evaluate)
     # Check if evaluation is complete
     if hasattr(self, "finetune_eval_future") and self.finetune_eval_future.done():
         self.finetune_results[COMPETITION_ID] = self.finetune_eval_future.result()
