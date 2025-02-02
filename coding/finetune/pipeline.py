@@ -135,7 +135,7 @@ class FinetunePipeline:
         self.code_sim_model = CodeSimModel()
         self.trackers = []
         self.dataset = SWEBenchDataset()
-        self.load_results()
+        self.load_trackers()
         self.llm_manager = LLMManager()
         self.load_logics()
         self.load_tasks()
@@ -164,10 +164,10 @@ class FinetunePipeline:
             self.tasks = generate_swe_tasks(self.dataset, self.config.neuron.finetune_test_size, code_scorer=self.code_sim_model)
             self.store_tasks()
 
-    def load_results(self):
-        results_file = f"{self.config.neuron.full_path}/results_{COMPETITION_ID}.pkl"
-        if os.path.exists(results_file):
-            with open(results_file, "rb") as f:
+    def load_trackers(self):
+        store_file = f"{self.config.neuron.full_path}/trackers_{COMPETITION_ID}.pkl"
+        if os.path.exists(store_file):
+            with open(store_file, "rb") as f:
                 saved_results = pickle.load(f)
                 self.trackers = saved_results.get("trackers", [])
 
@@ -188,6 +188,8 @@ class FinetunePipeline:
                         break
             if not exists:
                 self.trackers.append(tracker)
+        # remove trackers that are not in the tracking_logics
+        self.trackers = [tracker for tracker in self.trackers if tracker.hotkey in [t.hotkey for t in self.tracking_logics]]
     
     @property
     def results(self) -> FinetuneEventResults:
@@ -233,8 +235,8 @@ class FinetunePipeline:
                 if tracker.score > 0:
                     tracker.score_timestamps.append(self.metagraph.block)
                 tracker.score = previous_tracker.score
-                if tracker.hotkey != previous_tracker.hotkey:
-                    self.trackers.append(tracker)
+                # if tracker.hotkey != previous_tracker.hotkey:
+                    # self.trackers.append(tracker)
                 continue
 
             # Otherwise, evaluate the logic
@@ -304,13 +306,13 @@ class FinetunePipeline:
                     bt.logging.info(f"Completed task {task_idx}/{len(self.tasks)} for hotkey {tracker.hotkey}")
             tracker.score = sum(scores) / len(scores)
             tracker.score_timestamps.append(self.metagraph.block)
-            self.store_results()
+            self.store_trackers()
             
             bt.logging.info(f"Cleaning up container for hotkey {tracker.hotkey}...")
             bt.logging.info(f"Final score for hotkey {tracker.hotkey}: {tracker.score}")
             
         bt.logging.info("Evaluation complete!")
-        self.store_results()
+        self.store_trackers()
 
         return self.results
     def __str__(self):
@@ -342,16 +344,16 @@ class FinetunePipeline:
                 task.code_scorer = None
             pickle.dump(self.tasks, f)
 
-    def store_results(self):
-        results_file = f"{self.config.neuron.full_path}/results_{COMPETITION_ID}.pkl"
-        temp_file = results_file + ".tmp"
+    def store_trackers(self):
+        store_file = f"{self.config.neuron.full_path}/trackers_{COMPETITION_ID}.pkl"
+        temp_file = store_file + ".tmp"
         
         # Write to a temp file first
         with open(temp_file, "wb") as f:
             pickle.dump({"trackers": self.trackers}, f)
         
         # Replace the old file with the new
-        os.replace(temp_file, results_file)
+        os.replace(temp_file, store_file)
 
     @staticmethod
     def generate_tasks(config) -> List[SWEBenchTask]:
