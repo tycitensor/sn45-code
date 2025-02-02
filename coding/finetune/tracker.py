@@ -22,6 +22,7 @@ def gather_all_logics(validator) -> List[TrackingInfo]:
             hotkey=get_hotkey_from_uid(validator, uids[i]),
             uid=uids[i],
             score=0.0,
+            score_timestamps=[],
         )
         for i, synapse in enumerate(responses)
     ]
