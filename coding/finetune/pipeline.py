@@ -177,19 +177,21 @@ class FinetunePipeline:
     
     def load_logics(self):
         self.tracking_logics = gather_all_logics(self)
+        print(f"Gotten {len(self.tracking_logics)} logics")
         for tracker in self.tracking_logics:
+            exists = False
             for res_tracker in self.trackers:
-                exists = False
                 if tracker.hotkey == res_tracker.hotkey:
                     res_tracker.uid = tracker.uid
                     exists = True
                     if str(tracker.logic) != str(res_tracker.logic):
                         res_tracker.logic = tracker.logic
                         break
-                if not exists:
-                    self.trackers.append(tracker)
+            if not exists:
+                self.trackers.append(tracker)
         # remove trackers that are not in the tracking_logics
         self.trackers = [tracker for tracker in self.trackers if tracker.hotkey in [t.hotkey for t in self.tracking_logics]]
+        print(f"Gotten {len(self.trackers)} trackers")
     
     @property
     def results(self) -> FinetuneEventResults:
