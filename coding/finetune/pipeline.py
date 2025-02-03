@@ -135,9 +135,12 @@ class FinetunePipeline:
         self.code_sim_model = CodeSimModel()
         self.trackers = []
         self.dataset = SWEBenchDataset()
-        self.load_trackers()
         self.llm_manager = LLMManager()
-        self.load_logics()
+        if tracking_logics is None:
+            self.load_trackers()
+            self.load_logics()
+        else:
+            self.tracking_logics = tracking_logics
         self.load_tasks()
         self.load_completed_trackers()
         # Register cleanup to be called when the object is deleted
@@ -230,7 +233,7 @@ class FinetunePipeline:
                 bt.logging.info(f"Not enough blocks have passed since the last evaluation for tracker {tracker.hotkey}, skipping...")
                 continue
             
-            previous_tracker = next((tracker for tracker in self.trackers if str(tracker.logic) == str(tracker.logic)), None)
+            previous_tracker = next((tracker for tracker in self.trackers if str(tracker.logic) == str(tracker.logic) and tracker.hotkey != tracker.hotkey), None)
             if previous_tracker is not None:
                 bt.logging.info(f"Finetune: Using previously evaluated score for hotkey: {tracker.hotkey}")
                 # if a tracker had a score before, add the block number to the score_timestamps
