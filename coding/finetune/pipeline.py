@@ -220,7 +220,7 @@ class FinetunePipeline:
                 tracker.logic = {}
                 continue
             bt.logging.info(f"Logic for hotkey {tracker.hotkey} passed verification.")
-        start_block = self.metagraph.block
+        completed_trackers = []
         bt.logging.info(f"Beginning evaluation of {len(self.tasks)} tasks...")
         for tracker_idx, tracker in enumerate(self.trackers):
             bt.logging.info(f"Processing tracker {tracker_idx + 1}/{len(self.trackers)}")
@@ -228,6 +228,7 @@ class FinetunePipeline:
             if not tracker.logic:
                 bt.logging.info(f"No logic provided for tracker {tracker.hotkey}, skipping...")
                 tracker.score = 0
+                completed_trackers.append(tracker)
                 continue
             if not should_evaluate(tracker, self.metagraph.block):
                 bt.logging.info(f"Not enough blocks have passed since the last evaluation for tracker {tracker.hotkey}, skipping...")
@@ -235,10 +236,9 @@ class FinetunePipeline:
             
             previous_tracker = next(
                 (
-                    tracker for tracker in self.trackers 
-                    if str(tracker.logic) == str(tracker.logic) 
-                    and tracker.hotkey != tracker.hotkey 
-                    and (tracker.score_timestamps[-1] - start_block  <= 600 if tracker.score_timestamps else False)
+                    tracker for t in completed_trackers 
+                    if str(tracker.logic) == str(t.logic) 
+                    and tracker.hotkey != t.hotkey 
                 ), 
                 None
             )
@@ -248,6 +248,7 @@ class FinetunePipeline:
                 if tracker.score > 0:
                     tracker.score_timestamps.append(self.metagraph.block)
                 tracker.score = previous_tracker.score
+                completed_trackers.append(tracker)
                 # if tracker.hotkey != previous_tracker.hotkey:
                     # self.trackers.append(tracker)
                 continue
@@ -319,6 +320,7 @@ class FinetunePipeline:
                     bt.logging.info(f"Completed task {task_idx}/{len(self.tasks)} for hotkey {tracker.hotkey}")
             tracker.score = sum(scores) / len(scores)
             tracker.score_timestamps.append(self.metagraph.block)
+            completed_trackers.append(tracker)
             self.store_trackers()
             
             bt.logging.info(f"Cleaning up container for hotkey {tracker.hotkey}...")
