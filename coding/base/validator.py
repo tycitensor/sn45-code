@@ -340,6 +340,9 @@ class BaseValidatorNeuron(BaseNeuron):
         max_score = np.max(finetune_scores)
         threshold = max_score - 0.17  # within 0.18 of max score
         finetune_scores[finetune_scores < threshold] = 0
+        if np.all(finetune_scores == 0):
+            bt.logging.warning("finetune_scores is all 0's, skipping update_scores.")
+            return
         self.scores = finetune_scores
         bt.logging.info(f"Updated moving avg scores: {self.scores}")
 
