@@ -220,7 +220,7 @@ class FinetunePipeline:
                 tracker.logic = {}
                 continue
             bt.logging.info(f"Logic for hotkey {tracker.hotkey} passed verification.")
-
+        start_block = self.metagraph.block
         bt.logging.info(f"Beginning evaluation of {len(self.tasks)} tasks...")
         for tracker_idx, tracker in enumerate(self.trackers):
             bt.logging.info(f"Processing tracker {tracker_idx + 1}/{len(self.trackers)}")
@@ -238,7 +238,7 @@ class FinetunePipeline:
                     tracker for tracker in self.trackers 
                     if str(tracker.logic) == str(tracker.logic) 
                     and tracker.hotkey != tracker.hotkey 
-                    and (self.metagraph.block - tracker.score_timestamps[-1] <= 50 if tracker.score_timestamps else False)
+                    and (tracker.score_timestamps[-1] - start_block  <= 600 if tracker.score_timestamps else False)
                 ), 
                 None
             )
