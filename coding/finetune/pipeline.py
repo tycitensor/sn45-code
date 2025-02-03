@@ -233,7 +233,15 @@ class FinetunePipeline:
                 bt.logging.info(f"Not enough blocks have passed since the last evaluation for tracker {tracker.hotkey}, skipping...")
                 continue
             
-            previous_tracker = next((tracker for tracker in self.trackers if str(tracker.logic) == str(tracker.logic) and tracker.hotkey != tracker.hotkey), None)
+            previous_tracker = next(
+                (
+                    tracker for tracker in self.trackers 
+                    if str(tracker.logic) == str(tracker.logic) 
+                    and tracker.hotkey != tracker.hotkey 
+                    and (self.metagraph.block - tracker.score_timestamps[-1] <= 50 if tracker.score_timestamps else False)
+                ), 
+                None
+            )
             if previous_tracker is not None:
                 bt.logging.info(f"Finetune: Using previously evaluated score for hotkey: {tracker.hotkey}")
                 # if a tracker had a score before, add the block number to the score_timestamps
