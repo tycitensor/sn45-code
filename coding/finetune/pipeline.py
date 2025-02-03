@@ -24,17 +24,17 @@ from coding.helpers.codeanal import verify_code_usage
 
 
 class FinetuneEventResults(BaseModel):
-    graded_trackers: List[TrackingInfo]
+    trackers: List[TrackingInfo]
     competition_id: int = COMPETITION_ID
     
     def __state_dict__(self):
         return {
-            "trackers": [tracker.model_dump() for tracker in self.graded_trackers],
+            "trackers": [tracker.model_dump() for tracker in self.trackers],
             "competition_id": COMPETITION_ID,
         }
     
     def public_state_dict(self):
-        trackers = [tracker.model_dump() for tracker in self.graded_trackers]
+        trackers = [tracker.model_dump() for tracker in self.trackers]
         for tracker in trackers:
             tracker["model"] = None
         return {
