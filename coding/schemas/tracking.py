@@ -1,5 +1,5 @@
 from typing import List
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class TrackingInfo(BaseModel):
@@ -8,4 +8,4 @@ class TrackingInfo(BaseModel):
     hotkey: str
     uid: int
     score: float = 0.0
-    score_timestamps: List[int] = [] # timestamp is the block number
+    score_timestamps: List[int] = Field(default_factory=list) # timestamp is the block number

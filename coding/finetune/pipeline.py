@@ -1,4 +1,5 @@
 import os
+import json
 import pickle
 import traceback
 import bittensor as bt
@@ -23,17 +24,17 @@ from coding.helpers.codeanal import verify_code_usage
 
 
 class FinetuneEventResults(BaseModel):
-    trackers: List[TrackingInfo]
+    graded_trackers: List[TrackingInfo]
     competition_id: int = COMPETITION_ID
     
     def __state_dict__(self):
         return {
-            "trackers": [tracker.model_dump() for tracker in self.trackers],
+            "trackers": [tracker.model_dump() for tracker in self.graded_trackers],
             "competition_id": COMPETITION_ID,
         }
     
     def public_state_dict(self):
-        trackers = [tracker.model_dump() for tracker in self.trackers]
+        trackers = [tracker.model_dump() for tracker in self.graded_trackers]
         for tracker in trackers:
             tracker["model"] = None
         return {
@@ -133,29 +134,18 @@ class FinetunePipeline:
             bt.logging.error(f"Error injecting bittensor: {e}")
             print(traceback.format_exc())
         self.code_sim_model = CodeSimModel()
-        self.trackers = []
+        self.graded_trackers = []
+        self.ungraded_trackers = []
         self.dataset = SWEBenchDataset()
         self.llm_manager = LLMManager()
         if tracking_logics is None:
-            self.load_trackers()
             self.load_logics()
         else:
             self.tracking_logics = tracking_logics
         self.load_tasks()
-        self.load_completed_trackers()
         # Register cleanup to be called when the object is deleted
         # self._finalizer = weakref.finalize(self, self.cleanup)
 
-    def load_completed_trackers(self):
-        if os.path.exists(f"{self.config.neuron.full_path}/completed_trackers_{COMPETITION_ID}.pkl"):
-            with open(f"{self.config.neuron.full_path}/completed_trackers_{COMPETITION_ID}.pkl", "rb") as f:
-                self.completed_trackers = pickle.load(f)
-        else:
-            self.completed_trackers = []
-    
-    def store_completed_trackers(self):
-        with open(f"{self.config.neuron.full_path}/completed_trackers_{COMPETITION_ID}.pkl", "wb") as f:
-            pickle.dump(self.completed_trackers, f)
     
     def load_tasks(self):
         if os.path.exists(f"{self.config.neuron.full_path}/tasks_{COMPETITION_ID}.pkl"):
@@ -167,50 +157,47 @@ class FinetunePipeline:
             self.tasks = generate_swe_tasks(self.dataset, self.config.neuron.finetune_test_size, code_scorer=self.code_sim_model)
             self.store_tasks()
 
-    def load_trackers(self):
-        store_file = f"{self.config.neuron.full_path}/trackers_{COMPETITION_ID}.pkl"
-        if os.path.exists(store_file):
-            with open(store_file, "rb") as f:
-                saved_results = pickle.load(f)
-                self.trackers = saved_results.get("trackers", [])
-
-    def store_logics(self):
-        with open(f"{self.config.neuron.full_path}/logics_{COMPETITION_ID}.pkl", "wb") as f:
-            pickle.dump(self.tracking_logics, f)
     
     def load_logics(self):
-        self.tracking_logics = gather_all_logics(self)
-        print(f"Gotten {len(self.tracking_logics)} logics")
-        for tracker in self.tracking_logics:
+        grabbed_trackers = gather_all_logics(self)
+        print(f"Grabbed {len(grabbed_trackers)} logics")
+        saved_trackers = self.load_trackers()
+        graded_trackers = []
+        ungraded_trackers = []
+        for tracker in grabbed_trackers:
             exists = False
-            for res_tracker in self.trackers:
-                if tracker.hotkey == res_tracker.hotkey:
-                    res_tracker.uid = tracker.uid
+            for saved_tracker in saved_trackers:
+                if tracker.hotkey == saved_tracker.hotkey:
+                    saved_tracker.uid = tracker.uid
                     exists = True
-                    if str(tracker.logic) != str(res_tracker.logic):
-                        res_tracker.logic = tracker.logic
+                    if saved_tracker.score == 0:
+                        ungraded_trackers.append(tracker)
                         break
+                    if json.dumps(tracker.logic, sort_keys=True) != json.dumps(saved_tracker.logic, sort_keys=True):
+                        if tracker.logic == {}:
+                            graded_trackers.append(saved_tracker)
+                        else:
+                            ungraded_trackers.append(tracker)
+                    else:
+                        graded_trackers.append(saved_tracker)
+                    break
             if not exists:
-                self.trackers.append(tracker)
-        # remove trackers that are not in the tracking_logics
-        self.trackers = [tracker for tracker in self.trackers if tracker.hotkey in [t.hotkey for t in self.tracking_logics]]
-        print(f"Gotten {len(self.trackers)} trackers")
-    
+                ungraded_trackers.append(tracker)
+        self.graded_trackers = graded_trackers
+        self.ungraded_trackers = ungraded_trackers
+        
     @property
     def results(self) -> FinetuneEventResults:
         return FinetuneEventResults(
-            trackers=self.trackers
+            trackers=self.graded_trackers
         )
 
     # TODO add time taken and handle race condition due to parallel execution 
     # make use the same docker container for each task , where task repo files are copied over needs to change
     def evaluate(self) -> FinetuneEventResults:
         # gather all logics
-        bt.logging.info("Gathering all logics...")
-        bt.logging.info(f"Gathered {len(self.trackers)} logics.")
-
         bt.logging.info("Verifying and building docker containers for each logic...")
-        for tracker in self.trackers:
+        for tracker in self.ungraded_trackers:
             bt.logging.info(f"Verifying logic for hotkey {tracker.hotkey}...")
             pass_logic, pass_msg = verify_logic(tracker.logic)
             if not pass_logic:
@@ -220,15 +207,14 @@ class FinetunePipeline:
                 tracker.logic = {}
                 continue
             bt.logging.info(f"Logic for hotkey {tracker.hotkey} passed verification.")
-        completed_trackers = []
         bt.logging.info(f"Beginning evaluation of {len(self.tasks)} tasks...")
-        for tracker_idx, tracker in enumerate(self.trackers):
-            bt.logging.info(f"Processing tracker {tracker_idx + 1}/{len(self.trackers)}")
+        for tracker_idx, tracker in enumerate(self.ungraded_trackers):
+            bt.logging.info(f"Processing tracker {tracker_idx + 1}/{len(self.ungraded_trackers)}")
             # Skip if no logic provided
             if not tracker.logic:
                 bt.logging.info(f"No logic provided for tracker {tracker.hotkey}, skipping...")
                 tracker.score = 0
-                completed_trackers.append(tracker)
+                self.graded_trackers.append(tracker)
                 continue
             if not should_evaluate(tracker, self.metagraph.block):
                 bt.logging.info(f"Not enough blocks have passed since the last evaluation for tracker {tracker.hotkey}, skipping...")
@@ -236,9 +222,8 @@ class FinetunePipeline:
             
             previous_tracker = next(
                 (
-                    tracker for t in completed_trackers 
-                    if str(tracker.logic) == str(t.logic) 
-                    and tracker.hotkey != t.hotkey 
+                    t for t in self.graded_trackers 
+                    if json.dumps(tracker.logic, sort_keys=True) == json.dumps(t.logic, sort_keys=True) 
                 ), 
                 None
             )
@@ -248,7 +233,7 @@ class FinetunePipeline:
                 if tracker.score > 0:
                     tracker.score_timestamps.append(self.metagraph.block)
                 tracker.score = previous_tracker.score
-                completed_trackers.append(tracker)
+                self.graded_trackers.append(tracker)
                 # if tracker.hotkey != previous_tracker.hotkey:
                     # self.trackers.append(tracker)
                 continue
@@ -320,7 +305,7 @@ class FinetunePipeline:
                     bt.logging.info(f"Completed task {task_idx}/{len(self.tasks)} for hotkey {tracker.hotkey}")
             tracker.score = sum(scores) / len(scores)
             tracker.score_timestamps.append(self.metagraph.block)
-            completed_trackers.append(tracker)
+            self.graded_trackers.append(tracker)
             self.store_trackers()
             
             bt.logging.info(f"Cleaning up container for hotkey {tracker.hotkey}...")
@@ -332,7 +317,7 @@ class FinetunePipeline:
         return self.results
     
     def __str__(self):
-        return f"{self.__class__.__name__}(scores={self.scores!r}, models={self.tracking_logics!r})"
+        return f"{self.__class__.__name__}(scores={self.scores!r})"
 
     def __repr__(self):
         return self.__str__()
@@ -340,7 +325,6 @@ class FinetunePipeline:
     def __state_dict__(self):
         return {
             "scores": self.scores,
-            "tracking_logics": [model.model_dump() for model in self.tracking_logics],
         }
 
     @staticmethod
@@ -354,6 +338,15 @@ class FinetunePipeline:
         pipeline.cleanup()  # Ensure cleanup is called after evaluation
         return result
 
+    def load_trackers(self):
+        loaded_trackers = []
+        store_file = f"{self.config.neuron.full_path}/trackers_{COMPETITION_ID}.pkl"
+        if os.path.exists(store_file):
+            with open(store_file, "rb") as f:
+                saved_results = pickle.load(f)
+                loaded_trackers = saved_results.get("trackers", [])
+        return loaded_trackers
+
     def store_tasks(self):
         with open(f"{self.config.neuron.full_path}/tasks_{COMPETITION_ID}.pkl", "wb") as f:
             for task in self.tasks:
@@ -366,7 +359,7 @@ class FinetunePipeline:
         
         # Write to a temp file first
         with open(temp_file, "wb") as f:
-            pickle.dump({"trackers": self.trackers}, f)
+            pickle.dump({"trackers": self.graded_trackers}, f)
         
         # Replace the old file with the new
         os.replace(temp_file, store_file)
@@ -396,10 +389,10 @@ class FinetunePipeline:
     
     def verify_results(self):
         scores = []
-        for tracker in self.trackers:
+        for tracker in self.graded_trackers:
             scores.append(tracker.score)
         # if all the scores are 0 then we need to rerun the tasks
-        self.trackers = []
+        self.graded_trackers = []
         # delete the results file
         if all(score == 0 for score in scores):
             if os.path.exists(f"{self.config.neuron.full_path}/results_{COMPETITION_ID}.pkl"):
