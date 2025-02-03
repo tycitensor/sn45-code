@@ -186,8 +186,8 @@ class FinetunePipeline:
                     if str(tracker.logic) != str(res_tracker.logic):
                         res_tracker.logic = tracker.logic
                         break
-            if not exists:
-                self.trackers.append(tracker)
+                if not exists:
+                    self.trackers.append(tracker)
         # remove trackers that are not in the tracking_logics
         self.trackers = [tracker for tracker in self.trackers if tracker.hotkey in [t.hotkey for t in self.tracking_logics]]
     
