@@ -224,7 +224,7 @@ class FinetunePipeline:
             previous_tracker = next(
                 (
                     t for t in self.graded_trackers 
-                    if difflib.SequenceMatcher(None, json.dumps(tracker.logic, sort_keys=True), json.dumps(t.logic, sort_keys=True)).quick_ratio() > 0.80
+                    if difflib.SequenceMatcher(None, json.dumps(tracker.logic, sort_keys=True), json.dumps(t.logic, sort_keys=True)).quick_ratio() > 0.90
                 ), 
                 None
             )
