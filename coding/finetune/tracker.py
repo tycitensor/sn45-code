@@ -8,13 +8,13 @@ def gather_all_logics(validator) -> List[TrackingInfo]:
     uids = get_miner_uids(validator)
     axons = [validator.metagraph.axons[uid] for uid in uids]
     synapse = LogicSynapse()
-    responses = []
-    for axon in axons:
-        try:
-            responses.append(validator.dendrite.query(axons=[axon], synapse=synapse, timeout=45, deserialize=False)[0])
-        except Exception as e:
-            print("Error querying axon", axon, e)
-            responses.append(synapse)
+    responses = validator.dendrite.query(axons=axons, synapse=synapse, timeout=45, deserialize=False)
+    # for axon in axons:
+    #     try:
+    #         responses.append(validator.dendrite.query(axons=[axon], synapse=synapse, timeout=45, deserialize=False)[0])
+    #     except Exception as e:
+    #         print("Error querying axon", axon, e)
+    #         responses.append(synapse)
     return [
         TrackingInfo(
             logic=synapse.logic,

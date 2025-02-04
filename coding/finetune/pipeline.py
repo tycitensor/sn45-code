@@ -1,6 +1,7 @@
 import os
 import json
 import pickle
+import difflib
 import traceback
 import bittensor as bt
 from typing import List
@@ -223,7 +224,7 @@ class FinetunePipeline:
             previous_tracker = next(
                 (
                     t for t in self.graded_trackers 
-                    if json.dumps(tracker.logic, sort_keys=True) == json.dumps(t.logic, sort_keys=True) 
+                    if difflib.SequenceMatcher(None, json.dumps(tracker.logic, sort_keys=True), json.dumps(t.logic, sort_keys=True)).quick_ratio() > 0.80
                 ), 
                 None
             )
