@@ -175,12 +175,12 @@ class FinetunePipeline:
                         ungraded_trackers.append(tracker)
                         break
                     if difflib.SequenceMatcher(None, json.dumps(tracker.logic, sort_keys=True), json.dumps(saved_tracker.logic, sort_keys=True)).quick_ratio() > 0.90:
+                        graded_trackers.append(saved_tracker)
+                    else:
                         if tracker.logic == {}:
                             graded_trackers.append(saved_tracker)
                         else:
                             ungraded_trackers.append(tracker)
-                    else:
-                        graded_trackers.append(saved_tracker)
                     break
             if not exists:
                 ungraded_trackers.append(tracker)
