@@ -172,6 +172,8 @@ class FinetunePipeline:
         for tracker in grabbed_trackers:
             exists = False
             for saved_tracker in saved_trackers:
+                if len(saved_tracker.last_updated) > 0 and saved_tracker.last_updated[-1] < self.subtensor.block - 21600:
+                    continue
                 if tracker.hotkey == saved_tracker.hotkey:
                     saved_tracker.uid = tracker.uid
                     tracker.score = saved_tracker.score
