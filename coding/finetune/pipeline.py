@@ -31,7 +31,7 @@ class FinetuneEventResults(BaseModel):
     
     def __state_dict__(self):
         return {
-            "trackers": [tracker.model_dump() for tracker in self.trackers],
+            # "trackers": [tracker.model_dump() for tracker in self.trackers],
             "competition_id": COMPETITION_ID,
         }
     
