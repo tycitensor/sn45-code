@@ -163,6 +163,7 @@ class FinetunePipeline:
         else:
             self.tasks = generate_swe_tasks(self.dataset, self.config.neuron.finetune_test_size, code_scorer=self.code_sim_model)
             self.store_tasks()
+        print(f"Loaded {len(self.tasks)} tasks")
 
     def load_logics(self):
         grabbed_trackers = gather_all_logics(self)
