@@ -176,9 +176,9 @@ class FinetunePipeline:
             for saved_tracker in saved_trackers:
                 if len(saved_tracker.score_timestamps) == 0:
                     saved_tracker.score_timestamps.append(saved_tracker.block)
-                if len(saved_tracker.score_timestamps) > 0 and saved_tracker.score_timestamps[-1] < self.subtensor.block - 14400:
-                    continue
                 if tracker.hotkey == saved_tracker.hotkey:
+                    if len(saved_tracker.score_timestamps) > 0 and saved_tracker.score_timestamps[-1] < self.subtensor.block - 14400:
+                        break
                     saved_tracker.uid = tracker.uid
                     tracker.score = saved_tracker.score
                     tracker.score_timestamps = saved_tracker.score_timestamps
