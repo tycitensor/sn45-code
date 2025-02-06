@@ -174,6 +174,8 @@ class FinetunePipeline:
             for saved_tracker in saved_trackers:
                 if tracker.hotkey == saved_tracker.hotkey:
                     saved_tracker.uid = tracker.uid
+                    tracker.score = saved_tracker.score
+                    tracker.score_timestamps = saved_tracker.score_timestamps
                     exists = True
                     if saved_tracker.score == 0:
                         ungraded_trackers.append(tracker)
