@@ -53,6 +53,9 @@ async def forward(self, synapse: StreamCodeSynapse):
 
     # Call clean_wandb once every day
     if self.block % 7200 == 0: 
-        clean_wandb(self)
+        try:    
+            clean_wandb(self)
+        except Exception as e:
+            bt.logging.error(f"Error cleaning wandb: {e}")
 
     sleep(60*5)

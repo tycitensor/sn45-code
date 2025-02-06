@@ -370,8 +370,8 @@ def delete_all_containers():
         try:
             container.stop(timeout=1)
             container.remove(force=True)
-        except:
-            pass
+        except Exception as e:
+            print(f"Error deleting container: {container.name} - {e}")
 
 if __name__ == "__main__":
     import dotenv
