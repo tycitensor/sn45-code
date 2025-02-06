@@ -154,6 +154,7 @@ class FinetunePipeline:
 
     
     def load_tasks(self):
+        print(f"Loading tasks from {self.config.neuron.full_path}/tasks_{COMPETITION_ID}.pkl")
         if os.path.exists(f"{self.config.neuron.full_path}/tasks_{COMPETITION_ID}.pkl"):
             with open(f"{self.config.neuron.full_path}/tasks_{COMPETITION_ID}.pkl", "rb") as f:
                 self.tasks = pickle.load(f)[:self.config.neuron.finetune_test_size]
@@ -196,7 +197,7 @@ class FinetunePipeline:
                 ungraded_trackers.append(tracker)
         self.graded_trackers = graded_trackers
         self.ungraded_trackers = ungraded_trackers
-        
+        print(f"Loaded {len(self.graded_trackers)} graded and {len(self.ungraded_trackers)} ungraded trackers")
     @property
     def results(self) -> FinetuneEventResults:
         return FinetuneEventResults(
