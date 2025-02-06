@@ -172,6 +172,8 @@ class FinetunePipeline:
         for tracker in grabbed_trackers:
             exists = False
             for saved_tracker in saved_trackers:
+                if len(saved_tracker.score_timestamps) == 0:
+                    saved_tracker.score_timestamps.append(saved_tracker.block)
                 if len(saved_tracker.score_timestamps) > 0 and saved_tracker.score_timestamps[-1] < self.subtensor.block - 14400:
                     continue
                 if tracker.hotkey == saved_tracker.hotkey:
@@ -237,9 +239,11 @@ class FinetunePipeline:
                 None
             )
             if previous_tracker is not None:
+                if len(previous_tracker.score_timestamps) > 0 and len(tracker.score_timestamps) == 0:
+                    tracker.score_timestamps = previous_tracker.score_timestamps
                 bt.logging.info(f"Finetune: Using previously evaluated score for hotkey: {tracker.hotkey}")
                 # if a tracker had a score before, add the block number to the score_timestamps
-                if tracker.score > 0:
+                if tracker.score > 0 or len(tracker.score_timestamps) == 0:
                     tracker.score_timestamps.append(self.metagraph.block)
                 tracker.score = previous_tracker.score
                 self.graded_trackers.append(tracker)
