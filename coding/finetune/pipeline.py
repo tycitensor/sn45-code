@@ -20,6 +20,7 @@ from coding.constants import COMPETITION_ID, ALLOWED_MODULES, NUM_ALLOWED_CHARAC
 
 from coding.tasks.swe import SWEBenchTask
 from coding.datasets.swe import SWEBenchDataset
+from coding.datasets.swefull import SWEFullDataset
 from coding.finetune.llm.manager import LLMManager
 from coding.helpers.codeanal import verify_code_usage
 
@@ -60,14 +61,18 @@ def should_evaluate(tracker: TrackingInfo, block: int) -> bool:
     # Return True if there are fewer than 5 evaluations in the last 5 days
     return len(recent_evals) < 5
 
-def generate_swe_tasks(ds: SWEBenchDataset, n: int = 1000, code_scorer =  None) -> List[SWEBenchTask]:
+def generate_swe_tasks(ds, n: int = 1000, code_scorer =  None) -> List[SWEBenchTask]:
     tasks = []
+    fail_count = 0
     while len(tasks) < n:
         try:
             tasks.append(SWEBenchTask(llm=None, context=Context(**ds.get()), code_scorer=code_scorer))
         except Exception as e:
             bt.logging.error(f"Error generating task: {e}")
             print(traceback.format_exc())
+            fail_count += 1
+            if fail_count > 100:
+                raise Exception("Failed to generate tasks")
     return tasks
 
 
@@ -126,7 +131,7 @@ def verify_logic(logic: dict) -> tuple[bool, str]:
 
 class FinetunePipeline:
     def __init__(
-        self, config, tracking_logics: List[TrackingInfo] = None,
+        self, config, tracking_logics: List[TrackingInfo] = None, 
     ):
         self.config = config
         try:
@@ -137,7 +142,7 @@ class FinetunePipeline:
         self.code_sim_model = CodeSimModel()
         self.graded_trackers = []
         self.ungraded_trackers = []
-        self.dataset = SWEBenchDataset()
+        self.dataset = SWEFullDataset()
         self.llm_manager = LLMManager()
         if tracking_logics is None:
             self.load_logics()
@@ -158,7 +163,6 @@ class FinetunePipeline:
             self.tasks = generate_swe_tasks(self.dataset, self.config.neuron.finetune_test_size, code_scorer=self.code_sim_model)
             self.store_tasks()
 
-    
     def load_logics(self):
         grabbed_trackers = gather_all_logics(self)
         print(f"Grabbed {len(grabbed_trackers)} logics")
@@ -367,9 +371,27 @@ class FinetunePipeline:
 
     @staticmethod
     def generate_tasks(config) -> List[SWEBenchTask]:
-        dataset = SWEBenchDataset()
+        dataset = SWEFullDataset()
         code_scorer = CodeSimModel()
         tasks = generate_swe_tasks(dataset, config.neuron.finetune_test_size, code_scorer=code_scorer)
+        with open(f"{config.neuron.full_path}/tasks_{COMPETITION_ID}.pkl", "wb") as f:
+            for task in tasks:
+                task.code_scorer = None
+            pickle.dump(tasks, f)
+    
+    @staticmethod
+    def update_tasks(config, n: int):
+        if os.path.exists(f"{config.neuron.full_path}/tasks_{COMPETITION_ID}.pkl"):
+            with open(f"{config.neuron.full_path}/tasks_{COMPETITION_ID}.pkl", "rb") as f:
+                tasks = pickle.load(f)
+                tasks = tasks[n:]  # Remove the first N tasks
+        else:
+            tasks = []
+        dataset = SWEFullDataset()
+        code_scorer = CodeSimModel()
+        if len(tasks) < n:
+            new_tasks = generate_swe_tasks(dataset, n - len(tasks), code_scorer=code_scorer)
+            tasks.extend(new_tasks)  # Append N new tasks
         with open(f"{config.neuron.full_path}/tasks_{COMPETITION_ID}.pkl", "wb") as f:
             for task in tasks:
                 task.code_scorer = None

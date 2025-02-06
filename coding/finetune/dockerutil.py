@@ -364,6 +364,15 @@ def test_docker_container():
             except:
                 pass
 
+def delete_all_containers():
+    client = docker.from_env()
+    for container in client.containers.list():
+        try:
+            container.stop(timeout=1)
+            container.remove(force=True)
+        except:
+            pass
+
 if __name__ == "__main__":
     import dotenv
     dotenv.load_dotenv()
