@@ -115,18 +115,21 @@ def reinit_wandb(self):
 
 def clean_wandb(self):
     """Cleans wandb, deleting all runs."""
-    if not self.wandb:
-        wandb_dir = self.config.neuron.full_path + "/wandb"
-        if os.path.exists(wandb_dir):
-            for root, dirs, files in os.walk(wandb_dir, topdown=False):
-                for name in files:
-                    os.remove(os.path.join(root, name))
-                for name in dirs:
-                    os.rmdir(os.path.join(root, name))
-            os.rmdir(wandb_dir)
-    else:
-        self.wandb.finish()
-        wandb.delete_all()
+    try:
+        if not self.wandb:
+            wandb_dir = self.config.neuron.full_path + "/wandb"
+            if os.path.exists(wandb_dir):
+                for root, dirs, files in os.walk(wandb_dir, topdown=False):
+                    for name in files:
+                        os.remove(os.path.join(root, name))
+                    for name in dirs:
+                        os.rmdir(os.path.join(root, name))
+                os.rmdir(wandb_dir)
+        else:
+            self.wandb.finish()
+            wandb.delete_all()
+    except Exception as e:
+        bt.logging.error(f"Error cleaning wandb: {e}")
         
 def log_event(self, event):
     if self.config.netuid != 45 and self.config.netuid != 171:
