@@ -359,6 +359,8 @@ class BaseValidatorNeuron(BaseNeuron):
             scores=self.scores,
             hotkeys=self.hotkeys,
             finetune_items=finetune_items,
+            last_task_update=self.last_task_update,
+            last_wandb_clean=self.last_wandb_clean,
         )
 
     def load_state(self):
@@ -374,6 +376,8 @@ class BaseValidatorNeuron(BaseNeuron):
             self.scores = None
             self.hotkeys = None
             self.finetune_results = {}
+            self.last_task_update = 0
+            self.last_wandb_clean = 0
             return
 
         # Load the state of the validator from file.
@@ -383,7 +387,8 @@ class BaseValidatorNeuron(BaseNeuron):
         self.step = state["step"].item() if "step" in state else None
         self.scores = state["scores"] if "scores" in state else None
         self.hotkeys = state["hotkeys"] if "hotkeys" in state else None
-        
+        self.last_task_update = state["last_task_update"].item() if "last_task_update" in state else 0
+        self.last_wandb_clean = state["last_wandb_clean"].item() if "last_wandb_clean" in state else 0
         # Convert finetune_items back to dictionary
         self.finetune_results = {}
         if "finetune_items" in state:

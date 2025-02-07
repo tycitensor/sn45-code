@@ -137,6 +137,13 @@ def log_event(self, event):
 
     if not getattr(self, "wandb", None):
         init_wandb(self)
-
-    # Log the event to wandb.
-    self.wandb.log(event)
+    try:
+        # Log the event to wandb.
+        self.wandb.log(event)
+    except Exception as e:
+        bt.logging.error(f"Error logging event: {e}")
+        try:
+            init_wandb(self)
+            self.wandb.log(event)
+        except Exception as e:
+            bt.logging.error(f"Error logging event: {e}")

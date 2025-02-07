@@ -30,6 +30,8 @@ from typing import Awaitable, Tuple
 from code_bert_score import BERTScorer
 from langchain_openai import ChatOpenAI
 from concurrent.futures import ThreadPoolExecutor
+
+from coding.utils.logging import clean_wandb
 from coding.validator import forward
 from coding.rewards.pipeline import RewardPipeline
 from coding.protocol import StreamCodeSynapse
@@ -38,6 +40,7 @@ from coding.protocol import StreamCodeSynapse
 from coding.utils.config import config as util_config
 from coding.base.validator import BaseValidatorNeuron
 from coding.finetune.dockerutil import test_docker_container
+
 class Validator(BaseValidatorNeuron):
     """
     Your validator neuron class. You should use this class to define your validator's behavior. In particular, you should replace the forward function with your own logic.
@@ -53,6 +56,9 @@ class Validator(BaseValidatorNeuron):
         self.finetune_results = {}
         super(Validator, self).__init__(config=config)
 
+        self.last_task_update = 0
+        self.last_wandb_clean = self.block
+        clean_wandb(self)
         bt.logging.info("load_state()")
         self.load_state()
 
@@ -76,8 +82,7 @@ class Validator(BaseValidatorNeuron):
             bt.logging.error("Docker container test failed, exiting.")
             sys.exit(1)
         
-        self.last_task_update = 0
-        self.last_wandb_clean = 0
+        
 
     def _forward(
         self, synapse: StreamCodeSynapse
