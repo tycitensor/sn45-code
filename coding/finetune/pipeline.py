@@ -390,17 +390,17 @@ class FinetunePipeline:
             pickle.dump(tasks, f)
     
     @staticmethod
-    def update_tasks(config, n: int):
+    def update_tasks(config, num_tasks_to_keep: int, num_tasks_wanted: int):
         if os.path.exists(f"{config.neuron.full_path}/tasks_{COMPETITION_ID}.pkl"):
             with open(f"{config.neuron.full_path}/tasks_{COMPETITION_ID}.pkl", "rb") as f:
                 tasks = pickle.load(f)
-                tasks = tasks[n:]  # Remove the first N tasks
+                tasks = tasks[num_tasks_to_keep:]  # Remove the first N tasks
         else:
             tasks = []
         dataset = SWEFullDataset()
         code_scorer = CodeSimModel()
-        if len(tasks) < n:
-            new_tasks = generate_swe_tasks(dataset, n - len(tasks), code_scorer=code_scorer)
+        if len(tasks) < num_tasks_wanted:
+            new_tasks = generate_swe_tasks(dataset, num_tasks_wanted - len(tasks), code_scorer=code_scorer)
             tasks.extend(new_tasks)  # Append N new tasks
         with open(f"{config.neuron.full_path}/tasks_{COMPETITION_ID}.pkl", "wb") as f:
             for task in tasks:

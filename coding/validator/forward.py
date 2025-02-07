@@ -23,7 +23,7 @@ async def forward(self, synapse: StreamCodeSynapse):
         FinetunePipeline.generate_tasks(self.config)
     
     if self.last_task_update + 3600 < self.block: # every half-day replace 50(half) the tasks
-        FinetunePipeline.update_tasks(self.config, 50)
+        FinetunePipeline.update_tasks(self.config, 50, 100)
         self.last_task_update = self.block
     
     if not hasattr(self, 'finetune_eval_future'):
