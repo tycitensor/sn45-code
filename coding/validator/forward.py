@@ -22,8 +22,9 @@ async def forward(self, synapse: StreamCodeSynapse):
     if not FinetunePipeline.tasks_exist(self.config):
         FinetunePipeline.generate_tasks(self.config)
     
-    if self.block % 3600 == 0: # every half-day replace 50(half) the tasks
+    if self.last_task_update + 3600 < self.block: # every half-day replace 50(half) the tasks
         FinetunePipeline.update_tasks(self.config, 50)
+        self.last_task_update = self.block
     
     if not hasattr(self, 'finetune_eval_future'):
         delete_all_containers()
@@ -52,9 +53,10 @@ async def forward(self, synapse: StreamCodeSynapse):
     )
 
     # Call clean_wandb once every day
-    if self.block % 7200 == 0: 
+    if self.last_wandb_clean + 7200 < self.block:
         try:    
             clean_wandb(self)
+            self.last_wandb_clean = self.block
         except Exception as e:
             bt.logging.error(f"Error cleaning wandb: {e}")
 

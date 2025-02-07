@@ -75,6 +75,9 @@ class Validator(BaseValidatorNeuron):
         if not test_result:
             bt.logging.error("Docker container test failed, exiting.")
             sys.exit(1)
+        
+        self.last_task_update = 0
+        self.last_wandb_clean = 0
 
     def _forward(
         self, synapse: StreamCodeSynapse
