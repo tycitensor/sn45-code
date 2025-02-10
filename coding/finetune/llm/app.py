@@ -27,6 +27,14 @@ current_key: Optional[str] = None
 # FastAPI App
 app = FastAPI()
 
+models = {
+        "gpt-4o": ChatOpenAI(model="gpt-4o", max_tokens=16384),
+        "gpt-3.5-turbo": ChatOpenAI(model="gpt-3.5-turbo", max_tokens=16384),
+        "gpt-4o-mini": ChatOpenAI(model="gpt-4o-mini", max_tokens=16384),
+        "claude-3-5-sonnet": ChatAnthropic(model="claude-3-5-sonnet-latest", max_tokens=8912),
+        "gemini-2.0-flash-exp": ChatGoogleGenerativeAI(model="gemini-2.0-flash-exp", max_tokens=8912),
+    }
+embedder = OpenAIEmbeddings(model="text-embedding-3-small")
 
 # ------------------------------
 #       Pydantic Models
@@ -113,6 +121,7 @@ async def ainvoke_with_retry(llm, query: str, max_retries: int = 50, initial_del
             response = await llm.ainvoke(query)
             return response
         except Exception as e:
+            print("An error occurred in ainvoke_with_retry", e)
             # Check if it's a rate-limit or server error
             if "429" in str(e) or "529" in str(e):
                 last_exception = e
@@ -142,14 +151,6 @@ async def call_llm(request: LLMRequest):
     """Call one of the registered LLMs. If repeated failures, fallback to 'gpt-4o'."""
     global current_key, token_usage
 
-    # Models dictionary
-    models = {
-        "gpt-4o": ChatOpenAI(model="gpt-4o", max_tokens=16384),
-        "gpt-3.5-turbo": ChatOpenAI(model="gpt-3.5-turbo", max_tokens=16384),
-        "gpt-4o-mini": ChatOpenAI(model="gpt-4o-mini", max_tokens=16384),
-        "claude-3-5-sonnet": ChatAnthropic(model="claude-3-5-sonnet-latest", max_tokens=8912),
-        "gemini-2.0-flash-exp": ChatGoogleGenerativeAI(model="gemini-2.0-flash-exp", max_tokens=8912),
-    }
 
     try:
         if not current_key:
@@ -179,6 +180,7 @@ async def call_llm(request: LLMRequest):
             total_tokens=token_usage[current_key]
         )
     except Exception as e:
+        print("An error occurred in call_llm", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -190,12 +192,12 @@ async def get_embeddings(request: EmbeddingRequest):
     """
     Returns embeddings vector for the given input query.
     """
-    embedder = OpenAIEmbeddings(model="text-embedding-3-small")
     try:
         # embed_query is often synchronous in many libraries; if there's an async version, use that instead.
-        vector = embedder.embed_query(request.query)
+        vector = await embedder.aembed_query(request.query)
         return EmbeddingResponse(vector=vector)
     except Exception as e:
+        print("An error occurred in get_embeddings", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
