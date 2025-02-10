@@ -31,8 +31,8 @@ models = {
         "gpt-4o": ChatOpenAI(model="gpt-4o", max_tokens=16384),
         "gpt-3.5-turbo": ChatOpenAI(model="gpt-3.5-turbo", max_tokens=16384),
         "gpt-4o-mini": ChatOpenAI(model="gpt-4o-mini", max_tokens=16384),
-        "claude-3-5-sonnet": ChatAnthropic(model="claude-3-5-sonnet-latest", max_tokens=8912),
-        "gemini-2.0-flash-exp": ChatGoogleGenerativeAI(model="gemini-2.0-flash-exp", max_tokens=8912),
+        "claude-3-5-sonnet": ChatAnthropic(model="claude-3-5-sonnet-latest", max_tokens=8192),
+        "gemini-2.0-flash-exp": ChatGoogleGenerativeAI(model="gemini-2.0-flash-exp", max_tokens=8192),
     }
 embedder = OpenAIEmbeddings(model="text-embedding-3-small")
 
