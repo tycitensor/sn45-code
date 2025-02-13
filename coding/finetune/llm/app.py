@@ -17,7 +17,6 @@ load_dotenv("../../../.env")
 if not os.getenv("LLM_AUTH_KEY"):
     raise ValueError("LLM_AUTH_KEY environment variable not set")
 
-
 # ------------------------------
 #      Global Variables
 # ------------------------------
@@ -28,12 +27,12 @@ current_key: Optional[str] = None
 app = FastAPI()
 
 models = {
-        "gpt-4o": ChatOpenAI(model="gpt-4o", max_tokens=16384),
-        "gpt-3.5-turbo": ChatOpenAI(model="gpt-3.5-turbo", max_tokens=16384),
-        "gpt-4o-mini": ChatOpenAI(model="gpt-4o-mini", max_tokens=16384),
-        "claude-3-5-sonnet": ChatAnthropic(model="claude-3-5-sonnet-latest", max_tokens=8192),
-        "gemini-2.0-flash-exp": ChatGoogleGenerativeAI(model="gemini-2.0-flash-exp", max_tokens=8192),
-    }
+    "gpt-4o": ChatOpenAI(model="gpt-4o", max_tokens=16384),
+    "gpt-3.5-turbo": ChatOpenAI(model="gpt-3.5-turbo", max_tokens=16384),
+    "gpt-4o-mini": ChatOpenAI(model="gpt-4o-mini", max_tokens=16384),
+    "claude-3-5-sonnet": ChatAnthropic(model="claude-3-5-sonnet-latest", max_tokens=8192),
+    "gemini-2.0-flash-exp": ChatGoogleGenerativeAI(model="gemini-2.0-flash-exp", max_tokens=8192),
+}
 embedder = OpenAIEmbeddings(model="text-embedding-3-small")
 
 # ------------------------------
@@ -56,6 +55,12 @@ class EmbeddingRequest(BaseModel):
 class EmbeddingResponse(BaseModel):
     vector: List[float]
 
+# New models for batch embedding support
+class BatchEmbeddingRequest(BaseModel):
+    queries: List[str]
+
+class BatchEmbeddingResponse(BaseModel):
+    vectors: List[List[float]]
 
 # ------------------------------
 #       Auth Dependency
@@ -67,7 +72,6 @@ async def verify_auth(auth_key: str = Depends(lambda: os.getenv("LLM_AUTH_KEY"))
             detail="LLM_AUTH_KEY environment variable not set"
         )
     return auth_key
-
 
 # ------------------------------
 #   Initialize / Reset / Count
@@ -103,7 +107,6 @@ async def get_count(auth_key: str = Depends(verify_auth)):
             detail="No active key. Call /init endpoint first."
         )
     return {"key": current_key, "count": token_usage[current_key]}
-
 
 # ------------------------------
 #   Helper: Async LLM Invoker
@@ -142,7 +145,6 @@ async def ainvoke_with_retry(llm, query: str, max_retries: int = 50, initial_del
     else:
         raise HTTPException(status_code=500, detail="Unknown error invoking LLM")
 
-
 # ------------------------------
 #          Call LLM
 # ------------------------------
@@ -150,7 +152,6 @@ async def ainvoke_with_retry(llm, query: str, max_retries: int = 50, initial_del
 async def call_llm(request: LLMRequest):
     """Call one of the registered LLMs. If repeated failures, fallback to 'gpt-4o'."""
     global current_key, token_usage
-
 
     try:
         if not current_key:
@@ -183,7 +184,6 @@ async def call_llm(request: LLMRequest):
         print("An error occurred in call_llm", e)
         raise HTTPException(status_code=500, detail=str(e))
 
-
 # ------------------------------
 #        Embeddings
 # ------------------------------
@@ -200,6 +200,21 @@ async def get_embeddings(request: EmbeddingRequest):
         print("An error occurred in get_embeddings", e)
         raise HTTPException(status_code=500, detail=str(e))
 
+# ------------------------------
+#      Batch Embeddings
+# ------------------------------
+@app.post("/embed/batch", response_model=BatchEmbeddingResponse)
+async def get_batch_embeddings(request: BatchEmbeddingRequest):
+    """
+    Returns embedding vectors for a batch of input queries.
+    """
+    try:
+        # Run embedding tasks concurrently for all queries in the batch.
+        vectors = await embedder.aembed_documents(request.queries)
+        return BatchEmbeddingResponse(vectors=vectors)
+    except Exception as e:
+        print("An error occurred in get_batch_embeddings", e)
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ------------------------------
 #      Run via Uvicorn

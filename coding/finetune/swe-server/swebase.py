@@ -60,7 +60,27 @@ class LLMClient:
 
         result = response.json()
         return result["vector"]
+    
+    def embed_documents(self, queries: list[str]) -> list[float]:
+        """
+        Get embeddings for text using the embedding API endpoint
 
+        Args:
+            queries (list[str]): The list of texts to get embeddings for
+
+        Returns:
+            list[list[float]]: Vector embedding of the input text
+
+        Raises:
+            requests.exceptions.RequestException: If API call fails
+        """
+        payload = {"queries": queries}
+
+        response = requests.post(f"{self.base_url}/embed/batch", json=payload)
+        response.raise_for_status()
+
+        result = response.json()
+        return result["vectors"]
 class SWEBase(ABC):
     def __init__(self):
         self.llm = LLMClient()
