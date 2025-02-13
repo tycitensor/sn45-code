@@ -49,16 +49,16 @@ def should_evaluate(tracker: TrackingInfo, block: int) -> bool:
     Check if the tracker should be evaluated at the given block number.
 
     Conditions:
-    - If there have been fewer than 5 evaluations in the last 5 days, return True.
+    - If there have been fewer than 5 evaluations in the last 7 days, return True.
     - Otherwise, return False.
     """
     # Calculate blocks in 5 days
-    blocks_in_5_days = 5 * 24 * 60 * 60 // 12
-
+    blocks_in_7_days = 7 * 24 * 60 * 60 // 12
+    block_7_days_ago = block - blocks_in_7_days
     # Get evaluations within the last 5 days
-    recent_evals = [b for b in tracker.score_timestamps if block - b < blocks_in_5_days]
+    recent_evals = [b for b in tracker.score_timestamps if b > block_7_days_ago]
 
-    # Return True if there are fewer than 5 evaluations in the last 5 days
+    # Return True if there are fewer than 5 evaluations in the last 7 days
     return len(recent_evals) < 5
 
 def generate_swe_tasks(ds, n: int = 1000, code_scorer =  None) -> List[SWEBenchTask]:
