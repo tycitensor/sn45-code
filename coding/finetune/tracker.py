@@ -1,20 +1,48 @@
+import asyncio
 from typing import List
 
 from coding.protocol import LogicSynapse
 from coding.schemas.tracking import TrackingInfo
 from coding.utils.uids import get_miner_uids, get_hotkey_from_uid
+import asyncio
+import threading
+
+def run_async_in_thread(coro):
+    """
+    Runs an async coroutine in a separate thread and returns its result.
+    """
+    result_container = []
+    exception_container = []
+
+    def target():
+        try:
+            result = asyncio.run(coro)
+            result_container.append(result)
+        except Exception as e:
+            exception_container.append(e)
+
+    thread = threading.Thread(target=target)
+    thread.start()
+    thread.join()
+
+    if exception_container:
+        raise exception_container[0]
+    return result_container[0]
 
 def gather_all_logics(validator) -> List[TrackingInfo]:
     uids = get_miner_uids(validator)
     axons = [validator.metagraph.axons[uid] for uid in uids]
     synapse = LogicSynapse()
-    responses = validator.dendrite.query(axons=axons, synapse=synapse, timeout=45, deserialize=False)
-    # for axon in axons:
-    #     try:
-    #         responses.append(validator.dendrite.query(axons=[axon], synapse=synapse, timeout=45, deserialize=False)[0])
-    #     except Exception as e:
-    #         print("Error querying axon", axon, e)
-    #         responses.append(synapse)
+    
+    # Run the async query in a separate thread
+    responses = run_async_in_thread(
+        validator.dendrite.aquery(
+            axons=axons, 
+            synapse=synapse, 
+            timeout=45, 
+            deserialize=False
+        )
+    )
     return [
         TrackingInfo(
             logic=synapse.logic,
