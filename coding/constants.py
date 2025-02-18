@@ -55,7 +55,8 @@ ALLOWED_MODULES = [
     "langchain_core",
     "langchain_community",
     "tree_sitter_python",
-    "tree_sitter_javascript"
+    "tree_sitter_javascript",
+    "langchain_text_splitters"
 ]
 
 ALLOWED_IMPORTS = {
