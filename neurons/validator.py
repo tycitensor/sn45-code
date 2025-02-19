@@ -18,13 +18,13 @@
 import dotenv
 
 dotenv.load_dotenv()
-
+import os
 import sys
 import time
 import random
 import asyncio
 import threading
-
+import traceback
 import bittensor as bt
 from typing import Awaitable, Tuple
 from code_bert_score import BERTScorer
@@ -40,7 +40,7 @@ from coding.protocol import StreamCodeSynapse
 from coding.utils.config import config as util_config
 from coding.base.validator import BaseValidatorNeuron
 from coding.finetune.dockerutil import test_docker_container
-
+from coding.helpers.containers import DockerServer
 class Validator(BaseValidatorNeuron):
     """
     Your validator neuron class. You should use this class to define your validator's behavior. In particular, you should replace the forward function with your own logic.
@@ -61,26 +61,33 @@ class Validator(BaseValidatorNeuron):
         bt.logging.info("load_state()")
         self.load_state()
 
-        self.active_tasks = [
-            task
-            for task, p in zip(
-                self.config.neuron.tasks, self.config.neuron.task_weights
-            )
-            if p > 0
-        ]
+        # self.active_tasks = [
+        #     task
+        #     for task, p in zip(
+        #         self.config.neuron.tasks, self.config.neuron.task_weights
+        #     )
+        #     if p > 0
+        # ]
         self.executor = ThreadPoolExecutor()
         # Load the reward pipeline
-        self.reward_pipeline = RewardPipeline(
-            selected_tasks=self.active_tasks,
-            device=self.device,
-            code_scorer=None,
+        # self.reward_pipeline = RewardPipeline(
+            # selected_tasks=self.active_tasks,
+            # device=self.device,
+            # code_scorer=None,
+        # )
+        self.docker_server = DockerServer(
+            remote_host_url=os.getenv("REMOTE_DOCKER_HOST"),
+            remote_host_registry=f"{os.getenv('DOCKER_HOST_IP')}:5000"
         )
-
-        test_result = test_docker_container()
+        try:
+            self.docker_server.remote.run("registry:2", ports={"5000/tcp": 5000}, name="swe-registry")
+        except Exception as e:
+            bt.logging.error(f"Error running registry: {e}")
+            print(traceback.format_exc())
+        test_result = test_docker_container(os.getenv("REMOTE_DOCKER_HOST"))
         if not test_result:
             bt.logging.error("Docker container test failed, exiting.")
             sys.exit(1)
-        
         
 
     def _forward(

@@ -191,6 +191,7 @@ def run_docker_container(
     
 
 def run_docker_container_from_base(
+    image_name: str,
     container_name: str, repo: GitRepo, hotkey: str, issue_description: str, logic_files: dict
 ) -> dict:
     """
@@ -250,7 +251,7 @@ def run_docker_container_from_base(
                 pass
 
             container = client.containers.create(
-                image="brokespace/swe-server:latest",
+                image=image_name,
                 name=container_name,
                 detach=True,
                 # ports={"3000/tcp": 3000},
@@ -295,8 +296,8 @@ def run_docker_container_from_base(
                 pass
 
 
-def test_docker_container():
-    client = docker.from_env()
+def test_docker_container(remote_host_url: str):
+    client = docker.DockerClient(base_url=remote_host_url)
     container_name = "swe-server"
     with tempfile.TemporaryDirectory() as temp_dir:
         code_dir = os.path.join(temp_dir, "code")
@@ -367,11 +368,12 @@ def test_docker_container():
 def delete_all_containers():
     client = docker.from_env()
     for container in client.containers.list():
-        try:
-            container.stop(timeout=1)
-            container.remove(force=True)
-        except Exception as e:
-            print(f"Error deleting container: {container.name} - {e}")
+        if "registry" not in container.name:
+            try:
+                container.stop(timeout=1)
+                container.remove(force=True)
+            except Exception as e:
+                print(f"Error deleting container: {container.name} - {e}")
 
 if __name__ == "__main__":
     import dotenv

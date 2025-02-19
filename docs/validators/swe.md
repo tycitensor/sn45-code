@@ -31,6 +31,7 @@ sudo systemctl restart docker.service
 
 ```bash
 docker pull brokespace/swe-server:latest
+docker pull registry:2
 ```
 
 ### Configure UFW
@@ -51,7 +52,8 @@ The order of the rules is important. Run the following commands to setup the rul
 Let docker manage the iptables rules update file `/etc/docker/daemon.json` with the following content:
 ```bash
 {
-  "iptables": true
+  "iptables": true,
+  "insecure-registries": ["<ip-of-docker-server>:5000"]
 }
 ```
 ```bash
@@ -102,7 +104,9 @@ sudo iptables -I DOCKER-USER 1 -p tcp --dport 25000 -j ACCEPT
 sudo iptables -A FORWARD -p tcp -d 172.17.0.0/16 --dport 3000 -j ACCEPT
 sudo iptables -A FORWARD -p tcp -s 172.17.0.0/16 --sport 3000 -j ACCEPT
 sudo iptables -A INPUT -p tcp -s <ip-of-server-you-are-running-the-validator-on> --dport 2375 -j ACCEPT
+sudo iptables -A INPUT -p tcp -s <ip-of-server-you-are-running-the-validator-on> --dport 5000 -j ACCEPT
 sudo iptables -A OUTPUT -p tcp -s <ip-of-server-you-are-running-the-validator-on> --dport 2375 -j ACCEPT
+sudo iptables -A OUTPUT -p tcp -s <ip-of-server-you-are-running-the-validator-on> --dport 5000 -j ACCEPT
 sudo iptables -A INPUT -p tcp --dport 2375 -j DROP
 sudo iptables -I OUTPUT 1 -p tcp --dport 25000 -j ACCEPT
 sudo iptables -A INPUT -p tcp --sport 25000 -j ACCEPT
@@ -173,4 +177,3 @@ While that command is running you should be able to go onto the docker server an
 ```bash
 docker ps
 ```
-

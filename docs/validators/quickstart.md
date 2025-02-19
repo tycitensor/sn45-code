@@ -102,6 +102,13 @@ GOOGLE_API_KEY=<your gemini api key>
 
 See instructions [here](https://docs.docker.com/engine/install/)
 
+Update the `/etc/docker/daemon.json` file with the following content:
+```bash
+{
+  "insecure-registries": ["<ip-of-docker-server>:5000"]
+}
+```
+
 #### Setup Docker Server
 
 Setup the docker server to host the miner submissions.
@@ -144,7 +151,7 @@ Setup the IP addresses in the .env file like this:
 ```
 DOCKER_HOST_IP=<docker-server-ip>
 HOST_IP=<validator-server-ip>
-DOCKER_HOST=tcp://<docker-server-ip>:2375
+REMOTE_DOCKER_HOST=tcp://<docker-server-ip>:2375
 ```
 
 #### Setup LLM Auth Key

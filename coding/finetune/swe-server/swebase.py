@@ -18,21 +18,21 @@ class LLMClient:
         """Initialize LLM client with API server URL"""
         self.base_url = base_url.rstrip("/")
 
-    def __call__(self, query: str, llm_name: str) -> tuple[str, int]:
+    def __call__(self, query: str, llm_name: str, temperature: float = 0.7) -> tuple[str, int]:
         """
         Call LLM API endpoint
 
         Args:
             query (str): The prompt/query to send to the LLM
             llm_name (str): Name of LLM model to use (e.g. "gpt-4", "claude-3-sonnet")
-
+            temperature (float): Temperature for the LLM
         Returns:
             tuple[str, int]: (Generated response text, Total tokens used for this key)
 
         Raises:
             requests.exceptions.RequestException: If API call fails
         """
-        payload = {"query": query, "llm_name": llm_name}
+        payload = {"query": query, "llm_name": llm_name, "temperature": temperature}
 
         response = requests.post(f"{self.base_url}/call", json=payload)
         response.raise_for_status()
@@ -61,6 +61,27 @@ class LLMClient:
         result = response.json()
         return result["vector"]
 
+    def embed_documents(self, queries: list[str]) -> list[list[float]]:
+        """
+        Get embeddings for text using the embedding API endpoint
+
+        Args:
+            queries (list[str]): The list of texts to get embeddings for
+
+        Returns:
+            list[list[float]]: Vector embedding of the input text
+
+        Raises:
+            requests.exceptions.RequestException: If API call fails
+        """
+        payload = {"queries": queries}
+
+        response = requests.post(f"{self.base_url}/embed/batch", json=payload)
+        response.raise_for_status()
+
+        result = response.json()
+        return result["vectors"]
+        
 class SWEBase(ABC):
     def __init__(self):
         self.llm = LLMClient()
