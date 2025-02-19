@@ -231,7 +231,6 @@ class FinetunePipeline:
                 continue
             if not should_evaluate(tracker, self.metagraph.block):
                 bt.logging.info(f"Not enough blocks have passed since the last evaluation for tracker {tracker.hotkey}, skipping...")
-                tracker.score = 0
                 self.graded_trackers.append(tracker)
                 continue
             
