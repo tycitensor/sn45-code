@@ -49,17 +49,17 @@ def should_evaluate(tracker: TrackingInfo, block: int) -> bool:
     Check if the tracker should be evaluated at the given block number.
 
     Conditions:
-    - If there have been fewer than 5 evaluations in the last 7 days, return True.
+    - If there have been fewer than 3 evaluations in the last 7 days, return True.
     - Otherwise, return False.
     """
     # Calculate blocks in 5 days
     blocks_in_7_days = 7 * 24 * 60 * 60 // 12
     block_7_days_ago = block - blocks_in_7_days
-    # Get evaluations within the last 5 days
+    # Get evaluations within the last 3 days
     recent_evals = [b for b in tracker.score_timestamps if b > block_7_days_ago]
 
-    # Return True if there are fewer than 5 evaluations in the last 7 days
-    return len(recent_evals) < 5
+    # Return True if there are fewer than 3 evaluations in the last 7 days
+    return len(recent_evals) < 3
 
 def generate_swe_tasks(ds, n: int = 1000, code_scorer =  None) -> List[SWEBenchTask]:
     tasks = []
@@ -177,7 +177,7 @@ class FinetunePipeline:
                 if len(saved_tracker.score_timestamps) == 0:
                     saved_tracker.score_timestamps.append(saved_tracker.block)
                 if tracker.hotkey == saved_tracker.hotkey:
-                    if len(saved_tracker.score_timestamps) > 0 and saved_tracker.score_timestamps[-1] < self.subtensor.block - 14400:
+                    if len(saved_tracker.score_timestamps) > 0 and saved_tracker.score_timestamps[-1] < self.subtensor.block - 50400:
                         break
                     saved_tracker.uid = tracker.uid
                     tracker.score = saved_tracker.score
@@ -231,6 +231,8 @@ class FinetunePipeline:
                 continue
             if not should_evaluate(tracker, self.metagraph.block):
                 bt.logging.info(f"Not enough blocks have passed since the last evaluation for tracker {tracker.hotkey}, skipping...")
+                tracker.score = 0
+                self.graded_trackers.append(tracker)
                 continue
             
             previous_tracker = next(
