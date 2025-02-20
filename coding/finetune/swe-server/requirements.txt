@@ -12,3 +12,4 @@ fastapi
 uvicorn
 langchain_openai
 libcst
+langchain-text-splitters
