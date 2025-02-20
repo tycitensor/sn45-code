@@ -318,7 +318,7 @@ RUN chmod +x /install_repo.sh && /bin/bash /install_repo.sh
                 f.write(dockerfile_content)
             start_time = time.time()
             if self.use_remote:
-                self.docker_server.remote.build(path=temp_dir, tag=self.image_name, push=True)
+                self.docker_server.remote.build(path=temp_dir, tag=self.image_name, push=False)
             else:
                 self.docker_server.local.build(path=temp_dir, tag=self.image_name)
             end_time = time.time()
