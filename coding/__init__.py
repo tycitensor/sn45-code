@@ -1,4 +1,4 @@
-__version__ = "0.1.4"
+__version__ = "0.1.5"
 version_split = __version__.split(".")
 __spec_version__ = (
     (1000 * int(version_split[0]))
@@ -9,5 +9,4 @@ __spec_version__ = (
 # Import all submodules.
 from . import protocol
 from . import base
-# from . import validator
 from . import api
