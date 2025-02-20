@@ -1,5 +1,3 @@
-from .pipeline import FinetunePipeline
-
 ALLOWED_MODULES = [
     "ast",
     "sentencetransformers",

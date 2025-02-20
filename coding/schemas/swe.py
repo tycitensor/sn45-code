@@ -18,7 +18,7 @@ class ChangedFile(BaseModel):
 class ChangedFiles(BaseModel):
     files: list[ChangedFile]
     
-def apply_edits(old_content: str, edits: list[Edit]) -> list[str]:
+def apply_edits(old_content: str, edits: list[Edit]):
     """
     Apply the patch to old_content. For each Edit in the patch, the line at the given
     index is replaced with the new_line_content. If the edit refers to a line that does
@@ -33,4 +33,4 @@ def apply_edits(old_content: str, edits: list[Edit]) -> list[str]:
             # Extend the list with empty strings until we can add the new line.
             new_content.extend([""] * (edit.line_number - len(new_content)))
             new_content.append(edit.new_line_content)
-    return new_content
+    return "\n".join(new_content)

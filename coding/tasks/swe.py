@@ -1,145 +1,265 @@
-import re
+import os
+import time
+import docker
+import shutil
+import difflib
+import tempfile
+import logging
+import threading
+import traceback
 import bittensor as bt
-from pydantic import BaseModel
+from docker import DockerClient
+from pathlib import Path, PurePosixPath
 from typing import Callable, List, Dict
-from code_bert_score import BERTScorer
+
+from swebench.harness.test_spec.test_spec import make_test_spec
+from swebench.harness.constants import (
+    APPLY_PATCH_FAIL,
+    APPLY_PATCH_PASS,
+    DOCKER_PATCH,
+    DOCKER_USER,
+    DOCKER_WORKDIR,
+    KEY_PREDICTION,
+    LOG_TEST_OUTPUT,
+    UTF8,
+)
+from swebench.harness.docker_utils import (
+    cleanup_container,
+    copy_to_container,
+)
+from swebench.harness.docker_build import (
+    BuildImageError,
+)
+from swebench.harness.grading import get_eval_report
+from swebench.harness.utils import (
+    EvaluationError,
+)
 
 from .task import Task
 from coding.helpers.git import GitRepo
-from coding.rewards.codesim import CodeSimModel
-from coding.schemas import Context, Patch, Edit
+from coding.helpers.containers import DockerServer
+from coding.finetune.dockerutil import exec_run_with_timeout
+from coding.schemas import Context, Patch, ChangedFile, ChangedFiles, apply_edits
 
-class PatchChunk(BaseModel):
-    file_name: str
-    start_index: int
-    end_index: int
-    content: str
-    new_content: str
 
-def parse_diff(diff_text: str, no_title=False) -> Patch:
-    diff_pattern = r"^diff --git a\/(.+?) b\/(.+?)$"
-    line_change_pattern = r"^@@ -(\d+),\d+ \+(\d+),\d+ @@"
-    edits = []
+GIT_APPLY_CMDS = [
+    "git apply --verbose",
+    "git apply --verbose --reject",
+    "patch --batch --fuzz=8 -p1 -l",
+]
+def run_instance(
+        instance: dict,
+        pred: dict,
+        rm_image: bool,
+        force_rebuild: bool,
+        client: docker.DockerClient,
+        run_id: str,
+        timeout: int | None = None,
+        image_name: str = None,
+    ):
+    """
+    Run a single instance with the given prediction.
 
-    current_file = None
-    old_file_line_num = 0
-    new_file_line_num = 0
-
-    for line in diff_text.splitlines():
-        diff_match = re.match(diff_pattern, line)
-        if diff_match:
-            current_file = diff_match.group(2)
-            old_file_line_num = 0
-            new_file_line_num = 0
-            continue
-        elif no_title and not current_file:
-            current_file = ""
-            old_file_line_num = 0
-            new_file_line_num = 0
-            continue
-
-        line_change_match = re.match(line_change_pattern, line)
-
-        if line_change_match:
-            old_file_line_num = int(line_change_match.group(1))
-            new_file_line_num = int(line_change_match.group(2))
-            continue
-
-        if line.startswith("+") and not line.startswith("+++"):
-            # Line added in new file
-            edits.append(
-                Edit(
-                    file_name=current_file,
-                    line_number=new_file_line_num,
-                    line_content="",
-                    new_line_content=line[1:].strip(),
+    Args:
+        test_spec (TestSpec): TestSpec instance
+        pred (dict): Prediction w/ model_name_or_path, model_patch, instance_id
+        rm_image (bool): Whether to remove the image after running
+        force_rebuild (bool): Whether to force rebuild the image
+        client (docker.DockerClient): Docker client
+        run_id (str): Run ID
+        timeout (int): Timeout for running tests
+    """
+    test_spec = make_test_spec(instance, namespace="swebench", instance_image_tag='latest') 
+    # Set up logging directory
+    instance_id = test_spec.instance_id
+    logger = logging.getLogger()
+    with tempfile.NamedTemporaryFile(delete=False) as temp_log_file:
+        setattr(logger, 'log_file', temp_log_file.name)
+    # Run the instance
+    container = None
+    try:
+        print(f"Creating container for {instance_id} from image {image_name}...")
+        # Create and start instance container from the existing image
+        container = client.containers.create(image=image_name, name=instance_id, command="tail -f /dev/null")
+        container.start()
+        print(f"Container for {instance_id} created and started: {container.id}")
+        container.exec_run("git config --global --add safe.directory /testbed", workdir="/testbed")
+        # Create a temporary directory
+        with tempfile.TemporaryDirectory() as log_dir:
+            log_dir = Path(log_dir)
+            # Copy model prediction as patch file to container
+            patch_file = log_dir / "patch.diff"
+            # pred[KEY_PREDICTION] = pred[KEY_PREDICTION]
+            patch_file.write_text(pred[KEY_PREDICTION] or "")
+            # print(
+                # f"Intermediate patch for {instance_id} written to {patch_file}, now applying to container..."
+            # )
+            copy_to_container(container, patch_file, PurePosixPath(DOCKER_PATCH))
+            # print("THE PATCH is: ", pred[KEY_PREDICTION].split("\n"))
+            # print(container.exec_run("ls", workdir="/testbed", user="root").output.decode(UTF8))
+            # Attempt to apply patch to container (TODO: FIX THIS)
+            applied_patch = False
+            for git_apply_cmd in GIT_APPLY_CMDS:
+                val = container.exec_run(f"{git_apply_cmd} {DOCKER_PATCH}", workdir=DOCKER_WORKDIR, user=DOCKER_USER)
+                if val.exit_code == 0:
+                    # print(f"{APPLY_PATCH_PASS}:\n{val.output.decode(UTF8)}")
+                    applied_patch = True
+                    break
+                # else:
+                    # print(f"Failed to apply patch to container: {git_apply_cmd}")
+                    # print("The error is: ", val.output.decode(UTF8))
+                    # print("The patch is: ", pred[KEY_PREDICTION])
+                    
+            if not applied_patch:
+                # print(f"{APPLY_PATCH_FAIL}:\n{val.output.decode(UTF8)}")
+                raise EvaluationError(
+                    instance_id,
+                    f"{APPLY_PATCH_FAIL}:\n{val.output.decode(UTF8)}",
+                    logger,
                 )
+            # Get git diff before running eval script
+            git_diff_output_before = (
+                container.exec_run("git -c core.fileMode=false diff", workdir=DOCKER_WORKDIR).output.decode(UTF8).strip()
             )
-            new_file_line_num += 1
-        elif line.startswith("-") and not line.startswith("---"):
-            # Line removed from old file
-            edits.append(
-                Edit(
-                    file_name=current_file,
-                    line_number=old_file_line_num,
-                    line_content=line[1:].strip(),
-                    new_line_content="",
-                )
+
+            eval_file = Path(log_dir / "eval.sh")
+            eval_file.write_text(test_spec.eval_script)
+            # print(
+            #     f"Eval script for {instance_id} written to {eval_file}; copying to container..."
+            # )
+            copy_to_container(container, eval_file, PurePosixPath("/eval.sh"))
+            # Run eval script, write output to logs
+            test_output, timed_out, total_runtime = exec_run_with_timeout(container, "/bin/bash /eval.sh", timeout)
+            test_output_path = log_dir / LOG_TEST_OUTPUT
+            print(f'Test runtime: {total_runtime:_.2f} seconds')
+            with open(test_output_path, "w") as f:
+                f.write(test_output)
+                # print(f"Test output for {instance_id} written to {test_output_path}")
+                if timed_out:
+                    f.write(f"\n\nTimeout error: {timeout} seconds exceeded.")
+                    raise EvaluationError(
+                        instance_id,
+                        f"Test timed out after {timeout} seconds.",
+                        logger,
+                    )
+
+            # Get git diff after running eval script (ignore permission changes)
+            git_diff_output_after = (
+                container.exec_run("git -c core.fileMode=false diff", workdir=DOCKER_WORKDIR).output.decode(UTF8).strip()
             )
-            old_file_line_num += 1
-        elif line.startswith(" "):
-            # Context lines (lines present in both old and new files)
-            old_file_line_num += 1
-            new_file_line_num += 1
 
-    return Patch(edits=edits)
+            # Get report from test output
+            print(f"Grading answer for {instance_id}...")
+            report = get_eval_report(
+                test_spec=test_spec,
+                prediction=pred,
+                test_log_path=test_output_path,
+                include_tests_status=True,
+            )
 
+        return instance_id, report
+    except EvaluationError as e:
+        error_msg = traceback.format_exc()
+        print(error_msg)
+        print(e)
+    except BuildImageError as e:
+        error_msg = traceback.format_exc()
+        print(error_msg)
+        print(e)
+    except Exception as e:
+        error_msg = (f"Error in evaluating model for {instance_id}: {e}\n"
+                     f"{traceback.format_exc()}\n")
+        print(error_msg)
+    finally:
+        # Remove instance container + image, close logger
+        cleanup_container(client, container, logger)
+        
+    return
 
-# TODO ensure chunks within 2 lines of each other are grouped together
-def chunk_patch(patch: Patch) -> List[PatchChunk]:
-    chunks = []
-    current_chunk = []
-    current_file = None
+def score_patch(patch: str, instance: dict, client: docker.DockerClient, image_name: str):
+    if patch.strip() == "":
+        return 0
     
-    # Group edits by file and line number
+    prediction = {
+        "instance_id": instance['instance_id'],
+        "model_patch": patch,
+        "raw_model_patch": patch,
+        "model_name_or_path": "gpt-4o",
+        "original_file_content": "",
+    }
+    try:
+        result = run_instance(instance, prediction, False, False, client, "nil", 300, image_name)
+        if result[1][instance['instance_id']]['resolved']:
+            return 1
+        else:
+            return 0
+    except Exception as e:
+        print("There was an error scoring the patch: ", e)
+        print(traceback.format_exc())
+        return 0
+    
+def add_newlines(lines: list[str]) -> list[str]:
+    """
+    Adds a \n character to each line except the last
+    """
+    with_newlines = [line + "\n" for line in lines[:-1]]
+    if len(lines) > 0 and len(lines[-1]) > 0:
+        with_newlines.append(lines[-1])  # Append the last line without a newline
+    return with_newlines
+
+def create_diff(changes: list[ChangedFile]) -> str:
+    all_hunks = []
+
+    for change in changes:
+        before_lines = add_newlines([line for line in change.old_content.split("\n")])
+        after_lines = add_newlines([line for line in change.new_content.split("\n")])
+        # fix bug where the last line is the same but theres a whitespace difference
+        if len(before_lines) > 0 and len(after_lines) > 0 and before_lines[-1].strip() == after_lines[-1].strip():
+            after_lines[-1] = before_lines[-1]
+        from_file = f"a/{change.file_name}"
+        to_file = f"b/{change.file_name}"
+
+        diff = difflib.unified_diff(
+                before_lines,
+                after_lines,
+                fromfile=from_file,
+                tofile=to_file,
+                lineterm='\n',
+                n=3,  # Number of context lines
+            )
+
+        hunk = "".join(diff)
+
+        if hunk:  # Only add non-empty hunks
+            all_hunks.append(f"diff --git {from_file} {to_file}")
+            all_hunks.append(hunk)
+
+    return "\n".join(all_hunks)
+
+def grab_file_from_repo(repo_path: str, file_path: str) -> str:
+    with open(os.path.join(repo_path, file_path), "r") as f:
+        return f.read()
+
+def patch_to_changed_files(patch: Patch, repo_path: str) -> ChangedFiles:
+    changed_files = []
     file_edits = {}
     for edit in patch.edits:
-        if edit.file_name not in file_edits:
-            file_edits[edit.file_name] = {}
-        if edit.line_number not in file_edits[edit.file_name]:
-            file_edits[edit.file_name][edit.line_number] = []
-        file_edits[edit.file_name][edit.line_number].append(edit)
-
-    # Process each file's edits
-    for file_name, line_edits in file_edits.items():
-        current_chunk = []
-        prev_line = None
-        
-        # Sort line numbers
-        for line_num in sorted(line_edits.keys()):
-            if prev_line is None or line_num <= prev_line + 1:
-                current_chunk.extend(line_edits[line_num])
-            else:
-                # Create chunk for previous group
-                if current_chunk:
-                    start_idx = current_chunk[0].line_number
-                    end_idx = current_chunk[-1].line_number
-                    content = "\n".join(e.line_content for e in current_chunk if e.line_content)
-                    new_content = "\n".join(e.new_line_content for e in current_chunk if e.new_line_content)
-                    chunks.append(PatchChunk(
-                        file_name=file_name,
-                        start_index=start_idx,
-                        end_index=end_idx,
-                        content=content,
-                        new_content=new_content
-                    ))
-                current_chunk = line_edits[line_num]
-            prev_line = line_num
-            
-        # Add final chunk for this file
-        if current_chunk:
-            start_idx = current_chunk[0].line_number
-            end_idx = current_chunk[-1].line_number
-            content = "\n".join(e.line_content for e in current_chunk if e.line_content)
-            new_content = "\n".join(e.new_line_content for e in current_chunk if e.new_line_content)
-            chunks.append(PatchChunk(
-                file_name=file_name,
-                start_index=start_idx,
-                end_index=end_idx,
-                content=content,
-                new_content=new_content
-            ))
-
-    return chunks
+        file_path = edit.file_name
+        old_content = grab_file_from_repo(repo_path, file_path)
+        if file_path not in file_edits:
+            file_edits[file_path] = []
+        file_edits[file_path].append(edit)
+    for file_path, edits in file_edits.items():
+        old_content = grab_file_from_repo(repo_path, file_path)
+        new_content = apply_edits(old_content, edits)
+        changed_files.append(ChangedFile(file_name=file_path, old_content=old_content, new_content=new_content))
+    return ChangedFiles(files=[file.model_dump() for file in changed_files]) 
 
 class SWEBenchTask(Task):
     name: str = "swebench"
     desc: str = "given a github issue corrrectly solve it"
     goal: str = "return the valid patch"
-    reward_definition: str = [
-        dict(name="speed", weight=0.1, ideal_time=25),
-        dict(name="self", weight=0.9),
-    ]
+    reward_definition: str = []
     penalty_definition: List = []
     cleaning_pipeline: List = []  # TODO remove markdown wrappings
     dataset_options: Dict = {}
@@ -148,99 +268,106 @@ class SWEBenchTask(Task):
     files = []
 
     def __init__(
-        self, llm: Callable, context: Context, code_scorer: Callable = None, **kwargs
+        self, llm: Callable, context: Context, docker_server, use_remote: bool = False
     ):
         self.repo = GitRepo(context.title, context.extras["base_commit"])
-        if code_scorer is None:
-            self.code_scorer = CodeSimModel()
-        else:
-            self.code_scorer = code_scorer
+        self.row = context.extras["row"]
+        self.use_remote = use_remote
+        self.docker_server = docker_server
+        self.image_name = f"swe-eval-{self.row['repo']}-{self.row['version']}:latest"
+        self._build_image()
+
         self.context = context
-        self.patch: Patch = parse_diff(context.content)
         self.query = context.topic
-        # self.repo = context.title
         self.base_commit = context.extras["base_commit"]
         self.pull_number = context.extras["pull_number"]
         self.topic = context.title
         self.subtopic = context.topic
         self.tags = context.tags
 
-    def score(self, patch: Patch, token_count: int):
-        bt.logging.info(f"Scoring patch")
-        num_valid_lines = len(self.patch.edits)
-        num_miner_lines = len(patch.edits)
-        
-        # Checking to see if the miner changed more than what was needed
-        lines_over_percent = 1
-        
-        if num_valid_lines > 20:
-            if num_miner_lines / num_valid_lines > 3:
-                lines_over_percent -= ((num_miner_lines - (num_valid_lines * 2)) / num_valid_lines) * 0.1
-        else:
-            if num_miner_lines / num_valid_lines > 7:
-                lines_over_percent -= ((num_miner_lines - (num_valid_lines * 2)) / num_valid_lines) * 0.1
-        
-        if lines_over_percent <= 0:
+    def _build_image(self):
+        test_spec = make_test_spec(self.row, namespace="swebench", instance_image_tag='latest')
+        with tempfile.TemporaryDirectory() as temp_dir:
+            testbed_dir = os.path.join(temp_dir, "testbed")
+            os.makedirs(testbed_dir, exist_ok=True)
+            for item in os.listdir(self.repo.path):
+                s = os.path.join(self.repo.path, item)
+                d = os.path.join(testbed_dir, item)
+                if os.path.isdir(s):
+                    shutil.copytree(s, d, dirs_exist_ok=True)
+                else:
+                    shutil.copy2(s, d)
+
+            repo_script_list = test_spec.repo_script_list
+            index = repo_script_list.index('git remote remove origin')
+            remaining_scripts = repo_script_list[index:]
+            remaining_scripts = ["#!/bin/bash", "set -euxo pipefail"] + ["cd /testbed"] + remaining_scripts
+            repo_script = "\n".join(remaining_scripts) + "\n"
+            with open(os.path.join(temp_dir, "install_repo.sh"), "w") as f:
+                f.write(repo_script)
+            dockerfile_content = f"""
+FROM "brokespace/swe-env-{test_spec.repo.replace("/", "-")}-{test_spec.version}:latest"
+COPY testbed /testbed
+WORKDIR /testbed
+USER root
+RUN chmod -R 777 /testbed
+COPY install_repo.sh /install_repo.sh
+RUN chmod +x /install_repo.sh && /bin/bash /install_repo.sh
+""".replace("source /opt/miniconda3/bin/activate &&", ". /opt/miniconda3/bin/activate &&")
+            with open(os.path.join(temp_dir, "Dockerfile"), "w") as f:
+                f.write(dockerfile_content)
+            start_time = time.time()
+            if self.use_remote:
+                self.docker_server.remote.build(path=temp_dir, tag=self.image_name, push=True)
+            else:
+                self.docker_server.local.build(path=temp_dir, tag=self.image_name)
+            end_time = time.time()
+            build_duration = end_time - start_time
+            print(f"Building the Docker image took {build_duration:.2f} seconds.")
+    
+    def __getstate__(self):
+        # Remove the Docker image before pickling
+        # self.client.images.remove(image=self.image_name, force=True)
+        state = self.__dict__.copy()
+        state['docker_server'] = None
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        # Rebuild the Docker image after unpickling
+        self.docker_server = DockerServer(
+            remote_host_url=os.getenv("REMOTE_DOCKER_HOST", None),
+        )
+        self._build_image()
+
+    # def __del__(self):
+    #     # Ensure the Docker image is removed when the object is deleted
+    #     try:
+    #         self.client.images.remove(image=self.image_name, force=True)
+    #     except Exception as e:
+    #         bt.logging.warning(f"Failed to remove Docker image: {e}")
+
+    def score(self, patch: Patch):
+        try:
+            changed_files = patch_to_changed_files(patch, self.repo.path)
+            changed_files.files = [file for file in changed_files.files if "test" not in file.file_name]
+            diff = create_diff(changed_files.files)
+            client = self.docker_server._local_client if not self.use_remote else self.docker_server._remote_client
+            return score_patch(diff, self.row, client, self.image_name)
+        except Exception as e:
+            print("There was an error scoring the patch: ", e)
+            print(traceback.format_exc())
             return 0
-        
-        valid_num_lines = {}  # file name -> num lines
-        miner_num_lines = {}
 
-        for edit in self.patch.edits:
-            if edit.file_name not in valid_num_lines:
-                valid_num_lines[edit.file_name] = 0
-            valid_num_lines[edit.file_name] += 1
-
-            if edit.file_name not in miner_num_lines:
-                miner_num_lines[edit.file_name] = 0
-            miner_num_lines[edit.file_name] += 1
-
-        # see which lines in valid patch are in miner patch and find percent
-        # miner can edit extra lines but not less
-        total_valid_lines = 0
-        lines_in_miner = 0
-        for file_name in valid_num_lines:
-            if file_name in miner_num_lines:
-                valid_lines = [
-                    edit.line_number
-                    for edit in self.patch.edits
-                    if edit.file_name == file_name
-                ]
-                miner_lines = [
-                    edit.line_number
-                    for edit in patch.edits
-                    if edit.file_name == file_name
-                ]
-                lines_in_miner += len(set(valid_lines) & set(miner_lines))
-                total_valid_lines += len(set(valid_lines))
-        percent_lines_in_miner = lines_in_miner / total_valid_lines if total_valid_lines > 0 else 0
-        
-        
-        
-        # Group edits into chunks by consecutive line numbers
-        valid_chunks = chunk_patch(self.patch)
-        miner_chunks = chunk_patch(patch)
-
-        chunk_score = 0
-        total_chunk_score = 0
-        # find chunks that share an index in the same file
-        for valid_chunk in valid_chunks:
-            exists = False
-            for miner_chunk in miner_chunks:
-                if (
-                    miner_chunk.file_name == valid_chunk.file_name
-                    and abs(miner_chunk.start_index - valid_chunk.start_index) <= 10
-                ):
-                    chunk_score += self.code_scorer.similarity(
-                        miner_chunk.new_content, valid_chunk.new_content
-                    )
-                    total_chunk_score += 1
-                    exists = True
-                    break
-            if not exists:
-                total_chunk_score += 1
-
-        chunk_percent = chunk_score / total_chunk_score
-        score = ((5 * percent_lines_in_miner + 5 * chunk_percent) / 10) * lines_over_percent
-
-        return score
+def score_task(patch: Patch, repo_path: str, instance: dict, client: docker.DockerClient, image_name: str):
+    try:
+        changed_files = patch_to_changed_files(patch, repo_path)
+        changed_files.files = [file for file in changed_files.files if "test" not in file.file_name]
+        print("changed_files: ", changed_files.files)
+        diff = create_diff(changed_files.files)
+        return score_patch(diff, instance, client, image_name)
+    except Exception as e:
+        print("There was an error scoring the patch-: ", e)
+        print(traceback.format_exc())
+        return 0
+    

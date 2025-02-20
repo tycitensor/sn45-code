@@ -14,7 +14,7 @@ You must have the following things:
 - Wandb account
 - Docker on validator machine
 - Docker on a docker server (see below, digital ocean droplet is recommended)
-
+- Optional: Corcel API Key
 ## Getting started
 
 
@@ -79,6 +79,18 @@ Once you have your OpenAI API key, add it to your `.env` file like this:
 
 ```
 OPENAI_API_KEY=<your openai api key>
+```
+
+#### Get a Corcel API Key
+
+This step is optional but recommended to reduce validating costs.
+
+Head to [Corcel](https://app.corcel.io) and sign up for an account.
+
+Once you have an account, create an API key and place it in the .env file like this:
+
+```
+CORCEL_API_KEY=<your corcel api key>
 ```
 
 #### Get a Claude API Key

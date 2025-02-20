@@ -6,7 +6,7 @@ import traceback
 import bittensor as bt
 from typing import List
 from pydantic import BaseModel
-from .tracker import gather_all_logics, regrab_tracker
+from .tracker import gather_all_logics
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .dockerutil import run_docker_container_from_base
@@ -24,7 +24,6 @@ from coding.constants import (
 )
 
 from coding.tasks.swe import SWEBenchTask
-from coding.datasets.swe import SWEBenchDataset
 from coding.datasets.swefull import SWEFullDataset
 from coding.finetune.llm.manager import LLMManager
 from coding.helpers.containers import DockerServer
@@ -157,6 +156,7 @@ class FinetunePipeline:
         use_remote: bool = False,
     ):
         self.config = config
+        self.use_remote = use_remote
         try:
             bittensor_injector(self)
         except Exception as e:
@@ -195,6 +195,7 @@ class FinetunePipeline:
                 self.dataset,
                 self.config.neuron.finetune_test_size,
                 docker_server=self.docker_server,
+                use_remote=self.use_remote,
             )
             self.store_tasks()
         print(f"Loaded {len(self.tasks)} tasks")
@@ -252,7 +253,7 @@ class FinetunePipeline:
     def results(self) -> FinetuneEventResults:
         return FinetuneEventResults(trackers=self.graded_trackers)
 
-    def evaluate(self) -> FinetuneEventResults:
+    def evaluate(self, n_tasks: int = None) -> FinetuneEventResults:
         # gather all logics
         bt.logging.info("Verifying and building docker containers for each logic...")
         for tracker in self.ungraded_trackers:
@@ -275,13 +276,13 @@ class FinetunePipeline:
                 bt.logging.info(
                     f"No logic provided for tracker {tracker.hotkey}, skipping..."
                 )
-                tracker.score = 0
                 self.graded_trackers.append(tracker)
                 continue
             if not should_evaluate(tracker, self.metagraph.block):
                 bt.logging.info(
                     f"Not enough blocks have passed since the last evaluation for tracker {tracker.hotkey}, skipping..."
                 )
+                self.graded_trackers.append(tracker)
                 continue
 
             previous_tracker = next(
@@ -339,6 +340,7 @@ class FinetunePipeline:
                             hotkey=tracker.hotkey,
                             issue_description=task.query,
                             logic_files=tracker.logic,
+                            client=self.docker_server._remote_client if self.config.use_remote else self.docker_server._local_client,
                         )
                         patch = Patch(**result)
                         bt.logging.info(
@@ -362,6 +364,8 @@ class FinetunePipeline:
                 # Keep track of active futures and tasks
                 active_futures = {}
                 task_queue = list(enumerate(self.tasks))
+                if n_tasks is not None:
+                    task_queue = task_queue[:n_tasks]
                 task_idx = 0
 
                 # Start initial batch of 8 tasks
@@ -462,7 +466,7 @@ class FinetunePipeline:
         dataset = SWEFullDataset()
         code_scorer = CodeSimModel()
         tasks = generate_swe_tasks(
-            dataset, config.neuron.finetune_test_size, code_scorer=code_scorer
+            dataset, config.neuron.finetune_test_size, code_scorer=code_scorer, use_remote=True
         )
         with open(f"{config.neuron.full_path}/tasks_{COMPETITION_ID}.pkl", "wb") as f:
             for task in tasks:

@@ -1,6 +1,7 @@
 import os
 import ast
 import json
+import time
 import docker
 import tempfile
 import threading
@@ -8,6 +9,7 @@ from pathlib import Path
 
 from coding.constants import COMPETITION_ID
 from ..helpers.git import GitRepo
+
 
 def exec_container_with_timeout(container, command, timeout):
     """
@@ -56,6 +58,7 @@ def exec_container_with_timeout(container, command, timeout):
         raise exception
 
     return exec_result, logs
+
 
 def build_docker_container(logic_files: dict, hotkey: str, repo_files: dict) -> str:
     """
@@ -107,7 +110,9 @@ def build_docker_container(logic_files: dict, hotkey: str, repo_files: dict) -> 
         # Build the container
         try:
             image, logs = client.images.build(
-                path=temp_dir, tag=f"swe-logic-{str(hotkey)}-{COMPETITION_ID}".lower(), rm=True
+                path=temp_dir,
+                tag=f"swe-logic-{str(hotkey)}-{COMPETITION_ID}".lower(),
+                rm=True,
             )
             return image.id
 
@@ -117,6 +122,7 @@ def build_docker_container(logic_files: dict, hotkey: str, repo_files: dict) -> 
         except docker.errors.APIError as e:
             print(f"Docker API error: {str(e)}")
             raise
+
 
 def run_docker_container(
     image_id: str, repo: GitRepo, hotkey: str, issue_description: str
@@ -137,7 +143,7 @@ def run_docker_container(
     client = docker.from_env()
 
     container_name = f"swe-logic-{str(hotkey)}-{COMPETITION_ID}".lower()
-    
+
     try:
         # Remove any existing container with the same name
         try:
@@ -152,29 +158,34 @@ def run_docker_container(
             detach=True,
             ports={"3000/tcp": 3000},
             extra_hosts={"host.docker.internal": "host-gateway"},
-            environment={"HOST_IP": os.getenv("HOST_IP", "localhost"), "ISSUE_DESCRIPTION": issue_description},
+            environment={
+                "HOST_IP": os.getenv("HOST_IP", "localhost"),
+                "ISSUE_DESCRIPTION": issue_description,
+            },
             # environment={"HOST_IP": "host.docker.internal"},
             # auto_remove=True  # Container will be automatically removed when stopped
         )
 
         # Start the container
         container.start()
-        logs = container.logs().decode('utf-8')
+        logs = container.logs().decode("utf-8")
 
         # Wait for container to finish and get logs
         result = container.wait()
-        logs = container.logs().decode('utf-8')
+        logs = container.logs().decode("utf-8")
         print("===== CONTAINER LOGS =====")
         print(logs)
         print("===== CONTAINER LOGS =====")
         # Parse the patch from the logs
-        patch_line = next(line for line in reversed(logs.split('\n')) if line.startswith('Patch:'))
+        patch_line = next(
+            line for line in reversed(logs.split("\n")) if line.startswith("Patch:")
+        )
         try:
             # First try parsing as JSON
-            patch_dict = json.loads(patch_line.replace('Patch:', '').strip())
+            patch_dict = json.loads(patch_line.replace("Patch:", "").strip())
         except json.JSONDecodeError:
             # Fall back to safely evaluating as literal Python dict
-            patch_dict = ast.literal_eval(patch_line.replace('Patch:', '').strip())
+            patch_dict = ast.literal_eval(patch_line.replace("Patch:", "").strip())
 
         # Cleanup container
         try:
@@ -188,11 +199,16 @@ def run_docker_container(
     except docker.errors.APIError as e:
         print(f"Docker API error: {str(e)}")
         raise
-    
+
 
 def run_docker_container_from_base(
     image_name: str,
-    container_name: str, repo: GitRepo, hotkey: str, issue_description: str, logic_files: dict
+    container_name: str,
+    repo: GitRepo,
+    hotkey: str,
+    issue_description: str,
+    logic_files: dict,
+    client,
 ) -> dict:
     """
     Runs a Docker container for evaluating model logic.
@@ -207,7 +223,6 @@ def run_docker_container_from_base(
         dict: The patch output from the container
     """
     # Initialize Docker client
-    client = docker.from_env()
     # container_name = f"swe-logic-{str(hotkey)}-{COMPETITION_ID}".lower()
     with tempfile.TemporaryDirectory() as temp_dir:
         code_dir = os.path.join(temp_dir, "code")
@@ -256,8 +271,11 @@ def run_docker_container_from_base(
                 detach=True,
                 # ports={"3000/tcp": 3000},
                 extra_hosts={"host.docker.internal": "host-gateway"},
-                environment={"HOST_IP": os.getenv("HOST_IP", "localhost"), "ISSUE_DESCRIPTION": issue_description},
-                command="sleep infinity"
+                environment={
+                    "HOST_IP": os.getenv("HOST_IP", "localhost"),
+                    "ISSUE_DESCRIPTION": issue_description,
+                },
+                command="sleep infinity",
             )
 
             # Start the container
@@ -265,31 +283,35 @@ def run_docker_container_from_base(
 
             # Copy files from temp_dir into container
             os.system(f"docker cp {temp_dir}/. {container_name}:/app/")
-            
+
             # Execute runner.py in container
-            exec_result, logs = exec_container_with_timeout(container, "python3 -u /app/code/runner.py", 600)
-            logs = logs.decode('utf-8')
-            patch_line = next(line for line in reversed(logs.split('\n')) if line.startswith('Patch:'))
+            exec_result, logs = exec_container_with_timeout(
+                container, "python3 -u /app/code/runner.py", 600
+            )
+            logs = logs.decode("utf-8")
+            patch_line = next(
+                line for line in reversed(logs.split("\n")) if line.startswith("Patch:")
+            )
             try:
                 # First try parsing as JSON
-                patch_dict = json.loads(patch_line.replace('Patch:', '').strip())
+                patch_dict = json.loads(patch_line.replace("Patch:", "").strip())
             except json.JSONDecodeError:
                 # Fall back to safely evaluating as literal Python dict
-                patch_dict = ast.literal_eval(patch_line.replace('Patch:', '').strip())
+                patch_dict = ast.literal_eval(patch_line.replace("Patch:", "").strip())
 
             return patch_dict
 
         except docker.errors.APIError as e:
             print(f"Docker API error: {str(e)}")
             raise
-        
+
         finally:
             # Cleanup container
             try:
                 container.stop(timeout=1)
             except:
                 pass
-            
+
             try:
                 container.remove(force=True)
             except:
@@ -329,7 +351,7 @@ def test_docker_container(remote_host_url: str):
                 # ports={"3000/tcp": 3000},
                 extra_hosts={"host.docker.internal": "host-gateway"},
                 environment={"HOST_IP": os.getenv("HOST_IP", "localhost")},
-                command="sleep infinity"
+                command="sleep infinity",
             )
 
             # Start the container
@@ -337,10 +359,12 @@ def test_docker_container(remote_host_url: str):
 
             # Copy files from temp_dir into container
             os.system(f"docker cp {temp_dir}/. {container_name}:/app/")
-            
+
             # Execute runner.py in container
-            exec_result, logs = exec_container_with_timeout(container, "python3 -u /app/code/test.py", 600)
-            logs = logs.decode('utf-8')
+            exec_result, logs = exec_container_with_timeout(
+                container, "python3 -u /app/code/test.py", 600
+            )
+            logs = logs.decode("utf-8")
             print("===== TEST CONTAINER LOGS =====")
             print(logs)
             print("===== TEST CONTAINER LOGS =====")
@@ -352,18 +376,19 @@ def test_docker_container(remote_host_url: str):
         except docker.errors.APIError as e:
             print(f"Docker API error: {str(e)}")
             raise
-        
+
         finally:
             # Cleanup container
             try:
                 container.stop(timeout=1)
             except:
                 pass
-            
+
             try:
                 container.remove(force=True)
             except:
                 pass
+
 
 def delete_all_containers():
     client = docker.from_env()
@@ -375,7 +400,54 @@ def delete_all_containers():
             except Exception as e:
                 print(f"Error deleting container: {container.name} - {e}")
 
+
+def exec_run_with_timeout(container, cmd, timeout: int | None = 60):
+    """
+    Run a command in a container with a timeout.
+
+    Args:
+        container (docker.Container): Container to run the command in.
+        cmd (str): Command to run.
+        timeout (int): Timeout in seconds.
+    """
+    # Local variables to store the result of executing the command
+    exec_result = b""
+    exec_id = None
+    exception = None
+    timed_out = False
+
+    # Wrapper function to run the command
+    def run_command():
+        nonlocal exec_result, exec_id, exception
+        try:
+            exec_id = container.client.api.exec_create(container.id, cmd)["Id"]
+            exec_stream = container.client.api.exec_start(exec_id, stream=True)
+            for chunk in exec_stream:
+                exec_result += chunk
+        except Exception as e:
+            exception = e
+
+    # Start the command in a separate thread
+    thread = threading.Thread(target=run_command)
+    start_time = time.time()
+    thread.start()
+    thread.join(timeout)
+
+    if exception:
+        raise exception
+
+    # If the thread is still alive, the command timed out
+    if thread.is_alive():
+        if exec_id is not None:
+            exec_pid = container.client.api.exec_inspect(exec_id)["Pid"]
+            container.exec_run(f"kill -TERM {exec_pid}", detach=True)
+        timed_out = True
+    end_time = time.time()
+    return exec_result.decode(errors="ignore"), timed_out, end_time - start_time
+
+
 if __name__ == "__main__":
     import dotenv
+
     dotenv.load_dotenv()
     print(test_docker_container())

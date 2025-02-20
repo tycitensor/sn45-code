@@ -11,7 +11,7 @@ cachetools
 strenum
 detect-secrets
 wandb
-swebench
+swebench==3.0.7
 torch
 autopep8
 boto3

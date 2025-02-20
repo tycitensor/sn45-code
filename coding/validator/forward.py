@@ -2,9 +2,9 @@ from time import sleep
 import bittensor as bt
 from datetime import datetime, timezone, timedelta
 
-from coding.finetune import FinetunePipeline
-from coding.protocol import StreamCodeSynapse
 from coding.constants import COMPETITION_ID
+from coding.protocol import StreamCodeSynapse
+from coding.finetune.pipeline import FinetunePipeline
 from coding.utils.logging import log_event, clean_wandb
 from coding.finetune.dockerutil import delete_all_containers
 
@@ -22,7 +22,7 @@ async def forward(self, synapse: StreamCodeSynapse):
     if not FinetunePipeline.tasks_exist(self.config):
         FinetunePipeline.generate_tasks(self.config)
     
-    if self.last_task_update + 3600 < self.block: # every half-day replace 50(half) the tasks
+    if self.last_task_update + 10800 < self.block: # every 1.5 days replace 50(half) the tasks
         FinetunePipeline.update_tasks(self.config, 50, 100)
         self.last_task_update = self.block
     

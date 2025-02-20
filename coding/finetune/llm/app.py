@@ -18,13 +18,11 @@ from langchain_openai import  OpenAIEmbeddings
 # ------------------------------
 load_dotenv("../../../.env")
 
-# Set API keys (fallback to LLM_AUTH_KEY if specific keys aren’t set)
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or os.getenv("LLM_AUTH_KEY")
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY") or os.getenv("LLM_AUTH_KEY")
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY") or os.getenv("LLM_AUTH_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") 
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY") 
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY") 
+CORCEL_API_KEY = os.getenv("CORCEL_API_KEY", None)
 
-if not OPENAI_API_KEY:
-    raise ValueError("OPENAI_API_KEY (or LLM_AUTH_KEY) environment variable not set")
 
 openai.api_key = OPENAI_API_KEY
 anthropic_client = anthropic.Client(api_key=ANTHROPIC_API_KEY)
@@ -119,6 +117,9 @@ async def get_count(auth_key: str = Depends(verify_auth)):
 #   LLM Call Functions per Provider
 # ------------------------------
 async def call_openai(query: str, model: str, temperature: float, max_tokens: int):
+    if CORCEL_API_KEY and model == "gpt-4o":  
+        openai.base_url = "https://api.corcel.io/v1"
+        openai.api_key = CORCEL_API_KEY
     response = await openai.ChatCompletion.acreate(
         model=model,
         messages=[{"role": "user", "content": query}],
