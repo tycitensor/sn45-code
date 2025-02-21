@@ -174,6 +174,12 @@ Setup the LLM auth key in the .env file like this:
 LLM_AUTH_KEY=<random auth key>
 ```
 
+#### Increase Ulimit
+
+```bash
+ulimit -n unlimited
+```
+
 #### Start the validator
 
 

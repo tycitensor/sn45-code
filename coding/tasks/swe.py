@@ -268,12 +268,18 @@ class SWEBenchTask(Task):
     files = []
 
     def __init__(
-        self, llm: Callable, context: Context, docker_server, use_remote: bool = False
+        self, llm: Callable, context: Context, docker_server = None, use_remote: bool = False
     ):
         self.repo = GitRepo(context.title, context.extras["base_commit"])
         self.row = context.extras["row"]
         self.use_remote = use_remote
-        self.docker_server = docker_server
+        if docker_server is None:
+            self.docker_server = DockerServer(
+                remote_host_url=os.getenv("REMOTE_DOCKER_HOST", None),
+                remote_host_registry=f"{os.getenv('DOCKER_HOST_IP', None)}:5000",
+            )
+        else:
+            self.docker_server = docker_server
         self.image_name = f"swe-eval-{self.row['repo']}-{self.row['version']}:latest"
         self._build_image()
 
@@ -287,6 +293,16 @@ class SWEBenchTask(Task):
 
     def _build_image(self):
         test_spec = make_test_spec(self.row, namespace="swebench", instance_image_tag='latest')
+        
+        # Check if image already exists
+        client = self.docker_server._local_client if not self.use_remote or not self.docker_server.remote else self.docker_server._remote_client
+        try:
+            client.images.get(self.image_name)
+            print(f"Image {self.image_name} already exists, skipping build")
+            return
+        except:
+            print(f"Building image {self.image_name}")
+            
         with tempfile.TemporaryDirectory() as temp_dir:
             testbed_dir = os.path.join(temp_dir, "testbed")
             os.makedirs(testbed_dir, exist_ok=True)
@@ -317,7 +333,7 @@ RUN chmod +x /install_repo.sh && /bin/bash /install_repo.sh
             with open(os.path.join(temp_dir, "Dockerfile"), "w") as f:
                 f.write(dockerfile_content)
             start_time = time.time()
-            if self.use_remote:
+            if self.use_remote and hasattr(self.docker_server, "remote") and self.docker_server.remote:
                 self.docker_server.remote.build(path=temp_dir, tag=self.image_name, push=False)
             else:
                 self.docker_server.local.build(path=temp_dir, tag=self.image_name)
@@ -337,8 +353,9 @@ RUN chmod +x /install_repo.sh && /bin/bash /install_repo.sh
         # Rebuild the Docker image after unpickling
         self.docker_server = DockerServer(
             remote_host_url=os.getenv("REMOTE_DOCKER_HOST", None),
+            remote_host_registry=f"{os.getenv('DOCKER_HOST_IP', None)}:5000",
         )
-        self._build_image()
+        self._build_image() 
 
     # def __del__(self):
     #     # Ensure the Docker image is removed when the object is deleted
@@ -352,7 +369,7 @@ RUN chmod +x /install_repo.sh && /bin/bash /install_repo.sh
             changed_files = patch_to_changed_files(patch, self.repo.path)
             changed_files.files = [file for file in changed_files.files if "test" not in file.file_name]
             diff = create_diff(changed_files.files)
-            client = self.docker_server._local_client if not self.use_remote else self.docker_server._remote_client
+            client = self.docker_server._local_client if not self.use_remote or not self.docker_server.remote else self.docker_server._remote_client
             return score_patch(diff, self.row, client, self.image_name)
         except Exception as e:
             print("There was an error scoring the patch: ", e)

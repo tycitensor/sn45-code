@@ -1,9 +1,11 @@
+from dotenv import load_dotenv
+load_dotenv("../../../.env", override=False)  # Don't override existing env vars
+
 import os
 import asyncio
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional, Dict, List
-from dotenv import load_dotenv
 
 # ------------------------------
 #    Import Provider Libraries
@@ -11,21 +13,20 @@ from dotenv import load_dotenv
 import openai
 import anthropic
 from google import genai
+from google.genai import types
 from langchain_openai import  OpenAIEmbeddings
 
 # ------------------------------
 #         Load Environment
 # ------------------------------
-load_dotenv("../../../.env")
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") 
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY") 
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY") 
-CORCEL_API_KEY = os.getenv("CORCEL_API_KEY", None)
-
+CORCEL_API_KEY = None
 
 openai.api_key = OPENAI_API_KEY
-anthropic_client = anthropic.Client(api_key=ANTHROPIC_API_KEY)
+anthropic_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 google_client = genai.Client(api_key=GOOGLE_API_KEY)
 
 # ------------------------------
@@ -49,9 +50,7 @@ models = {
     "gemini-2.0-flash-exp": {"provider": "google", "model": "gemini-2.0-flash", "max_tokens": 8192},
 }
 embedder = OpenAIEmbeddings(model="text-embedding-3-small")
-# ------------------------------
-#       Pydantic Models
-# ------------------------------
+
 class InitRequest(BaseModel):
     key: str
 
@@ -116,33 +115,63 @@ async def get_count(auth_key: str = Depends(verify_auth)):
 # ------------------------------
 #   LLM Call Functions per Provider
 # ------------------------------
-async def call_openai(query: str, model: str, temperature: float, max_tokens: int):
+async def call_openai(query: str, model: str, temperature: float, max_tokens: int = 16384):
     if CORCEL_API_KEY and model == "gpt-4o":  
-        openai.base_url = "https://api.corcel.io/v1"
-        openai.api_key = CORCEL_API_KEY
-    response = await openai.ChatCompletion.acreate(
-        model=model,
-        messages=[{"role": "user", "content": query}],
-        temperature=temperature,
-        max_tokens=max_tokens,
-    )
-    result = response.choices[0].message.content
-    tokens = response.usage.get("total_tokens", 0) if response.usage else 0
+        client = openai.OpenAI(base_url="https://api.corcel.io/v1", api_key=CORCEL_API_KEY)
+        response = await client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": query}],
+            temperature=temperature,
+            max_tokens=max_tokens,
+            stream=True
+        )
+        result = ""
+        tokens = 0
+        for chunk in response:
+            if chunk.choices[0].delta.content is not None:
+                result += chunk.choices[0].delta.content
+    else:
+        def sync_call():
+            response = openai.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": query}],
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+            return response
+        response = await asyncio.to_thread(sync_call)
+        result = response.choices[0].message.content
+        tokens = response.usage.completion_tokens + response.usage.prompt_tokens
     return {"content": result, "usage": {"total_tokens": tokens}}
 
 async def call_anthropic(query: str, model: str, temperature: float, max_tokens: int):
     # Anthropic requires a specially formatted prompt.
-    prompt = f"{anthropic.HUMAN_PROMPT} {query} {anthropic.AI_PROMPT}"
-    def sync_call():
-        return anthropic_client.completion(
-            model=model,
-            prompt=prompt,
-            max_tokens_to_sample=max_tokens,
+    if CORCEL_API_KEY and model == "claude-3-5-sonnet":  
+        openai.base_url = "https://api.corcel.io/v1"
+        openai.api_key = CORCEL_API_KEY
+        response = await openai.chat.completions.create(
+            model="claude-3-5-sonnet-20240620",
+            messages=[{"role": "user", "content": query}],
             temperature=temperature,
+            max_tokens=max_tokens,
+            stream=True
         )
-    response = await asyncio.to_thread(sync_call)
-    result = response.get("completion", "")
-    tokens = response.get("usage", {}).get("total_tokens", 0)
+        result = ""
+        tokens = 0
+        for chunk in response:
+            if chunk.choices[0].delta.content is not None:
+                result += chunk.choices[0].delta.content
+    else:
+        def sync_call():
+            return anthropic_client.messages.create(
+                model=model,
+                messages=[{"role": "user", "content": query}],
+                max_tokens=max_tokens,
+                temperature=temperature,
+            )
+        response = await asyncio.to_thread(sync_call)
+        result = response.content[0].text
+        tokens = response.usage.output_tokens + response.usage.input_tokens
     return {"content": result, "usage": {"total_tokens": tokens}}
 
 async def call_google(query: str, model: str, temperature: float, max_tokens: int):
@@ -153,18 +182,16 @@ async def call_google(query: str, model: str, temperature: float, max_tokens: in
         return google_client.models.generate_content(
             model=model,
             contents=query,
-            temperature=temperature,
-            max_output_tokens=max_tokens,
+            config=types.GenerateContentConfig(
+                temperature=temperature,
+                max_output_tokens=max_tokens,
+            )
         )
     response = await asyncio.to_thread(sync_call)
     # The response is expected to have a `text` attribute (or key) containing the result.
-    if hasattr(response, "text"):
-        result = response.text
-    elif isinstance(response, dict):
-        result = response.get("text", "")
-    else:
-        result = ""
-    return {"content": result, "usage": {"total_tokens": 0}}
+    result = response.candidates[0].content.parts[0].text
+    tokens = response.usage_metadata.total_token_count
+    return {"content": result, "usage": {"total_tokens": tokens}}
 
 async def invoke_llm(query: str, llm_config: dict, temperature: float):
     provider = llm_config["provider"]
@@ -190,7 +217,7 @@ async def ainvoke_with_retry(llm_config: dict, query: str, temperature: float, m
             response = await invoke_llm(query, llm_config, temperature)
             return response
         except Exception as e:
-            print("Error in ainvoke_with_retry:", e)
+            print("Error in ainvoke_with_retry:", e, "when calling", llm_config["model"])
             # Retry on rate-limit or server errors
             if "429" in str(e) or "529" in str(e):
                 last_exception = e
