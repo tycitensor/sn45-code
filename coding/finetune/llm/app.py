@@ -69,8 +69,12 @@ class EmbeddingRequest(BaseModel):
 class EmbeddingResponse(BaseModel):
     vector: List[float]
 
+# New models for batch embedding support
 class BatchEmbeddingRequest(BaseModel):
     queries: List[str]
+
+class BatchEmbeddingResponse(BaseModel):
+    vectors: List[List[float]]
 
 class BatchEmbeddingResponse(BaseModel):
     vectors: List[List[float]]
@@ -286,7 +290,6 @@ async def get_embeddings(request: EmbeddingRequest):
         print("Error in get_embeddings endpoint:", e)
         raise HTTPException(status_code=500, detail=str(e))
 
-
 # ------------------------------
 #      Batch Embeddings
 # ------------------------------
@@ -302,8 +305,6 @@ async def get_batch_embeddings(request: BatchEmbeddingRequest):
     except Exception as e:
         print("An error occurred in get_batch_embeddings", e)
         raise HTTPException(status_code=500, detail=str(e))
-
-# ------------------------------
 
 # ------------------------------
 #      Run via Uvicorn

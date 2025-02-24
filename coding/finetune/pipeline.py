@@ -67,7 +67,6 @@ def should_evaluate(tracker: TrackingInfo, block: int) -> bool:
     # Return True if there are fewer than 3 evaluations in the last 7 days
     return len(recent_evals) < 3
 
-
 def generate_swe_tasks(
     ds, n: int = 1000, docker_server=None, use_remote: bool = False
 ) -> List[SWEBenchTask]:

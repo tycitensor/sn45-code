@@ -1,5 +1,5 @@
 langchain==0.3.7
-bittensor==8.5.1
+bittensor==9.0.0
 langchain-openai
 sentence_transformers
 numpy

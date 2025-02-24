@@ -60,7 +60,7 @@ class LLMClient:
 
         result = response.json()
         return result["vector"]
-
+    
     def embed_documents(self, queries: list[str]) -> list[list[float]]:
         """
         Get embeddings for text using the embedding API endpoint

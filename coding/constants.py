@@ -54,6 +54,9 @@ ALLOWED_MODULES = [
     "langchain_google_genai",
     "langchain_core",
     "langchain_community",
+    "tree_sitter_python",
+    "tree_sitter_javascript",
+    "langchain_text_splitters"
 ]
 
 ALLOWED_IMPORTS = {
