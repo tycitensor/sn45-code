@@ -27,7 +27,7 @@ from coding.tasks.swe import SWEBenchTask
 from coding.datasets.swefull import SWEFullDataset
 from coding.finetune.llm.manager import LLMManager
 from coding.helpers.containers import DockerServer
-from coding.helpers.codeanal import verify_code_usage
+from coding.helpers.codeanal import verify_code_usage, check_large_literals
 
 
 class FinetuneEventResults(BaseModel):
@@ -100,6 +100,7 @@ def bittensor_injector(self):
 
 
 def verify_logic(logic: dict) -> tuple[bool, str]:
+    additional_msg = "\t"
     # Dictionary mapping modules to allowed functions/imports
     allowed_modules = ALLOWED_MODULES.copy()
 
@@ -144,8 +145,13 @@ def verify_logic(logic: dict) -> tuple[bool, str]:
             False,
             f"Total characters: {total_chars} exceeds the limit of {NUM_ALLOWED_CHARACTERS}",
         )
-
-    return True, "Logic is valid"
+    
+    for key, value in logic.items():
+        pass_large_literals, large_literals_msg = check_large_literals(value)
+        if not pass_large_literals:
+            logic[key] = ""
+            additional_msg += f"Large literal found in file: {large_literals_msg}. It was cleared.\n"
+    return True, "Logic is valid" + additional_msg
 
 
 class FinetunePipeline:
@@ -446,8 +452,6 @@ class FinetunePipeline:
         with open(
             f"{self.config.neuron.full_path}/tasks_{COMPETITION_ID}.pkl", "wb"
         ) as f:
-            for task in self.tasks:
-                task.docker_server = None
             pickle.dump(self.tasks, f)
 
     def store_trackers(self):

@@ -45,3 +45,53 @@ def verify_code_usage(code: str, allowed_modules: List[str], allowed_imports: Di
         return True, "Code is safe"
     except Exception as e:
         return False, f"Error during parsing: {e}"
+    
+    
+def check_large_literals(script, max_items=1000, max_length=10000):
+    """
+    Checks the provided script for large literal definitions.
+    
+    Parameters:
+        script (str): A string containing a Python script.
+        max_items (int): Maximum allowed number of items in a list, tuple, set, or dict.
+        max_length (int): Maximum allowed length of a string literal.
+        
+        
+    Returns:
+        True if the script passes all checks. Else returns a tuple with False and the error message.
+    """
+    try:
+        tree = ast.parse(script)
+    except SyntaxError as e:
+        # raise ValueError(f"Invalid Python script: {e}")
+        return False, f"Invalid Python script: {e}"
+    
+    for node in ast.walk(tree):
+        # Check dictionary literals
+        if isinstance(node, ast.Dict):
+            num_items = len(node.keys)
+            if num_items > max_items:
+                # raise ValueError(f"Dictionary literal with {num_items} items exceeds the limit of {max_items}.")
+                return False, f"Dictionary literal with {num_items} items exceeds the limit of {max_items}."
+        
+        # Check list, tuple, and set literals
+        if isinstance(node, (ast.List, ast.Tuple, ast.Set)):
+            num_items = len(node.elts)
+            if num_items > max_items:
+                literal_type = type(node).__name__
+                # raise ValueError(f"{literal_type} literal with {num_items} items exceeds the limit of {max_items}.")
+                return False, f"{literal_type} literal with {num_items} items exceeds the limit of {max_items}."
+        
+        # For Python 3.8+, ast.Constant is used for literals like strings.
+        if isinstance(node, ast.Constant):
+            if isinstance(node.value, str):
+                if len(node.value) > max_length:
+                    # raise ValueError(f"String literal of length {len(node.value)} exceeds the limit of {max_length}.")
+                    return False, f"String literal of length {len(node.value)} exceeds the limit of {max_length}."
+        
+        # For earlier versions of Python, string literals might be represented by ast.Str.
+        elif isinstance(node, ast.Str):
+            if len(node.s) > max_length:
+                # raise ValueError(f"String literal of length {len(node.s)} exceeds the limit of {max_length}.")
+                return False, f"String literal of length {len(node.s)} exceeds the limit of {max_length}."
+    return True, "Code is valid"
