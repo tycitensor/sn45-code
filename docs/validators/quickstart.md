@@ -114,6 +114,13 @@ GOOGLE_API_KEY=<your gemini api key>
 
 See instructions [here](https://docs.docker.com/engine/install/)
 
+Ensure that the default user has access to the docker daemon.
+
+```bash
+sudo usermod -aG docker $USER
+sudo chmod 666 /var/run/docker.sock
+```
+
 Update the `/etc/docker/daemon.json` file with the following content:
 ```bash
 {
