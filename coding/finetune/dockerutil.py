@@ -209,6 +209,7 @@ def run_docker_container_from_base(
     issue_description: str,
     logic_files: dict,
     client,
+    remote_host_url: str | None = None,
 ) -> dict:
     """
     Runs a Docker container for evaluating model logic.
@@ -282,7 +283,12 @@ def run_docker_container_from_base(
             container.start()
 
             # Copy files from temp_dir into container
-            os.system(f"docker cp {temp_dir}/. {container_name}:/app/")
+            if remote_host_url:
+                # For remote Docker host, use docker context or SSH to copy files
+                os.system(f"docker -H {remote_host_url} cp {temp_dir}/. {container_name}:/app/")
+            else:
+                # For local Docker host
+                os.system(f"docker cp {temp_dir}/. {container_name}:/app/")
 
             # Execute runner.py in container
             exec_result, logs = exec_container_with_timeout(
@@ -357,8 +363,9 @@ def test_docker_container(remote_host_url: str):
             # Start the container
             container.start()
 
-            # Copy files from temp_dir into container
-            os.system(f"docker cp {temp_dir}/. {container_name}:/app/")
+            # Copy files from temp_dir into container using the remote Docker host
+            docker_cp_cmd = f"docker -H {remote_host_url} cp {temp_dir}/. {container_name}:/app/"
+            os.system(docker_cp_cmd)
 
             # Execute runner.py in container
             exec_result, logs = exec_container_with_timeout(

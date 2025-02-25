@@ -345,7 +345,8 @@ class FinetunePipeline:
                             hotkey=tracker.hotkey,
                             issue_description=task.query,
                             logic_files=tracker.logic,
-                            client=self.docker_server._remote_client if self.config.use_remote else self.docker_server._local_client,
+                            client=self.docker_server._remote_client if self.use_remote else self.docker_server._local_client,
+                            remote_host_url=os.getenv("REMOTE_DOCKER_HOST") if self.use_remote else None,
                         )
                         patch = Patch(**result)
                         bt.logging.info(
