@@ -1,3 +1,4 @@
+import os
 from time import sleep
 import bittensor as bt
 from datetime import datetime, timezone, timedelta
@@ -27,7 +28,7 @@ async def forward(self, synapse: StreamCodeSynapse):
         self.last_task_update = self.block
     
     if not hasattr(self, 'finetune_eval_future'):
-        delete_all_containers()
+        delete_all_containers(os.getenv("REMOTE_DOCKER_HOST", None))
         sleep(10) # wait for containers to be truly deleted
         finetune_pipeline = FinetunePipeline(
             config=self.config,

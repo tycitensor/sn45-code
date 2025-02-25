@@ -397,8 +397,8 @@ def test_docker_container(remote_host_url: str):
                 pass
 
 
-def delete_all_containers():
-    client = docker.from_env()
+def delete_all_containers(remote_host_url: str | None = None):
+    client = docker.from_env() if remote_host_url is None else docker.DockerClient(base_url=remote_host_url)
     for container in client.containers.list():
         if "registry" not in container.name:
             try:
