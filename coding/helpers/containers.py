@@ -66,9 +66,12 @@ class DockerServer:
         """
         logging.info(f"Transferring image {local_image_tag} to remote host")
         try:
-            # Tag image for remote registry
-            remote_tag = f"{self.remote_host_registry}/{local_image_tag}"
-            self._local_client.images.get(local_image_tag).tag(remote_tag)
+            if self.remote_host_registry is not None and self.remote_host_registry not in local_image_tag:
+                # Tag image for remote registry
+                remote_tag = f"{self.remote_host_registry}/{local_image_tag}"
+                self._local_client.images.get(local_image_tag).tag(remote_tag)
+            else:
+                remote_tag = local_image_tag    
             
             # Push to remote registry
             logging.info(f"Pushing image to remote registry as {remote_tag}")
