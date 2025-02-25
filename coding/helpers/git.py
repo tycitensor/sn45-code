@@ -30,15 +30,23 @@ class GitRepo:
         # Ensure repo name includes full GitHub URL if not already
         if not self.repo_name.startswith(('http://', 'https://', 'git://')):
             self.repo_name = f"https://github.com/{self.repo_name}"
-            
+        try:
         # Clone repo with minimal history and specific commit
-        self.repo = Repo.clone_from(
-            self.repo_name,
-            self.temp_dir, 
-            depth=1,  # Only get most recent commit
-            no_single_branch=True,  # Allow fetching specific commit
-            no_tags=True  # Don't fetch any tags
-        )
+            self.repo = Repo.clone_from(
+                self.repo_name,
+                self.temp_dir, 
+                depth=1,  # Only get most recent commit
+                no_single_branch=True,  # Allow fetching specific commit
+                no_tags=True  # Don't fetch any tags
+            )
+        except: # if clone fails try again
+            self.repo = Repo.clone_from(
+                self.repo_name,
+                self.temp_dir, 
+                depth=1,  # Only get most recent commit
+                no_single_branch=True,  # Allow fetching specific commit
+                no_tags=True  # Don't fetch any tags
+            )
         # Fetch only the specific commit
         self.repo.git.fetch('origin', self.commit_hash, depth=1)
         self.repo.git.checkout(self.commit_hash)
