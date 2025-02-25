@@ -502,6 +502,9 @@ class FinetunePipeline:
                 f"{config.neuron.full_path}/tasks_{COMPETITION_ID}.pkl", "rb"
             ) as f:
                 tasks = pickle.load(f)
+                # Clean up tasks that will be removed
+                for task in tasks[:num_tasks_to_keep]:
+                    task._cleanup()
                 tasks = tasks[num_tasks_to_keep:]  # Remove the first N tasks
         else:
             tasks = []
@@ -520,7 +523,6 @@ class FinetunePipeline:
             for task in tasks:
                 task.docker_server = None
             pickle.dump(tasks, f)
-
     @staticmethod
     def tasks_exist(config):
         return os.path.exists(f"{config.neuron.full_path}/tasks_{COMPETITION_ID}.pkl")

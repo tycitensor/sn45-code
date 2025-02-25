@@ -18,14 +18,14 @@ class GitRepo:
         """
         self.repo_name = repo_name
         self.commit_hash = commit_hash
-        self.temp_dir = tempfile.mkdtemp()
+        self.temp_dir = tempfile.mkdtemp(prefix="git-repo-")
         self.repo = None
         self._initialize_repo()
             
     def _initialize_repo(self):
         """Initialize/reinitialize the git repository"""
         if self.temp_dir and os.path.exists(self.temp_dir) and os.listdir(self.temp_dir):
-            self._finalizer = weakref.finalize(self, self._cleanup)
+            # self._finalizer = weakref.finalize(self, self._cleanup)
             return
         # Ensure repo name includes full GitHub URL if not already
         if not self.repo_name.startswith(('http://', 'https://', 'git://')):
@@ -51,7 +51,7 @@ class GitRepo:
         self.repo.git.fetch('origin', self.commit_hash, depth=1)
         self.repo.git.checkout(self.commit_hash)
         # Register cleanup to be called when object is deleted
-        self._finalizer = weakref.finalize(self, self._cleanup)
+        # self._finalizer = weakref.finalize(self, self._cleanup)
 
     def __getstate__(self):
         """Called when pickling - return state without repo objects"""
@@ -65,7 +65,7 @@ class GitRepo:
         """Called when unpickling - restore state and reinitialize repo"""
         self.__dict__.update(state)
         if self.temp_dir == None:
-            self.temp_dir = tempfile.mkdtemp()
+            self.temp_dir = tempfile.mkdtemp(prefix="git-repo-")
         self._initialize_repo()
         
     def _cleanup(self):

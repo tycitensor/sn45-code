@@ -381,6 +381,9 @@ RUN chmod +x /install_repo.sh && /bin/bash /install_repo.sh
             print("There was an error scoring the patch: ", e)
             print(traceback.format_exc())
             return 0
+    
+    def _cleanup(self):
+        self.repo._cleanup()
 
 def score_task(patch: Patch, repo_path: str, instance: dict, client: docker.DockerClient, image_name: str):
     try:
