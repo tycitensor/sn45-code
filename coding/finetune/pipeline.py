@@ -67,6 +67,7 @@ def should_evaluate(tracker: TrackingInfo, block: int) -> bool:
     # Return True if there are fewer than 3 evaluations in the last 7 days
     return len(recent_evals) < 3
 
+
 def generate_swe_tasks(
     ds, n: int = 1000, docker_server=None, use_remote: bool = False
 ) -> List[SWEBenchTask]:
@@ -144,12 +145,14 @@ def verify_logic(logic: dict) -> tuple[bool, str]:
             False,
             f"Total characters: {total_chars} exceeds the limit of {NUM_ALLOWED_CHARACTERS}",
         )
-    
+
     for key, value in logic.items():
         pass_large_literals, large_literals_msg = check_large_literals(value)
         if not pass_large_literals:
             logic[key] = ""
-            additional_msg += f"Large literal found in file: {large_literals_msg}. It was cleared.\n"
+            additional_msg += (
+                f"Large literal found in file: {large_literals_msg}. It was cleared.\n"
+            )
     return True, "Logic is valid" + additional_msg
 
 
@@ -169,7 +172,9 @@ class FinetunePipeline:
             print(traceback.format_exc())
         self.docker_server = DockerServer(
             remote_host_url=os.getenv("REMOTE_DOCKER_HOST") if use_remote else None,
-            remote_host_registry=f"{os.getenv('DOCKER_HOST_IP')}:5000" if use_remote else None
+            remote_host_registry=(
+                f"{os.getenv('DOCKER_HOST_IP')}:5000" if use_remote else None
+            ),
         )
         self.graded_trackers = []
         self.ungraded_trackers = []
@@ -345,8 +350,16 @@ class FinetunePipeline:
                             hotkey=tracker.hotkey,
                             issue_description=task.query,
                             logic_files=tracker.logic,
-                            client=self.docker_server._remote_client if self.use_remote else self.docker_server._local_client,
-                            remote_host_url=os.getenv("REMOTE_DOCKER_HOST") if self.use_remote else None,
+                            client=(
+                                self.docker_server._remote_client
+                                if self.use_remote
+                                else self.docker_server._local_client
+                            ),
+                            remote_host_url=(
+                                os.getenv("REMOTE_DOCKER_HOST")
+                                if self.use_remote
+                                else None
+                            ),
                         )
                         patch = Patch(**result)
                         bt.logging.info(
@@ -468,9 +481,14 @@ class FinetunePipeline:
     @staticmethod
     def generate_tasks(config) -> List[SWEBenchTask]:
         dataset = SWEFullDataset()
-        code_scorer = CodeSimModel()
         tasks = generate_swe_tasks(
-            dataset, config.neuron.finetune_test_size, code_scorer=code_scorer, use_remote=True
+            dataset,
+            config.neuron.finetune_test_size,
+            docker_server=DockerServer(
+                remote_host_url=os.getenv("REMOTE_DOCKER_HOST"),
+                remote_host_registry=f"{os.getenv('DOCKER_HOST_IP')}:5000",
+            ),
+            use_remote=True,
         )
         with open(f"{config.neuron.full_path}/tasks_{COMPETITION_ID}.pkl", "wb") as f:
             for task in tasks:
