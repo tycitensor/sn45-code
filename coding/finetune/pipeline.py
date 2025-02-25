@@ -506,10 +506,14 @@ class FinetunePipeline:
         else:
             tasks = []
         dataset = SWEFullDataset()
-        code_scorer = CodeSimModel()
         if len(tasks) < num_tasks_wanted:
             new_tasks = generate_swe_tasks(
-                dataset, num_tasks_wanted - len(tasks), code_scorer=code_scorer
+                dataset, num_tasks_wanted - len(tasks),
+                docker_server=DockerServer(
+                    remote_host_url=os.getenv("REMOTE_DOCKER_HOST"),
+                    remote_host_registry=f"{os.getenv('DOCKER_HOST_IP')}:5000",
+                ),
+                use_remote=True,
             )
             tasks.extend(new_tasks)  # Append N new tasks
         with open(f"{config.neuron.full_path}/tasks_{COMPETITION_ID}.pkl", "wb") as f:
