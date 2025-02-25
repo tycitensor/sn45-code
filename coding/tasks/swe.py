@@ -296,13 +296,19 @@ class SWEBenchTask(Task):
         
         # Check if image already exists
         client = self.docker_server._local_client if not self.use_remote or not self.docker_server.remote else self.docker_server._remote_client
+        image_name_to_check = self.image_name
+        
+        # If using remote, add the registry prefix to the image name for checking
+        if self.use_remote and self.docker_server.remote:
+            docker_host_ip = os.getenv('DOCKER_HOST_IP', '45.33.116.4')
+            image_name_to_check = f"{docker_host_ip}:5000/{self.image_name}"
+            
         try:
-            client.images.get(self.image_name)
-            print(f"Image {self.image_name} already exists, skipping build")
+            client.images.get(image_name_to_check)
+            print(f"Image {image_name_to_check} already exists, skipping build")
             return
         except:
             print(f"Building image {self.image_name}")
-            
         with tempfile.TemporaryDirectory() as temp_dir:
             testbed_dir = os.path.join(temp_dir, "testbed")
             os.makedirs(testbed_dir, exist_ok=True)
