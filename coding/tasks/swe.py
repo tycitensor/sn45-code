@@ -282,7 +282,7 @@ class SWEBenchTask(Task):
             self.docker_server = docker_server
         self.image_name = f"swe-eval-{self.row['repo']}-{self.row['version']}:latest"
         if self.use_remote and hasattr(self.docker_server, "remote") and self.docker_server.remote:
-            docker_host_ip = os.getenv('DOCKER_HOST_IP', '45.33.116.4')
+            docker_host_ip = os.getenv('DOCKER_HOST_IP')
             self.image_name = f"{docker_host_ip}:5000/{self.image_name}"
         self._build_image()
 
@@ -358,6 +358,9 @@ RUN chmod +x /install_repo.sh && /bin/bash /install_repo.sh
             remote_host_url=os.getenv("REMOTE_DOCKER_HOST", None),
             remote_host_registry=f"{os.getenv('DOCKER_HOST_IP', None)}:5000",
         )
+        if self.use_remote and hasattr(self.docker_server, "remote") and self.docker_server.remote and os.getenv('DOCKER_HOST_IP') not in self.image_name:
+            docker_host_ip = os.getenv('DOCKER_HOST_IP')
+            self.image_name = f"{docker_host_ip}:5000/{self.image_name}"
         self._build_image() 
 
     # def __del__(self):
