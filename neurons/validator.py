@@ -62,6 +62,8 @@ class Validator(BaseValidatorNeuron):
         self.last_wandb_clean = self.block
         bt.logging.info("load_state()")
         self.load_state()
+        if self.last_task_update == 0:
+            self.last_task_update = self.block
         init_wandb_if_not_exists(self)
         # self.active_tasks = [
         #     task
