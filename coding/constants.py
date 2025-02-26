@@ -10,7 +10,7 @@ ALLOWED_MODULES = [
     "networkx",
     "grep_ast",
     "tree_sitter",
-    "tree_sitter_languages", 
+    "tree_sitter_languages",
     "rapidfuzz",
     "llama_index",
     "pydantic",
@@ -56,11 +56,11 @@ ALLOWED_MODULES = [
     "langchain_community",
     "tree_sitter_python",
     "tree_sitter_javascript",
-    "langchain_text_splitters"
+    "langchain_text_splitters",
 ]
 
 ALLOWED_IMPORTS = {
-    'os': ['getenv', 'path', 'environ', 'makedirs', 'rm', 'walk', 'sep', 'remove'],
+    "os": ["getenv", "path", "environ", "makedirs", "rm", "walk", "sep", "remove"],
 }
 
 NUM_ALLOWED_CHARACTERS = 1000000

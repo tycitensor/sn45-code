@@ -24,6 +24,7 @@ from typing import Callable
 
 from .task import Task
 from .swe import SWEBenchTask
+
 # from .debug import DebugTask
 from .fim import FillInMiddleTask
 from .repofile import RepoFileTask
@@ -61,9 +62,9 @@ def create_task(
     llm,
     task_name: str,
     selector: Selector = random.choice,
-    repl = None,
+    repl=None,
     code_scorer: Callable = None,
-    dataset_manager: DatasetManager = None
+    dataset_manager: DatasetManager = None,
 ) -> Task:
     """Create a task from the given task name and LLM pipeline.
 
@@ -91,7 +92,12 @@ def create_task(
     dataset = dataset_manager.datasets.get(dataset_name, None)
     if dataset is None:
         raise ValueError(f"Dataset {dataset_name} not found")
-    return task(llm=llm, context=dataset.next(**dict(task.dataset_options)), repl=repl, code_scorer=code_scorer)
+    return task(
+        llm=llm,
+        context=dataset.next(**dict(task.dataset_options)),
+        repl=repl,
+        code_scorer=code_scorer,
+    )
 
 
 def create_organic_task(
@@ -104,4 +110,3 @@ def create_organic_task(
         llm=llm,
         context=Context(messages=synapse.messages, files=synapse.files),
     )
- 

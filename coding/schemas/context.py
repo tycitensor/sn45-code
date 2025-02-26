@@ -25,6 +25,7 @@ from pydantic import BaseModel
 from .file import File
 from .chat import ChatMessage
 
+
 class Context(BaseModel):
     title: str = ""
     topic: str = ""

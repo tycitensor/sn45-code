@@ -22,6 +22,7 @@ from typing import List, Optional, Union, Any, Dict
 from bittensor.subnets import SubnetsAPI
 from coding.protocol import StreamCodeSynapse
 
+
 class CodeAPI(SubnetsAPI):
     def __init__(self, wallet: "bt.wallet"):
         super().__init__(wallet)

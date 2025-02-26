@@ -8,13 +8,11 @@ from langchain_openai import ChatOpenAI
 from .base import Dataset
 from .prompts.bigcodebench import DATA_SYNTH_PROMPT
 
+
 class BigCodeBenchDataset(Dataset):
     name = "bigcodebench"
 
-    def __init__(
-        self,
-        config
-    ):
+    def __init__(self, config):
         self.config = config
         self.instruct_ds = load_dataset(
             "bigcode/self-oss-instruct-sc2-instructions", split="train", streaming=True
@@ -49,7 +47,7 @@ class BigCodeBenchDataset(Dataset):
             row = next(self.instruct_iterset)
             seed = row["seed"]
             response = self.llm.invoke(DATA_SYNTH_PROMPT + "\n" + seed).content
-            
+
             # Extract all Python code blocks from the content, including those with a newline after 'python'
             code_blocks = re.findall(r"```python\s*(.*?)```", response, re.DOTALL)
 
@@ -68,7 +66,7 @@ class BigCodeBenchDataset(Dataset):
             "tags": [],
             "extras": {},
         }
-        
+
     def search(
         self,
     ):

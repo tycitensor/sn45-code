@@ -8,6 +8,7 @@ from .reward import (
     RewardModelTypeEnum,
 )
 
+
 def fix_python_spacing(code_str):
     fixed_code = autopep8.fix_code(code_str)
     return fixed_code
@@ -21,7 +22,9 @@ class ValidCodeModel(BaseRewardModel):
     def __init__(self, **kwargs):
         super().__init__()
 
-    def score(self, reference: str, completions: List[str], language: str) -> List[float]:
+    def score(
+        self, reference: str, completions: List[str], language: str
+    ) -> List[float]:
         """
         Get the score between a reference string and a list of completion strings.
         """
@@ -30,7 +33,7 @@ class ValidCodeModel(BaseRewardModel):
             return [0] * len(completions)
         for completion in completions:
             # Check if reference is valid python code
-            try: 
+            try:
                 ast.parse(reference)
             except SyntaxError:
                 scores.append(0)  # Invalid reference code, so we dont score it
@@ -42,7 +45,9 @@ class ValidCodeModel(BaseRewardModel):
                 scores.append(0.6)  # Invalid Python code
         return scores
 
-    def reward(self, reference: str, completions: List[str], language: str) -> BatchRewardOutput:
+    def reward(
+        self, reference: str, completions: List[str], language: str
+    ) -> BatchRewardOutput:
         """
         Get the score between a reference string and a list of completion strings.
         """

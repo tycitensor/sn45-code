@@ -12,7 +12,9 @@ class SWEFullDataset(Dataset):
         self,
     ):
         # load in princeton-nlp/SWE-bench and shuffle the dataset
-        self.dataset = load_dataset("princeton-nlp/SWE-bench", split="test", streaming=True).shuffle()
+        self.dataset = load_dataset(
+            "princeton-nlp/SWE-bench", split="test", streaming=True
+        ).shuffle()
         self.dataset_iterset = iter(self.dataset)
 
     def get(self, n=100, selector: Selector = Selector()) -> dict:

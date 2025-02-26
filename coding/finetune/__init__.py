@@ -10,5 +10,5 @@ ALLOWED_MODULES = [
     "pydantic",
     "numpy",
     "ruamel.yaml",
-    "json"
+    "json",
 ]

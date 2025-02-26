@@ -285,7 +285,9 @@ def run_docker_container_from_base(
             # Copy files from temp_dir into container
             if remote_host_url:
                 # For remote Docker host, use docker context or SSH to copy files
-                os.system(f"docker -H {remote_host_url} cp {temp_dir}/. {container_name}:/app/")
+                os.system(
+                    f"docker -H {remote_host_url} cp {temp_dir}/. {container_name}:/app/"
+                )
             else:
                 # For local Docker host
                 os.system(f"docker cp {temp_dir}/. {container_name}:/app/")
@@ -364,7 +366,9 @@ def test_docker_container(remote_host_url: str):
             container.start()
 
             # Copy files from temp_dir into container using the remote Docker host
-            docker_cp_cmd = f"docker -H {remote_host_url} cp {temp_dir}/. {container_name}:/app/"
+            docker_cp_cmd = (
+                f"docker -H {remote_host_url} cp {temp_dir}/. {container_name}:/app/"
+            )
             os.system(docker_cp_cmd)
 
             # Execute runner.py in container
@@ -398,7 +402,11 @@ def test_docker_container(remote_host_url: str):
 
 
 def delete_all_containers(remote_host_url: str | None = None):
-    client = docker.from_env() if remote_host_url is None else docker.DockerClient(base_url=remote_host_url)
+    client = (
+        docker.from_env()
+        if remote_host_url is None
+        else docker.DockerClient(base_url=remote_host_url)
+    )
     for container in client.containers.list():
         if "registry" not in container.name:
             try:

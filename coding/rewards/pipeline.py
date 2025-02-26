@@ -31,9 +31,9 @@ from .validcode import ValidCodeModel
 REWARD_MODELS = {
     "codesim": CodeSimModel,
     DiffSimModel().name: DiffSimModel,
-    SpeedModel().name: SpeedModel, 
+    SpeedModel().name: SpeedModel,
     ValidCodeModel().name: ValidCodeModel,
-    "self": None
+    "self": None,
 }
 
 
@@ -51,9 +51,9 @@ class RewardPipeline:
     def get(self, __key: str) -> BaseRewardModel:
         return self.reward_models.get(__key)
 
-    def keys(self) -> List[str]: #TODO this might not be the right return type
+    def keys(self) -> List[str]:  # TODO this might not be the right return type
         return self.reward_models.keys()
-    
+
     def __repr__(self):
         return f"RewardPipeline({self.reward_models})"
 
@@ -129,6 +129,8 @@ class RewardPipeline:
                 reward_models[name] = "self"
                 continue
             params = {k: v for k, v in model.items() if k not in ["name", "weight"]}
-            reward_models[name] = cls(device=self.device, code_scorer=self.code_scorer, **params)
+            reward_models[name] = cls(
+                device=self.device, code_scorer=self.code_scorer, **params
+            )
 
         self.reward_models = reward_models

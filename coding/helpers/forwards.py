@@ -16,17 +16,18 @@ async def string_forward(string, send: Send):
         }
     )
 
+
 async def chain_forward(
-        self,
-        query: str,
-        files: List[Any],
-        extra_info: Dict[str, Any],
-        init_time: float,
-        timeout_threshold: float,
-        chain: RunnableSequence,
-        chain_formatter: Dict[str, str],
-        send: Send,
-    ):
+    self,
+    query: str,
+    files: List[Any],
+    extra_info: Dict[str, Any],
+    init_time: float,
+    timeout_threshold: float,
+    chain: RunnableSequence,
+    chain_formatter: Dict[str, str],
+    send: Send,
+):
     buffer = []
     temp_completion = ""  # for wandb logging
     timeout_reached = False

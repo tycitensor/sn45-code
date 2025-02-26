@@ -31,6 +31,7 @@ from logging.handlers import RotatingFileHandler
 EVENTS_LEVEL_NUM = 38
 DEFAULT_LOG_BACKUP_COUNT = 10
 
+
 def setup_events_logger(full_path, events_retention_size):
     logging.addLevelName(EVENTS_LEVEL_NUM, "EVENT")
 
@@ -83,7 +84,7 @@ def init_wandb(self, reinit=False):
     if self.config.mock:
         tags.append("mock")
     # for task in self.active_tasks:
-        # tags.append(task)
+    # tags.append(task)
     if self.config.neuron.disable_set_weights:
         tags.append("disable_set_weights")
 
@@ -96,7 +97,11 @@ def init_wandb(self, reinit=False):
     self.wandb = wandb.init(
         anonymous="allow",
         reinit=reinit,
-        project=self.config.wandb.project_name if self.config.netuid == 45 else self.config.wandb.project_name + "testnet",
+        project=(
+            self.config.wandb.project_name
+            if self.config.netuid == 45
+            else self.config.wandb.project_name + "testnet"
+        ),
         entity=self.config.wandb.entity,
         config=wandb_config,
         mode="offline" if self.config.wandb.offline else "online",
@@ -112,6 +117,7 @@ def reinit_wandb(self):
     """Reinitializes wandb, rolling over the run."""
     self.wandb.finish()
     init_wandb(self, reinit=True)
+
 
 def clean_wandb(self):
     """Cleans wandb, deleting all runs."""
@@ -131,6 +137,7 @@ def clean_wandb(self):
     except Exception as e:
         bt.logging.error(f"Error cleaning wandb: {e}")
 
+
 def init_wandb_if_not_exists(self):
     if self.config.netuid != 45 and self.config.netuid != 171:
         return
@@ -140,10 +147,11 @@ def init_wandb_if_not_exists(self):
         return
     init_wandb(self)
 
+
 def log_event(self, event):
     if self.config.netuid != 45 and self.config.netuid != 171:
         return
-    
+
     if not self.config.wandb.on:
         return
 

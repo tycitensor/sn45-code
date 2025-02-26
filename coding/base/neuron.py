@@ -83,7 +83,9 @@ class BaseNeuron(ABC):
         if self.config.mock:
             self.wallet = bt.MockWallet(config=self.config)
             self.subtensor = MockSubtensor(self.config.netuid, wallet=self.wallet)
-            self.metagraph = MockMetagraph(netuid=self.config.netuid, subtensor=self.subtensor)
+            self.metagraph = MockMetagraph(
+                netuid=self.config.netuid, subtensor=self.subtensor
+            )
         else:
             self.wallet = bt.wallet(config=self.config)
             self.subtensor = bt.subtensor(config=self.config)
@@ -92,7 +94,7 @@ class BaseNeuron(ABC):
         bt.logging.info(f"Wallet: {self.wallet}")
         bt.logging.info(f"Subtensor: {self.subtensor}")
         bt.logging.info(f"Metagraph: {self.metagraph}")
-        
+
         # Check if the miner is registered on the Bittensor network before proceeding further.
         self.check_registered()
 
@@ -103,15 +105,12 @@ class BaseNeuron(ABC):
         )
         self.last_block_sync = self.block
         self.step = 0
-        
 
     @abstractmethod
-    def forward(self, synapse: bt.Synapse) -> bt.Synapse:
-        ...
+    def forward(self, synapse: bt.Synapse) -> bt.Synapse: ...
 
     @abstractmethod
-    def run(self):
-        ...
+    def run(self): ...
 
     def sync(self):
         """
@@ -146,13 +145,12 @@ class BaseNeuron(ABC):
                 f"JSONDecodeError encountered while checking registration for wallet: {self.wallet} on netuid {self.config.netuid}."
             )
             # Handle the error or continue without exiting
+
     def should_sync_metagraph(self):
         """
         Check if enough epoch blocks have elapsed since the last checkpoint to sync.
         """
-        return (
-            self.block - self.last_block_sync
-        ) > self.config.neuron.epoch_length
+        return (self.block - self.last_block_sync) > self.config.neuron.epoch_length
 
     def should_set_weights(self) -> bool:
         # Don't set weights on initialization.

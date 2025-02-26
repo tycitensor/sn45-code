@@ -3,22 +3,29 @@ import requests
 from pydantic import BaseModel
 from abc import ABC, abstractmethod
 
+
 class Edit(BaseModel):
     file_name: str
     line_number: int
     line_content: str
     new_line_content: str
 
+
 class Patch(BaseModel):
     edits: list[Edit]
 
+
 # if host ip is localhost itll fail, need to get docker host ip
 class LLMClient:
-    def __init__(self, base_url: str = f"http://{os.getenv('HOST_IP', 'localhost')}:25000"):
+    def __init__(
+        self, base_url: str = f"http://{os.getenv('HOST_IP', 'localhost')}:25000"
+    ):
         """Initialize LLM client with API server URL"""
         self.base_url = base_url.rstrip("/")
 
-    def __call__(self, query: str, llm_name: str, temperature: float = 0.7) -> tuple[str, int]:
+    def __call__(
+        self, query: str, llm_name: str, temperature: float = 0.7
+    ) -> tuple[str, int]:
         """
         Call LLM API endpoint
 
@@ -39,7 +46,7 @@ class LLMClient:
 
         result = response.json()
         return result["result"], result["total_tokens"]
-    
+
     def embed(self, query: str) -> list[float]:
         """
         Get embeddings for text using the embedding API endpoint
@@ -60,7 +67,7 @@ class LLMClient:
 
         result = response.json()
         return result["vector"]
-    
+
     def embed_documents(self, queries: list[str]) -> list[list[float]]:
         """
         Get embeddings for text using the embedding API endpoint
@@ -81,7 +88,8 @@ class LLMClient:
 
         result = response.json()
         return result["vectors"]
-        
+
+
 class SWEBase(ABC):
     def __init__(self):
         self.llm = LLMClient()

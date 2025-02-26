@@ -3,21 +3,25 @@ from pydantic import BaseModel
 
 class Edit(BaseModel):
     file_name: str
-    line_number: int # indexed by 0
+    line_number: int  # indexed by 0
     line_content: str
     new_line_content: str
 
+
 class Patch(BaseModel):
     edits: list[Edit]
+
 
 class ChangedFile(BaseModel):
     file_name: str
     old_content: str
     new_content: str
 
+
 class ChangedFiles(BaseModel):
     files: list[ChangedFile]
-    
+
+
 def apply_edits(old_content: str, edits: list[Edit]):
     """
     Apply the patch to old_content. For each Edit in the patch, the line at the given

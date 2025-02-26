@@ -707,14 +707,20 @@ class TheStackDataset(Dataset):
             "gha_language" in row and row["gha_language"] == "Python"
         ):
             content = convert_to_python3(content)
-        
-        if len(content.splitlines()) < min_lines or len(content.splitlines()) > max_lines:
+
+        if (
+            len(content.splitlines()) < min_lines
+            or len(content.splitlines()) > max_lines
+        ):
             return None
-        
+
         for sibling_doc in sibling_docs:
-            if len(sibling_doc.content.splitlines()) < min_lines or len(sibling_doc.content.splitlines()) > max_lines:
+            if (
+                len(sibling_doc.content.splitlines()) < min_lines
+                or len(sibling_doc.content.splitlines()) > max_lines
+            ):
                 return None
-        
+
         return {
             "title": row["repo_name"],  # name of the repo
             "topic": (

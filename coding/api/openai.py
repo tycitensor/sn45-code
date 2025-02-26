@@ -13,7 +13,12 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from coding.protocol import StreamCodeSynapse
 from coding.api.loggers import CallCountManager
 from coding.api.protocol import CompletionRequest, ChatCompletionRequest
-from coding.api.completion import completion, chat_completion, chat_completion_stream_generator, completion_stream_generator
+from coding.api.completion import (
+    completion,
+    chat_completion,
+    chat_completion_stream_generator,
+    completion_stream_generator,
+)
 from coding.api.cleaners import clean_fixes, remove_secret_lines, remove_generate_prompt
 
 dotenv.load_dotenv()
@@ -37,10 +42,10 @@ parser.add_argument(
 )  # TODO change to real
 parser.add_argument(
     "--stat_api_url", type=str, default=None, help="Url of the statistics API"
-)  
+)
 parser.add_argument(
     "--stat_api_key", type=str, default=None, help="Key for the statistics API"
-)  
+)
 args = parser.parse_args()
 
 WALLET_NAME = args.wallet
@@ -53,7 +58,7 @@ STAT_API_KEY = os.getenv("STAT_API_KEY", args.stat_api_key)
 CALL_COUNTER = None
 
 if STAT_API_URL and STAT_API_KEY:
-    CALL_COUNTER = CallCountManager(url=STAT_API_URL, key=STAT_API_KEY) 
+    CALL_COUNTER = CallCountManager(url=STAT_API_URL, key=STAT_API_KEY)
 
 
 subtensor = None
@@ -97,6 +102,7 @@ async def forward(uid, synapse, timeout=25):
     )
     return response
 
+
 app = FastAPI(
     lifespan=lifespan,
     docs_url="/",
@@ -104,9 +110,7 @@ app = FastAPI(
 )
 
 
-@app.post(
-    "/chat/completions"
-)
+@app.post("/chat/completions")
 @app.post("/v1/chat/completions")
 async def chat_completions(request: ChatCompletionRequest):
     if CALL_COUNTER:
@@ -117,12 +121,23 @@ async def chat_completions(request: ChatCompletionRequest):
         request.files = []
     try:
         generator = await forward(
-            0, StreamCodeSynapse(messages=request.messages, attachments=request.attachments, files=request.files, uid=0)
+            0,
+            StreamCodeSynapse(
+                messages=request.messages,
+                attachments=request.attachments,
+                files=request.files,
+                uid=0,
+            ),
         )
         if request.stream:
-            return StreamingResponse(chat_completion_stream_generator(request, generator), media_type="text/event-stream")
+            return StreamingResponse(
+                chat_completion_stream_generator(request, generator),
+                media_type="text/event-stream",
+            )
         else:
-            return JSONResponse(content=(await chat_completion(request, generator)).model_dump())
+            return JSONResponse(
+                content=(await chat_completion(request, generator)).model_dump()
+            )
     except httpx.ReadTimeout:
         raise HTTPException(408) from None
     except Exception as e:
@@ -141,19 +156,24 @@ async def completions(request: CompletionRequest):
     if isinstance(request.prompt, list):
         request.prompt = " ".join(request.prompt)
     # remove any fim prefix/suffixes
-    request.prompt = remove_generate_prompt(remove_secret_lines(clean_fixes(request.prompt)))
-    try: 
+    request.prompt = remove_generate_prompt(
+        remove_secret_lines(clean_fixes(request.prompt))
+    )
+    try:
         # generator = await forward(
         #     get_top_miner_uid(), StreamCodeSynapse(query=clean_deepseek(request.prompt))
         # )
-        generator = await forward(
-            0, StreamCodeSynapse(query=request.prompt, uid=0)
-        )
+        generator = await forward(0, StreamCodeSynapse(query=request.prompt, uid=0))
 
         if request.stream:
-            return StreamingResponse(completion_stream_generator(request, generator), media_type="text/event-stream")
+            return StreamingResponse(
+                completion_stream_generator(request, generator),
+                media_type="text/event-stream",
+            )
         else:
-            return JSONResponse(content=(await completion(request, generator)).model_dump())
+            return JSONResponse(
+                content=(await completion(request, generator)).model_dump()
+            )
     except httpx.ReadTimeout:
         raise HTTPException(408) from None
     except Exception as e:

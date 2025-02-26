@@ -30,14 +30,15 @@ class SpeedModel(BaseRewardModel):
             raise ValueError("Time taken and ideal time must be positive values.")
 
         # Calculate the score using an exponential decay function
-        score = math.exp(-self.decay_rate * (time_taken - self.ideal_time) / self.ideal_time)
+        score = math.exp(
+            -self.decay_rate * (time_taken - self.ideal_time) / self.ideal_time
+        )
 
         # Ensure the score is between 0 and 1
         return max(0, min(1, score))
-    
+
     def reward(self, times) -> BatchRewardOutput:
-        """Get the score between two strings.
-        """
+        """Get the score between two strings."""
 
         rewards = []
         timings = []

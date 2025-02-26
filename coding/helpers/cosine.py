@@ -1,16 +1,18 @@
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
+
 def cosim(model, text1: str, text2: str) -> float:
     # Load the pre-trained sentence transformer model
-    
+
     # Embed the texts
     embeddings = model.encode([text1, text2])
-    
+
     # Calculate cosine similarity
     similarity = cosine_similarity([embeddings[0]], [embeddings[1]])[0][0]
-    
+
     return similarity
+
 
 def normalize_cosim(value, min_value=0.5, max_value=1.0, exponent=1.3):
     """
@@ -32,10 +34,14 @@ def normalize_cosim(value, min_value=0.5, max_value=1.0, exponent=1.3):
     linear_normalized_value = (value - min_value) / (max_value - min_value)
 
     # Check for invalid linear_normalized_value (e.g., NaN or out of bounds)
-    if np.isnan(linear_normalized_value) or linear_normalized_value < 0 or linear_normalized_value > 1:
+    if (
+        np.isnan(linear_normalized_value)
+        or linear_normalized_value < 0
+        or linear_normalized_value > 1
+    ):
         return 0
 
     # Then apply the exponential transformation
     exponential_normalized_value = np.power(linear_normalized_value, exponent)
-    
+
     return exponential_normalized_value

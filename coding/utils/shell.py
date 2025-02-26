@@ -3,6 +3,7 @@ import subprocess
 import bittensor as bt
 from threading import Thread
 
+
 def execute_shell_command(command: str, model_name: str) -> subprocess.Popen:
     """
     Execute a shell command and stream the output to the caller in real-time.
@@ -24,8 +25,8 @@ def execute_shell_command(command: str, model_name: str) -> subprocess.Popen:
         )
 
         def stream_output(stream, stream_name):
-            for line in iter(stream.readline, ''):
-                line = line.rstrip('\n')
+            for line in iter(stream.readline, ""):
+                line = line.rstrip("\n")
                 if stream_name == "STDERR":
                     # only print lines that relate to the model or loading status
                     if model_name in line or "shard" in line:
@@ -45,6 +46,7 @@ def execute_shell_command(command: str, model_name: str) -> subprocess.Popen:
         # Start a timer thread to kill the process after 5 hours
         def kill_after_timeout():
             import time
+
             time.sleep(5 * 60 * 60)  # Sleep for 5 hours
             if process.poll() is None:  # If process is still running
                 process.terminate()

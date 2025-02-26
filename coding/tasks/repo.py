@@ -7,14 +7,15 @@ from coding.schemas import Context, File
 from coding.helpers.fim import insert_fim_hole
 from coding.helpers.rewrite import rewrite_code
 
+
 def delete_function_body_and_following(code: str) -> (str, str):
     """
     Takes in some code, randomly finds a function, deletes the body of that function and anything after it.
-    
+
     Returns the function definition alongside the deleted body of the function.
     """
     random.seed(None)
-    
+
     class FunctionBodyRemover(ast.NodeTransformer):
         def __init__(self, target_func_name):
             self.target_func_name = target_func_name
@@ -27,7 +28,9 @@ def delete_function_body_and_following(code: str) -> (str, str):
             if node.name == self.target_func_name:
                 self.body = ast.unparse(node.body) if node.body else ""
                 node.body = []  # Remove the function body
-                self.stop_processing = True  # Stop after we modify the targeted function
+                self.stop_processing = (
+                    True  # Stop after we modify the targeted function
+                )
             return node
 
     # Parse the code into an ASTt
@@ -52,21 +55,21 @@ def delete_function_body_and_following(code: str) -> (str, str):
         return None, None
 
     # Find the function definition line in the original code
-    func_def_start = code.find(f'def {target_func.name}')
-    
+    func_def_start = code.find(f"def {target_func.name}")
+
     if func_def_start == -1:
         return None, None
 
     # Extract just the function definition line
     func_def_end = code.find(":", func_def_start) + 1
     function_definition = code[func_def_start:func_def_end]
-    
+
     if function_definition.strip() == "":
         return None, None
-    
+
     if not function_definition or not remover.body:
         return None, None
-        
+
     return function_definition, remover.body
 
 
@@ -76,17 +79,14 @@ class RepoCompletionTask(Task):
     goal: str = "complete the code given the context of the rest of the repo"
     reward_definition: List[dict] = [
         dict(name="codesim", weight=0.8),
-        dict(name="speed", weight=0.2, ideal_time=2.5)
+        dict(name="speed", weight=0.2, ideal_time=2.5),
     ]
-    penalty_definition: List = [
-        dict(name="validcode", weight=1) 
-    ]
-    cleaning_pipeline: List = [
-    ] # TODO remove markdown wrappings
+    penalty_definition: List = [dict(name="validcode", weight=1)]
+    cleaning_pipeline: List = []  # TODO remove markdown wrappings
     dataset_options: Dict = dict(include_sibling_docs=True)
     attachments = []
     messages = []
-    files = []    
+    files = []
 
     def __init__(self, llm: Callable, context: Context, **kwargs):
         self.context = context
@@ -102,9 +102,12 @@ class RepoCompletionTask(Task):
         else:
             self.query, self.reference = insert_fim_hole(context.content)
         # rewrite every file
-        for file in context.extras['sibling_docs']:
+        for file in context.extras["sibling_docs"]:
             file.content = rewrite_code(file.content, llm)
-        self.files = [File(path=cont.title, content=cont.content) for cont in context.extras['sibling_docs']] # Filter the info sent to the miners
+        self.files = [
+            File(path=cont.title, content=cont.content)
+            for cont in context.extras["sibling_docs"]
+        ]  # Filter the info sent to the miners
 
         self.topic = context.title
         self.subtopic = context.topic

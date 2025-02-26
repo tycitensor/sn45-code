@@ -48,7 +48,7 @@ def check_uid_availability(
         return False
 
     # Filter validator permit > 1024 stake.
-    if metagraph.validator_permit[uid] and metagraph.S[uid] > vpermit_tao_limit: 
+    if metagraph.validator_permit[uid] and metagraph.S[uid] > vpermit_tao_limit:
         bt.logging.debug(
             f"uid: {uid} has vpermit and stake ({metagraph.S[uid]}) > {vpermit_tao_limit}"
         )
@@ -63,9 +63,8 @@ def check_uid_availability(
     # Available otherwise.
     return True
 
-def get_random_uids(
-    self, k: int, exclude: List[int] = None
-) -> np.ndarray:
+
+def get_random_uids(self, k: int, exclude: List[int] = None) -> np.ndarray:
     """Returns k available random uids from the metagraph.
     Args:
         k (int): Number of uids to return.
@@ -100,12 +99,16 @@ def get_random_uids(
     uids = np.array(random.sample(available_uids, k))
     return uids
 
+
 def get_miner_hotkeys(self) -> List[str]:
     hotkeys = []
     for uid in range(self.metagraph.n.item()):
-        if check_uid_availability(self.metagraph, uid, self.config.neuron.vpermit_tao_limit):
+        if check_uid_availability(
+            self.metagraph, uid, self.config.neuron.vpermit_tao_limit
+        ):
             hotkeys.append(self.metagraph.axons[uid].hotkey)
     return hotkeys
+
 
 def get_uid_from_hotkey(self, hotkey: str) -> int:
     for uid in range(self.metagraph.n.item()):
@@ -113,8 +116,16 @@ def get_uid_from_hotkey(self, hotkey: str) -> int:
             return uid
     return None
 
+
 def get_hotkey_from_uid(self, uid: int) -> str:
     return self.metagraph.axons[uid].hotkey
 
+
 def get_miner_uids(self) -> List[int]:
-    return [uid for uid in range(self.metagraph.n.item()) if check_uid_availability(self.metagraph, uid, self.config.neuron.vpermit_tao_limit)]
+    return [
+        uid
+        for uid in range(self.metagraph.n.item())
+        if check_uid_availability(
+            self.metagraph, uid, self.config.neuron.vpermit_tao_limit
+        )
+    ]

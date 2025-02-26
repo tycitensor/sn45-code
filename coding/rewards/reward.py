@@ -26,10 +26,12 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List, Any, Union, Dict
 
+
 class RewardModelTypeEnum(Enum):
     WEIGHTED_REWARD = "reward"
     FILTER_REWARD = "filter"
     PENALTY = "penalty"
+
 
 @dataclass
 class RewardEvent(ABC):
@@ -83,15 +85,24 @@ class RewardResult:
             task=task,
         )
         self.rewards = self.total_reward()
-            
+
     def __state_dict__(self):
-        state = {"rewards": self.rewards.tolist(), "highest_reward": self.rewards.max(), "average_reward": self.rewards.mean(), "task_name": self.task.name}
+        state = {
+            "rewards": self.rewards.tolist(),
+            "highest_reward": self.rewards.max(),
+            "average_reward": self.rewards.mean(),
+            "task_name": self.task.name,
+        }
         for event in self.reward_events + self.penalty_events:
             state.update(event.asdict())
         return state
 
     def reward_responses(
-        self, reference: Union[str, List[str], Dict], models: List[dict], reward_type: RewardModelTypeEnum, task
+        self,
+        reference: Union[str, List[str], Dict],
+        models: List[dict],
+        reward_type: RewardModelTypeEnum,
+        task,
     ) -> List[RewardEvent]:
         """Calculates the rewards for the responses given the task and returns a RewardEvent for each reward model
         reward_events: List[RewardEvent] = [
@@ -110,9 +121,11 @@ class RewardResult:
                 )
             if isinstance(reference, dict):
                 ref = reference.get(reward_info["name"])
-            
+
             if reward_model == "self":
-                reward_event = self.task.reward_apply(self.response_event, reward_type=reward_type)
+                reward_event = self.task.reward_apply(
+                    self.response_event, reward_type=reward_type
+                )
             else:
                 # Compute the rewards for the responses given the prompt
                 reward_event = reward_model.apply(
@@ -127,23 +140,28 @@ class RewardResult:
         # Compute the rewards for the responses given the prompt
         rewards = np.zeros_like(self.response_event.uids, dtype=np.float64)
         for event in self.reward_events:
-            for reward_info in filter(lambda x: x["name"] == event.model_name, self.task_rewards):
+            for reward_info in filter(
+                lambda x: x["name"] == event.model_name, self.task_rewards
+            ):
                 rewards += reward_info["weight"] * event.rewards
 
         for event in self.penalty_events:
-            for reward_info in filter(lambda x: x["name"] == event.model_name, self.task_penalties):
+            for reward_info in filter(
+                lambda x: x["name"] == event.model_name, self.task_penalties
+            ):
                 rewards *= 1 - reward_info["weight"] * event.rewards
-        
+
         return rewards
 
     def __str__(self):
         return f"{self.__class__.__name__}(rewards={self.rewards!r}, reward_events={self.reward_events!r}, penalty_events={self.penalty_events!r})"
 
+
 @dataclass
-class BatchRewardOutput():
+class BatchRewardOutput:
     rewards: Any
-    timings: Any 
-    extra_info: dict 
+    timings: Any
+    extra_info: dict
 
     def __post_init__(self):
         self.rewards = np.asarray(self.rewards)
@@ -162,8 +180,7 @@ class BatchRewardOutput():
 class BaseRewardModel(ABC):
     @property
     @abstractmethod
-    def name(self) -> str:
-        ...
+    def name(self) -> str: ...
 
     @abstractmethod
     def __init__(self, **kwargs):
@@ -172,22 +189,31 @@ class BaseRewardModel(ABC):
     @abstractmethod
     def reward(self, reference: str, completions: List[str]) -> BatchRewardOutput:
         pass
-    
+
     def apply(self, reference: str, response_event, reward_type, task) -> RewardEvent:
         t0 = time.time()
         if self.name == "speed":
             batch_rewards_output = self.reward(response_event.timings)
         elif self.name == "validcode":
             if "<|fim_hole|>" in task.query:
-                batch_rewards_output = self.reward(task.context.content, [task.query.replace("<|fim_hole|>", completion) for completion in response_event.completions], task.context.topic)
+                batch_rewards_output = self.reward(
+                    task.context.content,
+                    [
+                        task.query.replace("<|fim_hole|>", completion)
+                        for completion in response_event.completions
+                    ],
+                    task.context.topic,
+                )
             else:
-                batch_rewards_output = self.reward(task.context.content, response_event.completions, task.context.topic)
-        # elif self.name == "debugrun": #TODO remove 
-            # batch_rewards_output = self.reward(task, response_event)
+                batch_rewards_output = self.reward(
+                    task.context.content, response_event.completions, task.context.topic
+                )
+        # elif self.name == "debugrun": #TODO remove
+        # batch_rewards_output = self.reward(task, response_event)
         else:
             batch_rewards_output = self.reward(reference, response_event.completions)
         batch_rewards_time = time.time() - t0
-        
+
         return RewardEvent(
             model_name=self.name,
             rewards=batch_rewards_output.rewards,

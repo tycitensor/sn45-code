@@ -7,6 +7,7 @@ from coding.utils.uids import get_miner_uids, get_hotkey_from_uid
 import asyncio
 import threading
 
+
 def run_async_in_thread(coro):
     """
     Runs an async coroutine in a separate thread and returns its result.
@@ -29,18 +30,16 @@ def run_async_in_thread(coro):
         raise exception_container[0]
     return result_container[0]
 
+
 def gather_all_logics(validator) -> List[TrackingInfo]:
     uids = get_miner_uids(validator)
     axons = [validator.metagraph.axons[uid] for uid in uids]
     synapse = LogicSynapse()
-    
+
     # Run the async query in a separate thread
     responses = run_async_in_thread(
         validator.dendrite.aquery(
-            axons=axons, 
-            synapse=synapse, 
-            timeout=45, 
-            deserialize=False
+            axons=axons, synapse=synapse, timeout=45, deserialize=False
         )
     )
     return [
@@ -55,12 +54,18 @@ def gather_all_logics(validator) -> List[TrackingInfo]:
         for i, synapse in enumerate(responses)
     ]
 
+
 def regrab_tracker(tracker: TrackingInfo, validator) -> TrackingInfo:
     uid = tracker.uid
     if tracker.hotkey != get_hotkey_from_uid(validator, uid):
         return tracker
     synapse = LogicSynapse()
-    logic_synapse = validator.dendrite.query(axons=[validator.metagraph.axons[uid]], synapse=synapse, timeout=45, deserialize=False)[0]
+    logic_synapse = validator.dendrite.query(
+        axons=[validator.metagraph.axons[uid]],
+        synapse=synapse,
+        timeout=45,
+        deserialize=False,
+    )[0]
     return TrackingInfo(
         logic=logic_synapse.logic,
         block=validator.metagraph.block,

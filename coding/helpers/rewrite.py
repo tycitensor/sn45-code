@@ -17,8 +17,11 @@ REWRITE_REASONS = [
     "super correct",
 ]
 
+
 def rewrite_code(code: str, model: str) -> str:
-    res = model.invoke(f"Rewrite the following code to be {random.choice(REWRITE_REASONS)}, make sure it does the same thing though: {code}").content
+    res = model.invoke(
+        f"Rewrite the following code to be {random.choice(REWRITE_REASONS)}, make sure it does the same thing though: {code}"
+    ).content
 
     if "```" in res:
         start = res.find("```") + 3  # Skip the backticks and newline

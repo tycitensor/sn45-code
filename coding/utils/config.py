@@ -24,6 +24,7 @@ from .logging import setup_events_logger
 
 from coding.tasks import TASKS
 
+
 def is_cuda_available():
     try:
         output = subprocess.check_output(["nvidia-smi", "-L"], stderr=subprocess.STDOUT)
@@ -39,6 +40,7 @@ def is_cuda_available():
         pass
     return "cpu"
 
+
 def check_config(cls, config: "bt.Config"):
     r"""Checks/validates the config namespace object."""
     bt.logging.check_config(config)
@@ -52,7 +54,7 @@ def check_config(cls, config: "bt.Config"):
             config.neuron.name,
         )
     )
-    
+
     config.neuron.full_path = os.path.expanduser(full_path)
     if not os.path.exists(config.neuron.full_path):
         os.makedirs(config.neuron.full_path, exist_ok=True)
@@ -62,7 +64,7 @@ def check_config(cls, config: "bt.Config"):
         events_logger = setup_events_logger(
             config.neuron.full_path, config.neuron.events_retention_size
         )
-        bt.logging.register_primary_logger(events_logger.name) 
+        bt.logging.register_primary_logger(events_logger.name)
 
 
 def add_args(cls, parser):
@@ -103,7 +105,7 @@ def add_args(cls, parser):
         help="If set, we dont save events to a log file.",
         default=False,
     )
-    
+
     parser.add_argument(
         "--neuron.tasks",
         type=str,
@@ -111,21 +113,22 @@ def add_args(cls, parser):
         help="The tasks to use for the validator.",
         default=list(TASKS.keys()),
     )
-    
+
     parser.add_argument(
         "--neuron.task_weights",
         type=int,
         nargs="+",
         help="The weights for sampling of each task.",
-        default=[0,0,0,0,0,1]
+        default=[0, 0, 0, 0, 0, 1],
     )
-    
+
     parser.add_argument(
         "--neuron.percent_organic_score",
         type=float,
         help="The percent of organic synapses to score",
         default=0.25,
     )
+
 
 def add_miner_args(cls, parser):
     """Add miner specific arguments to the parser."""
@@ -136,7 +139,7 @@ def add_miner_args(cls, parser):
         help="The name of the miner to load",
         default="miner",
     )
-    
+
     parser.add_argument(
         "--neuron.model_id",
         type=str,
@@ -164,14 +167,13 @@ def add_miner_args(cls, parser):
         help="If set, miners will accept queries from non registered entities. (Dangerous!)",
         default=False,
     )
-    
+
     parser.add_argument(
         "--neuron.streaming_batch_size",
         type=int,
         default=12,
         help="Batch size in tokens for streaming forward calls.",
     )
-
 
 
 def add_validator_args(cls, parser):
@@ -195,14 +197,14 @@ def add_validator_args(cls, parser):
         "--neuron.num_concurrent_forwards",
         type=int,
         help="The number of concurrent forwards running at any time.",
-        default=1, # TODO increase
+        default=1,  # TODO increase
     )
 
     parser.add_argument(
         "--neuron.sample_size",
         type=int,
         help="The number of miners to query in a single step.",
-        default=50, # TODO decrease?
+        default=50,  # TODO decrease?
     )
 
     parser.add_argument(
@@ -218,7 +220,7 @@ def add_validator_args(cls, parser):
         help="Moving average alpha parameter, how much to add of the new observation.",
         default=0.05,
     )
-    
+
     parser.add_argument(
         "--wandb.project_name",
         type=str,
@@ -239,7 +241,7 @@ def add_validator_args(cls, parser):
         default="gen42",
         help="Wandb entity to log to.",
     )
-    
+
     parser.add_argument(
         "--neuron.axon_off",
         "--axon_off",
@@ -256,21 +258,21 @@ def add_validator_args(cls, parser):
         help="The maximum number of TAO allowed to query a validator with a vpermit.",
         default=4096,
     )
-    
+
     parser.add_argument(
         "--neuron.model_id",
         type=str,
         help="The name of the LLM to be used for the validator.",
         default="Qwen/Qwen2.5-14B-Instruct-GPTQ-Int4",
     )
-    
+
     parser.add_argument(
         "--neuron.model_url",
         type=str,
         help="The openai compatible model url to be used for the validator",
         default="http://localhost:8028/v1",
     )
-    
+
     parser.add_argument(
         "--neuron.vllm_api_key",
         type=str,
@@ -284,22 +286,20 @@ def add_validator_args(cls, parser):
         help="Max time to wait for a forward call to complete in seconds.",
         default=120,
     )
-    
+
     parser.add_argument(
         "--neuron.finetune_gpu_id",
         type=int,
         help="The gpu to use for finetuning.",
         default=0,
     )
-    
+
     parser.add_argument(
         "--neuron.finetune_test_size",
         type=int,
         help="The number of finetune tasks to generate and score with.",
         default=100,
     )
-    
-
 
 
 def config(cls):
@@ -311,8 +311,8 @@ def config(cls):
     bt.subtensor.add_args(parser)
     bt.logging.add_args(parser)
     bt.axon.add_args(parser)
-    if cls is not None: 
+    if cls is not None:
         cls.add_args(parser)
-    bt.trace() # TODO add if statement for if they want this
+    bt.trace()  # TODO add if statement for if they want this
     bt.debug()
     return bt.config(parser)

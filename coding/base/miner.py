@@ -50,16 +50,16 @@ class BaseMinerNeuron(BaseNeuron):
             bt.logging.warning(
                 "You are allowing non-registered entities to send requests to your miner. This is a security risk."
             )
-        
+
         # The axon handles request processing, allowing validators to send this miner requests.
         self.axon = bt.axon(wallet=self.wallet, config=self.config)
 
         # Attach determiners which functions are called when servicing a request.
         bt.logging.info(f"Attaching forward function to miner axon.")
         for forward_capability in self.forward_capabilities:
-            forward_fn = forward_capability['forward']
-            blacklist_fn = forward_capability['blacklist']
-            priority_fn = forward_capability['priority']
+            forward_fn = forward_capability["forward"]
+            blacklist_fn = forward_capability["blacklist"]
+            priority_fn = forward_capability["priority"]
             self.axon.attach(
                 forward_fn=forward_fn,
                 blacklist_fn=blacklist_fn,
@@ -192,7 +192,7 @@ class BaseMinerNeuron(BaseNeuron):
     def resync_metagraph(self):
         """Resyncs the metagraph and updates the hotkeys and moving averages based on the new metagraph."""
         # bt.logging.info("resync_metagraph()")
-        
+
         # Sync the metagraph.
         self.metagraph.sync(subtensor=self.subtensor)
         self.last_block_sync = self.block

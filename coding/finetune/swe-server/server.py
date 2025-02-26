@@ -8,9 +8,11 @@ app = FastAPI()
 
 swe_instance = submission.SWE()
 
+
 class CallRequest(BaseModel):
     repo_location: str
     issue_description: str
+
 
 @app.post("/call")
 async def call_swe(request: CallRequest) -> dict:

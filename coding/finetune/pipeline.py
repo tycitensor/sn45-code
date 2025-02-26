@@ -27,7 +27,7 @@ from coding.tasks.swe import SWEBenchTask
 from coding.datasets.swefull import SWEFullDataset
 from coding.finetune.llm.manager import LLMManager
 from coding.helpers.containers import DockerServer
-from coding.helpers.codeanal import verify_code_usage, check_large_literals
+from coding.finetune.model import ModelStore, validate_logic
 
 
 class FinetuneEventResults(BaseModel):
@@ -99,63 +99,6 @@ def bittensor_injector(self):
     self.metagraph = self.subtensor.metagraph(self.config.netuid)
 
 
-def verify_logic(logic: dict) -> tuple[bool, str]:
-    additional_msg = "\t"
-    # Dictionary mapping modules to allowed functions/imports
-    allowed_modules = ALLOWED_MODULES.copy()
-
-    # Define allowed file extensions
-    allowed_extensions = {".yaml", ".py", ".txt", ".json"}
-
-    for module in logic:
-        # Handle folder paths by taking first component
-        module_name = module.split("/")[0].split(".")[0]
-        if module_name not in allowed_modules:
-            allowed_modules.append(module_name)
-
-    for key, value in logic.items():
-        if value:
-            # Check if the file extension is allowed
-            file_extension = key.split(".")[-1]
-            if f".{file_extension}" not in allowed_extensions:
-                return False, f"File extension .{file_extension} is not allowed."
-
-            # Create expanded allowed modules list that includes submodules and specific imports
-            expanded_allowed = set()
-            for mod in allowed_modules:
-                expanded_allowed.add(mod)
-                # If module is allowed, all its submodules are allowed
-                for used_mod in value.split():
-                    if used_mod.startswith(f"{mod}."):
-                        expanded_allowed.add(used_mod)
-                    # Check for specific allowed imports like "from os import getenv"
-            usage_pass, usage_msg = verify_code_usage(
-                value, list(expanded_allowed), ALLOWED_IMPORTS
-            )
-            if not usage_pass:
-                return False, usage_msg
-
-    total_chars = 0
-    for key, value in logic.items():
-        # Include full folder path in character count
-        total_chars += len(key) + len(value)
-
-    if total_chars > NUM_ALLOWED_CHARACTERS:
-        return (
-            False,
-            f"Total characters: {total_chars} exceeds the limit of {NUM_ALLOWED_CHARACTERS}",
-        )
-
-    for key, value in logic.items():
-        pass_large_literals, large_literals_msg = check_large_literals(value)
-        if not pass_large_literals:
-            logic[key] = ""
-            additional_msg += (
-                f"Large literal found in file: {large_literals_msg}. It was cleared.\n"
-            )
-    return True, "Logic is valid" + additional_msg
-
-
 class FinetunePipeline:
     def __init__(
         self,
@@ -180,14 +123,12 @@ class FinetunePipeline:
         self.ungraded_trackers = []
         self.dataset = SWEFullDataset()
         self.llm_manager = LLMManager()
+        self.load_model_store()
         if tracking_logics is None:
             self.load_logics()
         else:
             self.ungraded_trackers = tracking_logics
         self.load_tasks()
-
-        # Register cleanup to be called when the object is deleted
-        # self._finalizer = weakref.finalize(self, self.cleanup)
 
     def load_tasks(self):
         print(
@@ -217,6 +158,7 @@ class FinetunePipeline:
         graded_trackers = []
         ungraded_trackers = []
         for tracker in grabbed_trackers:
+            self.model_store.upsert(tracker.logic)
             exists = False
             for saved_tracker in saved_trackers:
                 if len(saved_tracker.score_timestamps) == 0:
@@ -244,9 +186,19 @@ class FinetunePipeline:
                         ).quick_ratio()
                         > 0.90
                     ):
-                        graded_trackers.append(saved_tracker)
+                        model = self.model_store.get(tracker.logic)
+                        if not model or not model.valid:
+                            ungraded_trackers.append(tracker)
+                        else:
+                            graded_trackers.append(saved_tracker)
                     else:
-                        if tracker.logic == {} and saved_tracker.logic != {}:
+                        model = self.model_store.get(saved_tracker.logic)
+                        if (
+                            tracker.logic == {}
+                            and saved_tracker.logic != {}
+                            and model
+                            and model.valid
+                        ):
                             graded_trackers.append(saved_tracker)
                         else:
                             ungraded_trackers.append(tracker)
@@ -268,10 +220,10 @@ class FinetunePipeline:
         bt.logging.info("Verifying and building docker containers for each logic...")
         for tracker in self.ungraded_trackers:
             bt.logging.info(f"Verifying logic for hotkey {tracker.hotkey}...")
-            pass_logic, pass_msg = verify_logic(tracker.logic)
-            if not pass_logic:
+            model = self.model_store.upsert(tracker.logic)
+            if model and not model.valid:
                 bt.logging.info(
-                    f"Logic failed verification: {pass_msg} on tracker {tracker.hotkey}"
+                    f"Logic for hotkey {tracker.hotkey} is invalid, skipping..."
                 )
                 tracker.logic = {}
                 continue
@@ -452,6 +404,23 @@ class FinetunePipeline:
         pipeline.cleanup()  # Ensure cleanup is called after evaluation
         return result
 
+    def load_model_store(self):
+        if os.path.exists(
+            f"{self.config.neuron.full_path}/models_{COMPETITION_ID}.pkl"
+        ):
+            with open(
+                f"{self.config.neuron.full_path}/models_{COMPETITION_ID}.pkl", "rb"
+            ) as f:
+                self.model_store = pickle.load(f)
+        else:
+            self.model_store = ModelStore()
+
+    def store_model_store(self):
+        with open(
+            f"{self.config.neuron.full_path}/models_{COMPETITION_ID}.pkl", "wb"
+        ) as f:
+            pickle.dump(self.model_store, f)
+
     def load_trackers(self):
         loaded_trackers = []
         store_file = f"{self.config.neuron.full_path}/trackers_{COMPETITION_ID}.pkl"
@@ -511,7 +480,8 @@ class FinetunePipeline:
         dataset = SWEFullDataset()
         if len(tasks) < num_tasks_wanted:
             new_tasks = generate_swe_tasks(
-                dataset, num_tasks_wanted - len(tasks),
+                dataset,
+                num_tasks_wanted - len(tasks),
                 docker_server=DockerServer(
                     remote_host_url=os.getenv("REMOTE_DOCKER_HOST"),
                     remote_host_registry=f"{os.getenv('DOCKER_HOST_IP')}:5000",
@@ -523,6 +493,7 @@ class FinetunePipeline:
             for task in tasks:
                 task.docker_server = None
             pickle.dump(tasks, f)
+
     @staticmethod
     def tasks_exist(config):
         return os.path.exists(f"{config.neuron.full_path}/tasks_{COMPETITION_ID}.pkl")

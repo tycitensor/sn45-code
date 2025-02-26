@@ -5,9 +5,8 @@ import bittensor
 U32_MAX = 4294967295
 U16_MAX = 65535
 
-def normalize_max_weight(
-    x: np.ndarray, limit: float = 0.1
-) -> np.ndarray:
+
+def normalize_max_weight(x: np.ndarray, limit: float = 0.1) -> np.ndarray:
     r"""Normalizes the numpy array x so that sum(x) = 1 and the max value is not greater than the limit.
     Args:
         x (:obj:`np.ndarray`):
@@ -157,9 +156,7 @@ def process_weights_for_netuid(
         )  # creating minimum even non-zero weights
         weights[non_zero_weight_idx] += non_zero_weights
         print("final_weights", weights)
-        normalized_weights = normalize_max_weight(
-            x=weights, limit=max_weight_limit
-        )
+        normalized_weights = normalize_max_weight(x=weights, limit=max_weight_limit)
         return np.arange(len(normalized_weights)), normalized_weights
 
     print("non_zero_weights", non_zero_weights)

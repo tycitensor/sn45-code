@@ -33,6 +33,7 @@ from coding.utils.config import add_validator_args
 from coding.utils.exceptions import MaxRetryError
 from coding.utils.uids import get_hotkey_from_uid, get_uid_from_hotkey
 
+
 class BaseValidatorNeuron(BaseNeuron):
     """
     Base class for Bittensor validators. Your validator should inherit from this class.
@@ -58,7 +59,7 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # Set up initial scoring weights for validation
         bt.logging.info("Building validation weights.")
-        if not hasattr(self, 'scores') or self.scores is None:
+        if not hasattr(self, "scores") or self.scores is None:
             self.scores = np.zeros(self.metagraph.n)
         # Init sync with the network. Updates the metagraph.
         self.sync()
@@ -122,10 +123,10 @@ class BaseValidatorNeuron(BaseNeuron):
         """
 
         # Check that validator is registered on the network.
-        
+
         try:
             self.sync()
-        except Exception as e: # Broken pipe handling 
+        except Exception as e:  # Broken pipe handling
             bt.logging.error("Error while syncing, killing self to restart", str(e))
             bt.logging.debug(print_exception(type(e), e, e.__traceback__))
             sys.exit(1)
@@ -138,7 +139,9 @@ class BaseValidatorNeuron(BaseNeuron):
                 self.axon.serve(netuid=self.config.netuid, subtensor=self.subtensor)
                 self.axon.start()
             except Exception as e:
-                bt.logging.error(f"Failed to serve and then start Axon with exception: {e}")
+                bt.logging.error(
+                    f"Failed to serve and then start Axon with exception: {e}"
+                )
         else:
             bt.logging.info(
                 f"Running validator on network: {self.config.subtensor.chain_endpoint} with netuid: {self.config.netuid}"
@@ -151,11 +154,16 @@ class BaseValidatorNeuron(BaseNeuron):
             while True:
                 bt.logging.info(f"step({self.step}) block({self.block})")
 
-                forward_timeout = self.config.neuron.forward_max_time 
+                forward_timeout = self.config.neuron.forward_max_time
                 try:
-                    tasks = [self.loop.create_task(asyncio.run(self.forward(synapse=None))) for _ in range(self.config.neuron.num_concurrent_forwards)]
+                    tasks = [
+                        self.loop.create_task(asyncio.run(self.forward(synapse=None)))
+                        for _ in range(self.config.neuron.num_concurrent_forwards)
+                    ]
                     self.loop.run_until_complete(
-                        asyncio.wait_for(asyncio.gather(*tasks), timeout=forward_timeout)
+                        asyncio.wait_for(
+                            asyncio.gather(*tasks), timeout=forward_timeout
+                        )
                     )
                 except MaxRetryError as e:
                     bt.logging.error(f"MaxRetryError: {e}")
@@ -165,7 +173,9 @@ class BaseValidatorNeuron(BaseNeuron):
                         f"Forward timeout: Task execution exceeded {forward_timeout} seconds and was cancelled.: {e}"
                     )
                     continue
-                except Exception as e: # TODO this wasnt here previously, but any errors were cancelling the forward loop so i added it
+                except (
+                    Exception
+                ) as e:  # TODO this wasnt here previously, but any errors were cancelling the forward loop so i added it
                     bt.logging.error("Error during validation", str(e))
                     bt.logging.debug(print_exception(type(e), e, e.__traceback__))
                     sys.exit(1)
@@ -192,7 +202,6 @@ class BaseValidatorNeuron(BaseNeuron):
             bt.logging.debug(print_exception(type(err), err, err.__traceback__))
             # self.should_exit = True
             sys.exit()
-            
 
     def run_in_background_thread(self):
         """
@@ -255,7 +264,14 @@ class BaseValidatorNeuron(BaseNeuron):
         raw_weights = np.divide(self.scores, np.sum(self.scores, axis=0))
         raw_weights[raw_weights < 0] = 0
         current_scores = raw_weights
-        weighted_scores = score_spreading(current_scores, divisions, 0.002, 0.0025, kurtosis_factor=0.5, divisions=np.random.randint(2, 9))
+        weighted_scores = score_spreading(
+            current_scores,
+            divisions,
+            0.002,
+            0.0025,
+            kurtosis_factor=0.5,
+            divisions=np.random.randint(2, 9),
+        )
         # Process the raw weights to final_weights via subtensor limitations.
         (
             processed_weight_uids,
@@ -291,7 +307,7 @@ class BaseValidatorNeuron(BaseNeuron):
         )
         if result is True:
             bt.logging.info("set_weights on chain successfully!")
-            return 
+            return
         else:
             bt.logging.error(f"set_weights failed {msg}")
 
@@ -334,11 +350,13 @@ class BaseValidatorNeuron(BaseNeuron):
         if not self.finetune_results:
             return
         latest_competition_id = max(self.finetune_results.keys())
-        bt.logging.info(f"latest_competition_id: {latest_competition_id} from {self.finetune_results.keys()}")
+        bt.logging.info(
+            f"latest_competition_id: {latest_competition_id} from {self.finetune_results.keys()}"
+        )
         finetune_scores = np.zeros(self.metagraph.n)
         for tracker in self.finetune_results[latest_competition_id].trackers:
             finetune_scores[tracker.uid] = tracker.score
-        
+
         max_score = np.max(finetune_scores)
         threshold = max_score - 0.17  # within 0.18 of max score
         finetune_scores[finetune_scores < threshold] = 0
@@ -371,7 +389,7 @@ class BaseValidatorNeuron(BaseNeuron):
         bt.logging.info("Loading validator state.")
 
         state_path = self.config.neuron.full_path + "/state.npz"
-        
+
         # Check if the state file exists before loading.
         if not os.path.exists(state_path):
             bt.warning("State file not found. Loading default state.")
@@ -385,18 +403,19 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # Load the state of the validator from file.
         state = np.load(state_path, allow_pickle=True)
-        
+
         # Set attributes, using default values if they don't exist in the state file.
         self.step = state["step"].item() if "step" in state else None
         self.scores = state["scores"] if "scores" in state else None
         self.hotkeys = state["hotkeys"] if "hotkeys" in state else None
-        self.last_task_update = state["last_task_update"].item() if "last_task_update" in state else 0
-        self.last_wandb_clean = state["last_wandb_clean"].item() if "last_wandb_clean" in state else 0
+        self.last_task_update = (
+            state["last_task_update"].item() if "last_task_update" in state else 0
+        )
+        self.last_wandb_clean = (
+            state["last_wandb_clean"].item() if "last_wandb_clean" in state else 0
+        )
         # Convert finetune_items back to dictionary
         self.finetune_results = {}
         if "finetune_items" in state:
             for key, value in state["finetune_items"]:
                 self.finetune_results[key] = value
-    
-    
-    

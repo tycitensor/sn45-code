@@ -12,6 +12,7 @@ from coding.schemas import ChatMessage
 def random_uuid() -> str:
     return str(uuid.uuid4().hex)
 
+
 class ChatCompletionResponseChoice(BaseModel):
     index: int
     message: ChatMessage
@@ -26,6 +27,7 @@ class ChatCompletionResponse(BaseModel):
     model: str
     choices: List[ChatCompletionResponseChoice]
 
+
 class CompletionResponseChoice(BaseModel):
     index: int
     text: str
@@ -35,8 +37,10 @@ class CompletionResponseChoice(BaseModel):
         description=(
             "The stop string or token id that caused the completion "
             "to stop, None if the completion finished for some other reason "
-            "including encountering the EOS token"),
+            "including encountering the EOS token"
+        ),
     )
+
 
 class ErrorResponse(BaseModel):
     object: str = "error"
@@ -51,9 +55,11 @@ class UsageInfo(BaseModel):
     total_tokens: int = 0
     completion_tokens: Optional[int] = 0
 
+
 class ResponseFormat(BaseModel):
     # type must be "json_object" or "text"
     type: str = Literal["text", "json_object"]
+
 
 class CompletionRequest(BaseModel):
     model: str
@@ -61,13 +67,13 @@ class CompletionRequest(BaseModel):
     prompt: Union[List[int], List[List[int]], str, List[str]]
     stream: Optional[bool] = False
 
+
 class ChatCompletionRequest(BaseModel):
     model: str
     messages: List[ChatMessage]
     stream: Optional[bool] = True
     attachments: Union[List[Any], None] = []
     files: Union[List[Any], None] = []
-    
 
 
 class CompletionResponse(BaseModel):
@@ -88,7 +94,8 @@ class CompletionResponseStreamChoice(BaseModel):
         description=(
             "The stop string or token id that caused the completion "
             "to stop, None if the completion finished for some other reason "
-            "including encountering the EOS token"),
+            "including encountering the EOS token"
+        ),
     )
 
 
@@ -99,6 +106,7 @@ class CompletionStreamResponse(BaseModel):
     model: str
     choices: List[CompletionResponseStreamChoice]
     usage: Optional[UsageInfo] = Field(default=None)
+
 
 class DeltaMessage(BaseModel):
     role: Optional[str] = None

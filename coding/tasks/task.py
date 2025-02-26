@@ -67,7 +67,7 @@ class Task(ABC):
             "task": self.name,
             "desc": self.desc,
             "goal": self.goal,
-            "query": self.query, 
+            "query": self.query,
             "query_time": getattr(self, "query_time", 0),
             "reference": self.reference,
             "reference_time": getattr(self, "reference_time", 0),
