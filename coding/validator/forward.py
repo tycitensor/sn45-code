@@ -32,6 +32,7 @@ async def forward(self, synapse: StreamCodeSynapse):
         sleep(10) # wait for containers to be truly deleted
         finetune_pipeline = FinetunePipeline(
             config=self.config,
+            use_remote=True,
         )
         self.finetune_eval_future = self.executor.submit(finetune_pipeline.evaluate)
     # Check if evaluation is complete
