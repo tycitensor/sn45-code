@@ -188,6 +188,7 @@ class FinetunePipeline:
                     ):
                         model = self.model_store.get(tracker.logic)
                         if not model or not model.valid:
+                            tracker.score = 0
                             ungraded_trackers.append(tracker)
                         else:
                             graded_trackers.append(saved_tracker)
@@ -201,6 +202,8 @@ class FinetunePipeline:
                         ):
                             graded_trackers.append(saved_tracker)
                         else:
+                            if not model or not model.valid:
+                                tracker.score = 0
                             ungraded_trackers.append(tracker)
                     break
             if not exists:
