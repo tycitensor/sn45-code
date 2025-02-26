@@ -24,7 +24,7 @@ def validate_logic(logic: dict):
     try:
         client = OpenAI()
         prompt = f"""\
-    You are a file verifier. You will be given a python file that is a portion of a larger codebase and you need to verify that it is valid. You will return a boolean value, true or false, as well as a message explaining why it is valid or not. The logic of the file should contain code for handling the following tasks:
+    You are a file verifier. You will be given a python file that is a portion of a larger codebase and you need to verify that it is valid. You will return a boolean value, true or false. The logic of the file should contain code for handling the following tasks:
     
     <Allowed tasks>
     - Searching a file for information

@@ -207,6 +207,7 @@ class FinetunePipeline:
                 ungraded_trackers.append(tracker)
         self.graded_trackers = graded_trackers
         self.ungraded_trackers = ungraded_trackers
+        self.store_model_store()
         print(
             f"Loaded {len(self.graded_trackers)} graded and {len(self.ungraded_trackers)} ungraded trackers"
         )
