@@ -130,7 +130,16 @@ def clean_wandb(self):
             wandb.delete_all()
     except Exception as e:
         bt.logging.error(f"Error cleaning wandb: {e}")
-        
+
+def init_wandb_if_not_exists(self):
+    if self.config.netuid != 45 and self.config.netuid != 171:
+        return
+    if not self.config.wandb.on:
+        return
+    if getattr(self, "wandb", None):
+        return
+    init_wandb(self)
+
 def log_event(self, event):
     if self.config.netuid != 45 and self.config.netuid != 171:
         return

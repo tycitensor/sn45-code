@@ -41,6 +41,8 @@ from coding.utils.config import config as util_config
 from coding.base.validator import BaseValidatorNeuron
 from coding.finetune.dockerutil import test_docker_container
 from coding.helpers.containers import DockerServer
+from coding.utils.logging import init_wandb_if_not_exists
+
 class Validator(BaseValidatorNeuron):
     """
     Your validator neuron class. You should use this class to define your validator's behavior. In particular, you should replace the forward function with your own logic.
@@ -60,7 +62,7 @@ class Validator(BaseValidatorNeuron):
         self.last_wandb_clean = self.block
         bt.logging.info("load_state()")
         self.load_state()
-
+        init_wandb_if_not_exists(self)
         # self.active_tasks = [
         #     task
         #     for task, p in zip(
