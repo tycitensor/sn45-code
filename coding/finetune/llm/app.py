@@ -338,7 +338,7 @@ async def get_embeddings(request: EmbeddingRequest):
     """
     try:
         response = await embedder.aembed_query(request.query)
-        vector = response["data"][0]["embedding"]
+        vector = response
         return EmbeddingResponse(vector=vector)
     except Exception as e:
         print("Error in get_embeddings endpoint:", e)
