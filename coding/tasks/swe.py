@@ -83,6 +83,13 @@ def run_instance(
     container = None
     try:
         print(f"Creating container for {instance_id} from image {image_name}...")
+        # Check if container with this name already exists and remove it
+        try:
+            existing_container = client.containers.get(instance_id)
+            print(f"Container {instance_id} already exists, removing it...")
+            existing_container.remove(force=True)
+        except docker.errors.NotFound:
+            pass  # Container doesn't exist, which is fine
         # Create and start instance container from the existing image
         container = client.containers.create(
             image=image_name, name=instance_id, command="tail -f /dev/null"
