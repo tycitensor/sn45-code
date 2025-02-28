@@ -40,7 +40,7 @@ from coding.protocol import StreamCodeSynapse
 from coding.utils.config import config as util_config
 from coding.base.validator import BaseValidatorNeuron
 from coding.finetune.dockerutil import test_docker_container
-from coding.helpers.containers import DockerServer
+from coding.helpers.containers import DockerServer, test_docker_server
 from coding.utils.logging import init_wandb_if_not_exists
 
 class Validator(BaseValidatorNeuron):
@@ -92,7 +92,10 @@ class Validator(BaseValidatorNeuron):
         if not test_result:
             bt.logging.error("Docker container test failed, exiting.")
             sys.exit(1)
-        
+        docker_server_test = test_docker_server()
+        if not docker_server_test:
+            bt.logging.error("Docker server test failed, exiting.")
+            sys.exit(1)
 
     def _forward(
         self, synapse: StreamCodeSynapse
