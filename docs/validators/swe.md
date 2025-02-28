@@ -166,13 +166,18 @@ sudo /etc/cron.monthly/dockerio
 If you are not using a digital ocean droplet, you can use the following alternative methods (This has yet to be tested): 
 
 ```bash
+# Set default policies
+sudo ufw default deny incoming
+sudo ufw default deny outgoing
+
+# Allow necessary inbound traffic
 sudo ufw allow 22 comment 'Allow SSH access'
 sudo ufw allow from <ip-of-server-you-are-running-the-validator-on> proto tcp to any port 2375 comment 'Allow access to docker daemon'
 sudo ufw allow from <ip-of-server-you-are-running-the-validator-on> proto tcp to any port 5000 comment 'Allow access to docker registry'
 
-# deny all other traffic 
-sudo ufw deny all
-sudo ufw default deny outgoing
+# Allow outbound traffic only to the validator server on port 25000
+sudo ufw allow out to <ip-of-server-you-are-running-the-validator-on> port 25000 proto tcp comment 'Allow outbound to validator server on port 25000'
+
 ```
 
 
