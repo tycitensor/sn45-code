@@ -56,6 +56,12 @@ Let docker manage the iptables rules update file `/etc/docker/daemon.json` with 
   "insecure-registries": ["<ip-of-docker-server>:5000"]
 }
 ```
+
+Then restart docker:
+```bash
+sudo systemctl restart docker
+```
+
 ```bash
 sudo apt install ipset
 ```
@@ -137,6 +143,7 @@ sudo iptables -A INPUT -p tcp --sport 22 -j ACCEPT
 sudo iptables -A OUTPUT -j DROP
 sudo iptables -A DOCKER-USER -j DROP
 sudo iptables -A INPUT -p tcp --dport 2375 -j DROP
+sudo iptables -A INPUT -p tcp --dport 5000 -j DROP
 
 sudo iptables-save | sudo tee /etc/iptables/rules.v4
 sudo systemctl restart docker

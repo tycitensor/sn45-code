@@ -128,6 +128,12 @@ Update the `/etc/docker/daemon.json` file with the following content:
 }
 ```
 
+Then restart docker:
+
+```bash
+sudo systemctl restart docker
+```
+
 #### Setup Docker Server
 
 Setup the docker server to host the miner submissions.
