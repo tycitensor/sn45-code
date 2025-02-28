@@ -471,6 +471,11 @@ RUN chmod +x /install_repo.sh && /bin/bash /install_repo.sh
 
     def _cleanup(self):
         self.repo._cleanup()
+        if self.use_remote:
+            self.docker_server._local_client.images.remove(self.image_name, force=True)
+            self.docker_server._remote_client.images.remove(self.image_name, force=True)
+        else:
+            self.docker_server._local_client.images.remove(self.image_name, force=True)
 
 
 def score_task(
