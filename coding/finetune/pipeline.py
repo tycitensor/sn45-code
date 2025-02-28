@@ -220,7 +220,7 @@ class FinetunePipeline:
     def results(self) -> FinetuneEventResults:
         return FinetuneEventResults(trackers=self.graded_trackers)
 
-    def evaluate(self, n_tasks: int = None) -> FinetuneEventResults:
+    def evaluate(self, n_tasks: int = None, store_results: bool = True) -> FinetuneEventResults:
         # gather all logics
         bt.logging.info("Verifying and building docker containers for each logic...")
         for tracker in self.ungraded_trackers:
@@ -379,13 +379,15 @@ class FinetunePipeline:
             tracker.score = sum(scores) / len(scores)
             tracker.score_timestamps.append(self.metagraph.block)
             self.graded_trackers.append(tracker)
-            self.store_trackers()
+            if store_results:
+                self.store_trackers()
 
             bt.logging.info(f"Cleaning up container for hotkey {tracker.hotkey}...")
             bt.logging.info(f"Final score for hotkey {tracker.hotkey}: {tracker.score}")
 
         bt.logging.info("Evaluation complete!")
-        self.store_trackers()
+        if store_results:
+            self.store_trackers()
 
         return self.results
 
