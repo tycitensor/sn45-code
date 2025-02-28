@@ -68,7 +68,9 @@ sudo apt install ipset
 
 Create a file in `/etc/cron.monthly/dockerio` with the following content:
 
-MAKE SURE YOU SET THE IP OF THE SERVER YOU ARE RUNNING THE VALIDATOR ON IN THE IPTABLES RULES BELOW.
+MAKE SURE YOU SET THE IP OF THE SERVER YOU ARE RUNNING THE VALIDATOR ON IN THE IPTABLES RULES BELOW. 
+
+ONLY RUN THIS IF YOU ARE USING A DIGITAL OCEAN DROPLET. ELSE SEE BELOW FOR ALTERNATIVE METHODS.
 
 ```bash
 #!/bin/bash
@@ -160,6 +162,20 @@ Run it now:
 ```bash
 sudo /etc/cron.monthly/dockerio
 ```
+
+If you are not using a digital ocean droplet, you can use the following alternative methods (This has yet to be tested): 
+
+```bash
+sudo ufw allow 22 comment 'Allow SSH access'
+sudo ufw allow from <ip-of-server-you-are-running-the-validator-on> proto tcp to any port 2375 comment 'Allow access to docker daemon'
+sudo ufw allow from <ip-of-server-you-are-running-the-validator-on> proto tcp to any port 5000 comment 'Allow access to docker registry'
+
+# deny all other traffic 
+sudo ufw deny all
+sudo ufw default deny outgoing
+```
+
+
 
 
 
