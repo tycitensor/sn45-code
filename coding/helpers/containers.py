@@ -310,10 +310,25 @@ class RemoteDockerHandler:
                         "Error transferring image from local to remote: %s", e
                     )
                     raise
-            if self.server.remote_host_registry is not None and self.server.remote_host_registry not in image:
-                image = f"{self.server.remote_host_registry}/{image}"
+            # Try to use the image without registry tag first
+            try:
+                self.client.images.get(image)
+                image_to_use = image
+            except docker.errors.ImageNotFound:
+                # If not found, try with registry tag
+                if self.server.remote_host_registry is not None and self.server.remote_host_registry not in image:
+                    registry_image = f"{self.server.remote_host_registry}/{image}"
+                    try:
+                        self.client.images.get(registry_image)
+                        image_to_use = registry_image
+                    except docker.errors.ImageNotFound:
+                        # If still not found, default to using the registry tag
+                        image_to_use = registry_image
+                else:
+                    image_to_use = image
+            
             container = self.client.containers.run(
-                image,
+                image_to_use,
                 command=command,
                 name=name,
                 ports=ports,
