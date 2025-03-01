@@ -369,4 +369,11 @@ def test_docker_server():
             print("You have reached your unauthenticated pull rate limit. We will wait 15 minutes and try again.")
             sleep(60*15) # wait 15 minutes for rate limit to reset
             return test_docker_server()
+        if "is already in use by container" in str(e):
+            try:
+                docker_server._remote_client.containers.get("nginx-test").stop()
+                docker_server._remote_client.containers.get("nginx-test").remove()
+            except Exception as e:
+                print(f"Error stopping container: {e}")
+            return True
         return False
