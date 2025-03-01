@@ -349,6 +349,8 @@ def test_docker_server():
     except Exception as e:
         print(f"Error: {e}")
         if "You have reached your unauthenticated pull rate limit" in str(e):
-            print("We will assume it worked")
-            return True
+            from time import sleep
+            print("You have reached your unauthenticated pull rate limit. We will wait 15 minutes and try again.")
+            sleep(60*15) # wait 15 minutes for rate limit to reset
+            return test_docker_server()
         return False

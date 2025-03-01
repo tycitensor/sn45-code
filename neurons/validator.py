@@ -25,6 +25,7 @@ import random
 import asyncio
 import threading
 import traceback
+from time import sleep
 import bittensor as bt
 from typing import Awaitable, Tuple
 from code_bert_score import BERTScorer
@@ -92,10 +93,12 @@ class Validator(BaseValidatorNeuron):
         if not test_result:
             bt.logging.error("Docker container test failed, exiting.")
             sys.exit(1)
-        docker_server_test = test_docker_server()
-        if not docker_server_test:
-            bt.logging.error("Docker server test failed, exiting.")
-            sys.exit(1)
+        while True:
+            docker_server_test = test_docker_server()
+            if docker_server_test:
+                break
+            bt.logging.error("Docker server test failed, waiting 3 minutes and trying again.")
+            sleep(60*3)
 
     def _forward(
         self, synapse: StreamCodeSynapse
