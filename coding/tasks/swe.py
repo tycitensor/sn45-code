@@ -124,13 +124,13 @@ def run_instance(
                     # print(f"{APPLY_PATCH_PASS}:\n{val.output.decode(UTF8)}")
                     applied_patch = True
                     break
-                # else:
-                # print(f"Failed to apply patch to container: {git_apply_cmd}")
-                # print("The error is: ", val.output.decode(UTF8))
-                # print("The patch is: ", pred[KEY_PREDICTION])
+                else:
+                    print(f"Failed to apply patch to container: {git_apply_cmd}")
+                    print("The error is: ", val.output.decode(UTF8))
+                    print("The patch is: ", pred[KEY_PREDICTION])
 
             if not applied_patch:
-                # print(f"{APPLY_PATCH_FAIL}:\n{val.output.decode(UTF8)}")
+                print(f"{APPLY_PATCH_FAIL}:\n{val.output.decode(UTF8)}")
                 raise EvaluationError(
                     instance_id,
                     f"{APPLY_PATCH_FAIL}:\n{val.output.decode(UTF8)}",
@@ -185,7 +185,7 @@ def run_instance(
                 test_log_path=test_output_path,
                 include_tests_status=True,
             )
-
+            print("The report is: ", report)
         return instance_id, report
     except EvaluationError as e:
         error_msg = traceback.format_exc()
@@ -211,8 +211,8 @@ def run_instance(
 def score_patch(
     patch: str, instance: dict, client: docker.DockerClient, image_name: str
 ):
-    if patch.strip() == "":
-        return 0
+    # if patch.strip() == "":
+        # return 0
 
     prediction = {
         "instance_id": instance["instance_id"],
@@ -370,39 +370,19 @@ class SWEBenchTask(Task):
         except:
             print(f"Building image {self.image_name}")
         with tempfile.TemporaryDirectory() as temp_dir:
-            testbed_dir = os.path.join(temp_dir, "testbed")
-            os.makedirs(testbed_dir, exist_ok=True)
-            for item in os.listdir(self.repo.path):
-                s = os.path.join(self.repo.path, item)
-                d = os.path.join(testbed_dir, item)
-                if os.path.isdir(s):
-                    shutil.copytree(s, d, dirs_exist_ok=True)
-                else:
-                    shutil.copy2(s, d)
-
-            repo_script_list = test_spec.repo_script_list
-            index = repo_script_list.index("git remote remove origin")
-            remaining_scripts = repo_script_list[index:]
-            remaining_scripts = (
-                ["#!/bin/bash", "set -euxo pipefail"]
-                + ["cd /testbed"]
-                + remaining_scripts
-            )
-            repo_script = "\n".join(remaining_scripts) + "\n"
-            with open(os.path.join(temp_dir, "install_repo.sh"), "w") as f:
+            repo_script = test_spec.install_repo_script
+            with open(os.path.join(temp_dir, "setup_repo.sh"), "w") as f:
                 f.write(repo_script)
             dockerfile_content = f"""
 FROM "brokespace/swe-env-{test_spec.repo.replace("/", "-")}-{test_spec.version}:latest"
-COPY testbed /testbed
-WORKDIR /testbed
 USER root
-RUN chmod -R 777 /testbed
-COPY install_repo.sh /install_repo.sh
-RUN chmod +x /install_repo.sh && /bin/bash /install_repo.sh
-""".replace(
-                "source /opt/miniconda3/bin/activate &&",
-                ". /opt/miniconda3/bin/activate &&",
-            )
+
+COPY ./setup_repo.sh /root/
+RUN sed -i -e 's/\r$//' /root/setup_repo.sh
+RUN /bin/bash /root/setup_repo.sh
+
+WORKDIR /testbed/
+"""
             with open(os.path.join(temp_dir, "Dockerfile"), "w") as f:
                 f.write(dockerfile_content)
             start_time = time.time()
@@ -471,11 +451,15 @@ RUN chmod +x /install_repo.sh && /bin/bash /install_repo.sh
 
     def _cleanup(self):
         self.repo._cleanup()
-        if self.use_remote:
-            self.docker_server._local_client.images.remove(self.image_name, force=True)
-            self.docker_server._remote_client.images.remove(self.image_name, force=True)
-        else:
-            self.docker_server._local_client.images.remove(self.image_name, force=True)
+        try:
+            if self.use_remote:
+                self.docker_server._local_client.images.remove(self.image_name, force=True)
+                self.docker_server._remote_client.images.remove(self.image_name, force=True)
+            else:
+                self.docker_server._local_client.images.remove(self.image_name, force=True)
+        except Exception as e:
+            print("There was an error cleaning up the image: ", e)
+            print(traceback.format_exc())
 
 
 def score_task(
