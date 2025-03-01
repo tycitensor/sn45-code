@@ -1,4 +1,4 @@
-import tempfile
+import os
 from datasets import load_dataset
 
 from .base import Dataset
@@ -11,10 +11,15 @@ class SWEFullDataset(Dataset):
     def __init__(
         self,
     ):
-        # load in princeton-nlp/SWE-bench and shuffle the dataset
-        self.dataset = load_dataset(
-            "princeton-nlp/SWE-bench", split="test", streaming=True
-        ).shuffle()
+        if os.getenv("PRINCETON_SWE_BENCH_LOCATION", None) is not None:
+            self.dataset = load_dataset(
+                os.getenv("PRINCETON_SWE_BENCH_LOCATION"), split="test"
+            ).shuffle()
+        else:
+            # load in princeton-nlp/SWE-bench and shuffle the dataset
+            self.dataset = load_dataset(
+                "princeton-nlp/SWE-bench", split="test", streaming=True
+            ).shuffle()
         self.dataset_iterset = iter(self.dataset)
 
     def get(self, n=100, selector: Selector = Selector()) -> dict:
