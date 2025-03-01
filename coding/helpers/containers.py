@@ -310,7 +310,8 @@ class RemoteDockerHandler:
                         "Error transferring image from local to remote: %s", e
                     )
                     raise
-
+            if self.server.remote_host_registry is not None and self.server.remote_host_registry not in image:
+                image = f"{self.server.remote_host_registry}/{image}"
             container = self.client.containers.run(
                 image,
                 command=command,
