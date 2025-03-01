@@ -270,7 +270,7 @@ class RemoteDockerHandler:
                 path, tag, dockerfile, buildargs, rm, decode, push
             )
             # Load the image into the remote Docker daemon.
-            self.server.load_image_remote(image)
+            self.server.load_image_remote(tag)
             logging.info("Remote build successful, image '%s' transferred.", tag)
             return tag
         except Exception as e:
