@@ -207,6 +207,7 @@ def run_docker_container_from_base(
     repo: GitRepo,
     hotkey: str,
     issue_description: str,
+    base_commit: str,
     logic_files: dict,
     client,
     remote_host_url: str | None = None,
@@ -239,8 +240,9 @@ def run_docker_container_from_base(
                 f.write(content)
 
         # Write repo files to repo path
+        repo_dir = os.path.join(temp_dir, "repo")
         for filename, content in repo.files.items():
-            file_path = os.path.join(temp_dir, "repo", filename)
+            file_path = os.path.join(repo_dir, filename)
             # Create all parent directories
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
             # Create the file and write content
@@ -281,16 +283,26 @@ def run_docker_container_from_base(
 
             # Start the container
             container.start()
-
+            container.exec_run(f"git reset --hard {base_commit}", workdir="/testbed")
             # Copy files from temp_dir into container
             if remote_host_url:
                 # For remote Docker host, use docker context or SSH to copy files
                 os.system(
-                    f"docker -H {remote_host_url} cp {temp_dir}/. {container_name}:/app/"
+                    f"docker -H {remote_host_url} cp {temp_dir}/code/. {container_name}:/app/code/"
                 )
+                # Clear /testbed/ directory before copying new files
+                # container.exec_run("rm -rf /testbed/*")
+                # Copy repo files to /testbed/ directory
+                # os.system(
+                    # f"docker -H {remote_host_url} cp {temp_dir}/repo/. {container_name}:/testbed/"
+                # )
             else:
                 # For local Docker host
-                os.system(f"docker cp {temp_dir}/. {container_name}:/app/")
+                os.system(f"docker cp {temp_dir}/code/. {container_name}:/app/code/")
+                # Clear /testbed/ directory before copying new files
+                # container.exec_run("rm -rf /testbed/*")
+                # Copy repo files to /testbed/ directory
+                # os.system(f"docker cp {temp_dir}/repo/. {container_name}:/testbed/")
 
             # Execute runner.py in container
             exec_result, logs = exec_container_with_timeout(
@@ -324,7 +336,6 @@ def run_docker_container_from_base(
                 container.remove(force=True)
             except:
                 pass
-
 
 def test_docker_container(remote_host_url: str):
     client = docker.DockerClient(base_url=remote_host_url)

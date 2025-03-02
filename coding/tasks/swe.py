@@ -100,9 +100,9 @@ def run_instance(
         # Delete everything in /testbed/ and copy new files
         # container.exec_run("rm -rf /testbed/*")
         # os.system(f"docker cp {repo.temp_dir}/. {instance_id}:/testbed/")
-        # container.exec_run(
-        #     f"git reset --hard {instance['base_commit']}", workdir="/testbed"
-        # )
+        container.exec_run(
+            f"git reset --hard {instance['base_commit']}", workdir="/testbed"
+        )
         container.exec_run(
             "git config --global --add safe.directory /testbed", workdir="/testbed"
         )
@@ -379,9 +379,10 @@ class SWEBenchTask(Task):
         except:
             print(f"Building image {self.image_name}")
         with tempfile.TemporaryDirectory() as temp_dir:
-            repo_script = test_spec.install_repo_script
+            repo_script = test_spec.install_repo_script.split("\n")
+            repo_script = [line for line in repo_script if "git reset --hard" not in line]
             with open(os.path.join(temp_dir, "setup_repo.sh"), "w") as f:
-                f.write(repo_script)
+                f.write("\n".join(repo_script))
             dockerfile_content = f"""
 FROM "brokespace/swe-env-{test_spec.repo.replace("/", "-")}-{test_spec.version}:latest"
 USER root
