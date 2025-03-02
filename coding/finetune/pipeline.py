@@ -3,6 +3,8 @@ import json
 import pickle
 import difflib
 import traceback
+import threading
+import concurrent.futures
 import bittensor as bt
 from typing import List
 from pydantic import BaseModel
@@ -73,25 +75,42 @@ def generate_swe_tasks(
 ) -> List[SWEBenchTask]:
     tasks = []
     fail_count = 0
-    while len(tasks) < n:
+    ds_lock = threading.Lock()
+    
+    def create_task():
+        nonlocal fail_count
         try:
-            tasks.append(
-                SWEBenchTask(
-                    llm=None,
-                    context=Context(**ds.get()),
-                    docker_server=docker_server,
-                    use_remote=use_remote,
-                )
+            with ds_lock:
+                context_data = ds.get()
+            return SWEBenchTask(
+                llm=None,
+                context=Context(**context_data),
+                docker_server=docker_server,
+                use_remote=use_remote,
             )
         except Exception as e:
             bt.logging.error(f"Error generating task: {e}")
             print(traceback.format_exc())
             fail_count += 1
+            return None
+    
+    max_workers = min(16, n)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Create more tasks than needed to account for failures
+        future_tasks = [executor.submit(create_task) for _ in range(n * 2)]
+        
+        for future in concurrent.futures.as_completed(future_tasks):
+            if len(tasks) >= n:
+                break
+                
+            task = future.result()
+            if task is not None:
+                tasks.append(task)
+            
             if fail_count > 100:
                 raise Exception("Failed to generate tasks")
-    return tasks
-
-
+    
+    return tasks[:n]
 def bittensor_injector(self):
     self.wallet = bt.wallet(config=self.config)
     self.dendrite = bt.dendrite(wallet=self.wallet)
@@ -306,6 +325,7 @@ class FinetunePipeline:
                             repo=task.repo,
                             hotkey=tracker.hotkey,
                             issue_description=task.query,
+                            base_commit=task.row["base_commit"],
                             logic_files=tracker.logic,
                             client=(
                                 self.docker_server._remote_client
