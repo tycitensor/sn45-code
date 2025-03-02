@@ -71,7 +71,7 @@ def should_evaluate(tracker: TrackingInfo, block: int) -> bool:
 
 
 def generate_swe_tasks(
-    ds, n: int = 1000, docker_server=None, use_remote: bool = False, use_threading: bool = False
+    ds, n: int = 1000, docker_server=None, use_remote: bool = False, use_threading: bool = True
 ) -> List[SWEBenchTask]:
     tasks = []
     fail_count = 0

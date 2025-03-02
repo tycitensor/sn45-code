@@ -379,10 +379,9 @@ class SWEBenchTask(Task):
         except:
             print(f"Building image {self.image_name}")
         with tempfile.TemporaryDirectory() as temp_dir:
-            repo_script = test_spec.install_repo_script.split("\n")
-            repo_script = [line for line in repo_script if "git reset --hard" not in line]
+            repo_script = test_spec.install_repo_script.replace("reset --hard", "checkout -f")
             with open(os.path.join(temp_dir, "setup_repo.sh"), "w") as f:
-                f.write("\n".join(repo_script))
+                f.write(repo_script)
             dockerfile_content = f"""
 FROM "brokespace/swe-env-{test_spec.repo.replace("/", "-")}-{test_spec.version}:latest"
 USER root
