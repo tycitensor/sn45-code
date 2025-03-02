@@ -71,7 +71,7 @@ def should_evaluate(tracker: TrackingInfo, block: int) -> bool:
 
 
 def generate_swe_tasks(
-    ds, n: int = 1000, docker_server=None, use_remote: bool = False
+    ds, n: int = 1000, docker_server=None, use_remote: bool = False, use_threading: bool = False
 ) -> List[SWEBenchTask]:
     tasks = []
     fail_count = 0
@@ -94,16 +94,28 @@ def generate_swe_tasks(
             fail_count += 1
             return None
     
-    max_workers = min(16, n)
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        # Create more tasks than needed to account for failures
-        future_tasks = [executor.submit(create_task) for _ in range(n * 2)]
-        
-        for future in concurrent.futures.as_completed(future_tasks):
-            if len(tasks) >= n:
-                break
+    if use_threading:
+        max_workers = min(16, n)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Create more tasks than needed to account for failures
+            future_tasks = [executor.submit(create_task) for _ in range(n * 2)]
+            
+            for future in concurrent.futures.as_completed(future_tasks):
+                if len(tasks) >= n:
+                    break
+                    
+                task = future.result()
+                if task is not None:
+                    tasks.append(task)
                 
-            task = future.result()
+                if fail_count > 100:
+                    raise Exception("Failed to generate tasks")
+    else:
+        # Sequential task creation
+        attempts = 0
+        while len(tasks) < n and attempts < n * 2 and fail_count <= 100:
+            task = create_task()
+            attempts += 1
             if task is not None:
                 tasks.append(task)
             
