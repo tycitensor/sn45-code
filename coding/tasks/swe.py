@@ -50,6 +50,7 @@ GIT_APPLY_CMDS = [
 
 
 def run_instance(
+    repo: GitRepo,
     instance: dict,
     pred: dict,
     rm_image: bool,
@@ -96,9 +97,18 @@ def run_instance(
         )
         container.start()
         print(f"Container for {instance_id} created and started: {container.id}")
+        # Delete everything in /testbed/ and copy new files
+        # container.exec_run("rm -rf /testbed/*")
+        # os.system(f"docker cp {repo.temp_dir}/. {instance_id}:/testbed/")
+        # container.exec_run(
+        #     f"git reset --hard {instance['base_commit']}", workdir="/testbed"
+        # )
         container.exec_run(
             "git config --global --add safe.directory /testbed", workdir="/testbed"
         )
+
+        
+
         # Create a temporary directory
         with tempfile.TemporaryDirectory() as log_dir:
             log_dir = Path(log_dir)
@@ -124,10 +134,10 @@ def run_instance(
                     # print(f"{APPLY_PATCH_PASS}:\n{val.output.decode(UTF8)}")
                     applied_patch = True
                     break
-                else:
-                    print(f"Failed to apply patch to container: {git_apply_cmd}")
-                    print("The error is: ", val.output.decode(UTF8))
-                    print("The patch is: ", pred[KEY_PREDICTION])
+                # else:
+                    # print(f"Failed to apply patch to container: {git_apply_cmd}")
+                    # print("The error is: ", val.output.decode(UTF8))
+                    # print("The patch is: ", pred[KEY_PREDICTION])
 
             if not applied_patch:
                 print(f"{APPLY_PATCH_FAIL}:\n{val.output.decode(UTF8)}")
@@ -185,7 +195,6 @@ def run_instance(
                 test_log_path=test_output_path,
                 include_tests_status=True,
             )
-            print("The report is: ", report)
         return instance_id, report
     except EvaluationError as e:
         error_msg = traceback.format_exc()
@@ -209,7 +218,7 @@ def run_instance(
 
 
 def score_patch(
-    patch: str, instance: dict, client: docker.DockerClient, image_name: str
+    patch: str, repo: GitRepo, instance: dict, client: docker.DockerClient, image_name: str
 ):
     # if patch.strip() == "":
         # return 0
@@ -223,7 +232,7 @@ def score_patch(
     }
     try:
         result = run_instance(
-            instance, prediction, False, False, client, "nil", 300, image_name
+            repo, instance, prediction, False, False, client, "nil", 300, image_name
         )
         if result[1][instance["instance_id"]]["resolved"]:
             return 1
@@ -443,7 +452,7 @@ WORKDIR /testbed/
                 if not self.use_remote or not self.docker_server.remote
                 else self.docker_server._remote_client
             )
-            return score_patch(diff, self.row, client, self.image_name)
+            return score_patch(diff, self.repo, self.row, client, self.image_name)
         except Exception as e:
             print("There was an error scoring the patch: ", e)
             print(traceback.format_exc())
@@ -458,9 +467,7 @@ WORKDIR /testbed/
             else:
                 self.docker_server._local_client.images.remove(self.image_name, force=True)
         except Exception as e:
-            print("There was an error cleaning up the image: ", e)
-            print(traceback.format_exc())
-
+            pass
 
 def score_task(
     patch: Patch,
