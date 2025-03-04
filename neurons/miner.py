@@ -30,8 +30,9 @@ import coding
 # import base miner class which takes care of most of the boilerplate
 from coding.base.miner import BaseMinerNeuron
 from coding.utils.config import config as util_config
-from coding.protocol import StreamCodeSynapse, LogicSynapse
 from coding.miners.swe import miner_process as miner_process_swe
+from coding.miners.openrouter import miner_process as miner_process_or
+from coding.protocol import StreamCodeSynapse, LogicSynapse, ProvisionKeySynapse
 
 class Miner(BaseMinerNeuron):
     """
@@ -48,6 +49,7 @@ class Miner(BaseMinerNeuron):
         self.forward_capabilities = [
             {'forward': self.forward, 'blacklist': self.blacklist, 'priority': self.priority},
             {'forward': self.forward_swe, 'blacklist': self.blacklist_swe, 'priority': self.priority_swe},
+            {'forward': self.forward_or, 'blacklist': self.blacklist_or, 'priority': self.priority_or},
         ]
         super().__init__(config=config)
         miner_name = f"coding.miners.{config.miner.name}_miner"  # if config and config.miner else "bitagent.miners.t5_miner"
@@ -57,7 +59,22 @@ class Miner(BaseMinerNeuron):
         self.miner_process = miner_module.miner_process
 
         self.miner_init(self)
-
+    
+    async def forward_or(
+        self, synapse: ProvisionKeySynapse
+    ) -> ProvisionKeySynapse:
+        return miner_process_or(self, synapse)
+    
+    async def blacklist_or(
+        self, synapse: ProvisionKeySynapse
+    ) -> typing.Tuple[bool, str]:
+        return await self.blacklist(synapse)
+    
+    async def priority_swe(
+        self, synapse: LogicSynapse
+    ) -> float:
+        return await self.priority(synapse)
+    
     async def forward_swe(
         self, synapse: LogicSynapse
     ) -> LogicSynapse:

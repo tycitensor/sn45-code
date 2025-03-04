@@ -132,7 +132,9 @@ def miner_process(self, synapse: StreamCodeSynapse) -> Awaitable:
         prompt = synapse.query + "\n"
         for file in synapse.files:
             prompt += f"#Filename: {file.path}\n{file.content}\n"
-        prompt += "Respond only with the patch, only modify the files you have been provided."
+        prompt += (
+            "Respond only with the patch, only modify the files you have been provided."
+        )
         model_res = (
             self.mistral.invoke([{"role": "user", "content": prompt[0:15000]}])
             .content.replace("<patch>", "")

@@ -10,6 +10,7 @@ You must have the following things:
 - OpenAI API key
 - Anthropic API Key
 - Google Gemini API Key
+- OpenRouter api key
 - Github Token
 - Wandb account
 - Docker on validator machine
@@ -108,6 +109,16 @@ Place the api key in the .env file like this:
 ```
 GOOGLE_API_KEY=<your gemini api key>
 ```
+
+
+#### Get OpenRouter API Key
+
+Place the api key in the .env file like this:
+
+```
+OPENROUTER_API_KEY=<your openrouter api key>
+```
+
 
 
 #### Install Docker (ON VALIDATOR MACHINE)

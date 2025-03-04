@@ -13,31 +13,36 @@ def cleanup_code_sim_model(self):
     try:
         import torch
         from accelerate.utils import release_memory
-        
+
         torch.cuda.empty_cache()
         with torch.no_grad():
             self.code_sim_model.code_scorer._model.cpu()
             release_memory(self.code_sim_model.code_scorer._model)
             del self.code_sim_model.code_scorer._model
-        
+
         with torch.no_grad():
             self.code_sim_model.code_scorer._tokenizer.cpu()
             release_memory(self.code_sim_model.code_scorer._tokenizer)
             del self.code_sim_model.code_scorer._tokenizer
-        
+
         del self.code_sim_model
     except Exception as e:
         pass
 
+
 def validate_model_info(model_name: str) -> bool:
     try:
         miner_model_info = model_info(model_name)
-        license = miner_model_info.card_data['license']
+        license = miner_model_info.card_data["license"]
         total_size = miner_model_info.safetensors.total
-        return license in ["apache-2.0", "cc-by-nc-4.0", "mit"] and total_size < 10000000000
+        return (
+            license in ["apache-2.0", "cc-by-nc-4.0", "mit"]
+            and total_size < 10000000000
+        )
     except Exception as e:
         bt.logging.info(f"Error validating model {model_name}: {e}")
         return False
+
 
 def score(self, model_name: str, tasks: List[Task]) -> float:
     """
@@ -63,28 +68,32 @@ def score(self, model_name: str, tasks: List[Task]) -> float:
     4. Cleans up model resources
     5. Returns mean score across all tasks
     """
-    
+
     if not validate_model_info(model_name):
-        bt.logging.info(f"Model {model_name} is not valid. It must have a valid license and be less than 10B parameters.")
+        bt.logging.info(
+            f"Model {model_name} is not valid. It must have a valid license and be less than 10B parameters."
+        )
         return 0.0
-    
+
     model_server = None
     try:
         model_server = ModelServer(model_name)
     except Exception as e:
-        bt.logging.info(f"Error loading model {model_name}: {e}") # TODO change to logging
+        bt.logging.info(
+            f"Error loading model {model_name}: {e}"
+        )  # TODO change to logging
         try:
             model_server.cleanup()
         except Exception as e:
             pass
         return 0.0
-    
+
     scores = []
     responses = []
     try:
         # Create list of queries
         queries = [task.query for task in tasks]
-        
+
         # Make parallel calls using asyncio
         responses = model_server.invoke_batch(queries)
         model_server.cleanup()
@@ -103,5 +112,3 @@ def score(self, model_name: str, tasks: List[Task]) -> float:
         return 0.0
     finally:
         cleanup_code_sim_model(self)
-
-

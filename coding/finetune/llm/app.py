@@ -17,22 +17,9 @@ from google import genai
 from google.genai import types
 from langchain_openai import OpenAIEmbeddings
 
-# ------------------------------
-#         Load Environment
-# ------------------------------
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-CORCEL_API_KEY = None
+openai.base_url = "https://openrouter.ai/api/v1"
 
-openai.api_key = OPENAI_API_KEY
-anthropic_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-google_client = genai.Client(api_key=GOOGLE_API_KEY)
-
-# ------------------------------
-#       Global Variables
-# ------------------------------
 token_usage: Dict[str, int] = {}
 current_key: Optional[str] = None
 
@@ -62,7 +49,7 @@ models = {
         "max_tokens": 8192,
     },
 }
-embedder = OpenAIEmbeddings(model="text-embedding-3-small")
+embedder = OpenAIEmbeddings(model="text-embedding-3-small", api_key=os.getenv("OPENAI_API_KEY"))
 
 
 class InitRequest(BaseModel):
@@ -71,6 +58,7 @@ class InitRequest(BaseModel):
 
 class LLMRequest(BaseModel):
     query: str
+    api_key: str
     llm_name: str
     temperature: Optional[float] = 0.7  # default temperature value
 
@@ -145,120 +133,29 @@ async def get_count(auth_key: str = Depends(verify_auth)):
     return {"key": current_key, "count": token_usage[current_key]}
 
 
-# ------------------------------
-#   LLM Call Functions per Provider
-# ------------------------------
 async def call_openai(
-    query: str, model: str, temperature: float, max_tokens: int = 16384
+    query: str, model: str, temperature: float, max_tokens: int = 16384, api_key: str = None, provider: str = "openai"
 ):
-    if CORCEL_API_KEY and model == "gpt-4o":
-        client = openai.OpenAI(
-            base_url="https://api.corcel.io/v1", api_key=CORCEL_API_KEY
-        )
-        response = await client.chat.completions.create(
-            model=model,
-            messages=[{"role": "user", "content": query}],
-            temperature=temperature,
-            max_tokens=max_tokens,
-            stream=True,
-        )
-        result = ""
-        tokens = 0
-        for chunk in response:
-            if chunk.choices[0].delta.content is not None:
-                result += chunk.choices[0].delta.content
-    else:
-
-        def sync_call():
-            response = openai.chat.completions.create(
-                model=model,
-                messages=[{"role": "user", "content": query}],
-                temperature=temperature,
-                max_tokens=max_tokens,
-            )
-            return response
-
-        response = await asyncio.to_thread(sync_call)
-        result = response.choices[0].message.content
-        tokens = response.usage.completion_tokens + response.usage.prompt_tokens
-    return {"content": result, "usage": {"total_tokens": tokens}}
-
-
-async def call_anthropic(query: str, model: str, temperature: float, max_tokens: int):
-    # Anthropic requires a specially formatted prompt.
-    if CORCEL_API_KEY and model == "claude-3-5-sonnet":
-        openai.base_url = "https://api.corcel.io/v1"
-        openai.api_key = CORCEL_API_KEY
-        response = await openai.chat.completions.create(
-            model="claude-3-5-sonnet-20240620",
-            messages=[{"role": "user", "content": query}],
-            temperature=temperature,
-            max_tokens=max_tokens,
-            stream=True,
-        )
-        result = ""
-        tokens = 0
-        for chunk in response:
-            if chunk.choices[0].delta.content is not None:
-                result += chunk.choices[0].delta.content
-    else:
-
-        def sync_call():
-            return anthropic_client.messages.create(
-                model=model,
-                messages=[{"role": "user", "content": query}],
-                max_tokens=max_tokens,
-                temperature=temperature,
-            )
-
-        response = await asyncio.to_thread(sync_call)
-        result = response.content[0].text
-        tokens = response.usage.output_tokens + response.usage.input_tokens
-    return {"content": result, "usage": {"total_tokens": tokens}}
-
-
-async def call_google(query: str, model: str, temperature: float, max_tokens: int):
-    # Using the google.genai client as per the provided example.
+    openai.api_key = api_key
     def sync_call():
-        # The Google API uses `contents` rather than `prompt`.
-        # If the API supports temperature and max_output_tokens, pass them; otherwise, they may be ignored.
-        return google_client.models.generate_content(
-            model=model,
-            contents=query,
-            config=types.GenerateContentConfig(
-                temperature=temperature,
-                max_output_tokens=max_tokens,
-            ),
+        response = openai.chat.completions.create(
+            model=f"{provider}/{model}",
+            messages=[{"role": "user", "content": query}],
+            temperature=temperature,
+            max_tokens=max_tokens,
         )
+        return response
 
     response = await asyncio.to_thread(sync_call)
-    # The response is expected to have a `text` attribute (or key) containing the result.
-    result = response.candidates[0].content.parts[0].text
-    tokens = response.usage_metadata.total_token_count
+    result = response.choices[0].message.content
+    tokens = response.usage.completion_tokens + response.usage.prompt_tokens
     return {"content": result, "usage": {"total_tokens": tokens}}
 
-
-async def invoke_llm(query: str, llm_config: dict, temperature: float):
-    provider = llm_config["provider"]
-    model = llm_config["model"]
-    max_tokens = llm_config["max_tokens"]
-    if provider == "openai":
-        return await call_openai(query, model, temperature, max_tokens)
-    elif provider == "anthropic":
-        return await call_anthropic(query, model, temperature, max_tokens)
-    elif provider == "google":
-        return await call_google(query, model, temperature, max_tokens)
-    else:
-        raise ValueError("Unknown provider specified.")
-
-
-# ------------------------------
-#   Helper: Async LLM Invoker with Retry
-# ------------------------------
 async def ainvoke_with_retry(
     llm_config: dict,
     query: str,
     temperature: float,
+    api_key: str,
     max_retries: int = 50,
     initial_delay: int = 1,
 ):
@@ -266,7 +163,7 @@ async def ainvoke_with_retry(
     last_exception = None
     for attempt in range(max_retries):
         try:
-            response = await invoke_llm(query, llm_config, temperature)
+            response = await call_openai(query, llm_config["model"], temperature, llm_config["max_tokens"], api_key, llm_config["provider"])
             return response
         except Exception as e:
             print(
@@ -302,19 +199,10 @@ async def call_llm(request: LLMRequest):
 
         # Attempt the requested LLM; fall back to "gpt-4o" if not found.
         requested_llm = models.get(request.llm_name, models["gpt-4o"])
-        fallback_llm = models["gpt-4o"]
 
-        try:
-            response = await ainvoke_with_retry(
-                requested_llm, request.query, request.temperature
-            )
-        except Exception as e:
-            print(
-                f"Primary model {request.llm_name} failed, falling back to gpt-4o. Error: {e}"
-            )
-            response = await ainvoke_with_retry(
-                fallback_llm, request.query, request.temperature
-            )
+        response = await ainvoke_with_retry(
+            requested_llm, request.query, request.temperature, request.api_key
+        )
 
         # Update token usage (if provided by the API)
         tokens = response["usage"].get("total_tokens", 0)

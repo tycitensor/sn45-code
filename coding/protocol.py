@@ -29,6 +29,13 @@ from typing import List, AsyncIterator, Any, Optional
 from coding.schemas import ChatMessage, File
 from coding.constants import COMPETITION_ID
 
+class ProvisionKeySynapse(bt.Synapse):
+    """
+    ProvisionKeySynapse is a Synapse that is used to get the provisioning key of the miner.
+    """
+    api_key: Optional[str] = None
+    key_hash: Optional[str] = None
+    action: Optional[str] = None # "create" or "delete"
 
 class LogicSynapse(bt.Synapse):
     """
@@ -42,6 +49,7 @@ class LogicSynapse(bt.Synapse):
         title="logic",
         description="A dictionary where the key is a filename and the value is the file contents",
     )
+    api_key: Optional[str] = None
 
 class HFModelSynapse(bt.Synapse):
     """

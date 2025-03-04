@@ -18,10 +18,11 @@ class Patch(BaseModel):
 # if host ip is localhost itll fail, need to get docker host ip
 class LLMClient:
     def __init__(
-        self, base_url: str = f"http://{os.getenv('HOST_IP', 'localhost')}:25000"
+        self, base_url: str = f"http://{os.getenv('HOST_IP', 'localhost')}:25000", api_key: str = os.getenv("OPENROUTER_API_KEY", "")
     ):
         """Initialize LLM client with API server URL"""
         self.base_url = base_url.rstrip("/")
+        self.api_key = api_key
 
     def __call__(
         self, query: str, llm_name: str, temperature: float = 0.7
@@ -39,7 +40,7 @@ class LLMClient:
         Raises:
             requests.exceptions.RequestException: If API call fails
         """
-        payload = {"query": query, "llm_name": llm_name, "temperature": temperature}
+        payload = {"query": query, "llm_name": llm_name, "temperature": temperature, "api_key": self.api_key}
 
         response = requests.post(f"{self.base_url}/call", json=payload)
         response.raise_for_status()

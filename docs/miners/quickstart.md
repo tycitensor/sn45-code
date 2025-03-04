@@ -13,6 +13,17 @@ python -m pip uninstall uvloop # b/c it causes issues with threading/loops
 ```
 
 
+## OpenRouter API Key Setup
+
+You need an OpenRouter Provisioning Key to run the miners. You can get one by going to the [OpenRouter website](https://openrouter.ai/settings/provisioning-keys) and creating one.
+
+This key should be added to the `.env` file as `PROVISIONING_API_KEY`. An example `.env.example.miner` file is provided in the root of the repository.
+
+This key will be used to provision temporary api keys for the miner to provide to the Validator so that it can use it to validate the miner's logic. 
+
+The validator will request a key to be created, and after it is done with the evaluation, a request will be sent to have the key deleted.
+
+
 ## How to Run
 You can use the following command to run a miner or a validator. 
 

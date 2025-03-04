@@ -211,6 +211,7 @@ def run_docker_container_from_base(
     logic_files: dict,
     client,
     remote_host_url: str | None = None,
+    api_key: str = "",
 ) -> dict:
     """
     Runs a Docker container for evaluating model logic.
@@ -277,6 +278,7 @@ def run_docker_container_from_base(
                 environment={
                     "HOST_IP": os.getenv("HOST_IP", "localhost"),
                     "ISSUE_DESCRIPTION": issue_description,
+                    "OPENROUTER_API_KEY": api_key,
                 },
                 command="sleep infinity",
             )
@@ -371,6 +373,7 @@ def test_docker_container(remote_host_url: str):
                 extra_hosts={"host.docker.internal": "host-gateway"},
                 environment={"HOST_IP": os.getenv("HOST_IP", "localhost")},
                 command="sleep infinity",
+                api_key=os.getenv("OPENROUTER_API_KEY", ""),
             )
 
             # Start the container

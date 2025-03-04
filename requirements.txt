@@ -28,3 +28,4 @@ grpcio
 gunicorn
 spread_scoring_utilities==3.2.0
 google-genai
+tiktoken

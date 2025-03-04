@@ -27,10 +27,12 @@ def miner_init(self):
         temperature=0.7,
     )
 
+
 def miner_process(self, synapse: StreamCodeSynapse) -> Awaitable:
     """
     The miner process function is called every time the miner receives a request. This function should contain the main logic of the miner.
     """
+
     async def _forward(
         self,
         query: str,
@@ -84,12 +86,10 @@ def miner_process(self, synapse: StreamCodeSynapse) -> Awaitable:
             bt.logging.error(f"Error in forward: {e}")
             if self.config.neuron.stop_on_forward_exception:
                 self.should_exit = True
-    
+
     bt.logging.debug(f"📧 Query received, forwarding synapse: {synapse}")
 
-    prompt = PromptTemplate.from_template(
-        "{query}"
-    )
+    prompt = PromptTemplate.from_template("{query}")
     chain = prompt | self.model | StrOutputParser()
 
     query = synapse.query

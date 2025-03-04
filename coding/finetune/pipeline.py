@@ -13,6 +13,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .dockerutil import run_docker_container_from_base
 
+from coding.finetune.keys import APIKey
 from coding.schemas import Patch
 from coding.schemas.context import Context
 from coding.constants import COMPETITION_ID
@@ -30,7 +31,6 @@ from coding.datasets.swefull import SWEFullDataset
 from coding.finetune.llm.manager import LLMManager
 from coding.helpers.containers import DockerServer
 from coding.finetune.model import ModelStore, validate_logic
-
 
 class FinetuneEventResults(BaseModel):
     trackers: List[TrackingInfo]
@@ -123,6 +123,7 @@ def generate_swe_tasks(
                 raise Exception("Failed to generate tasks")
     
     return tasks[:n]
+
 def bittensor_injector(self):
     self.wallet = bt.wallet(config=self.config)
     self.dendrite = bt.dendrite(wallet=self.wallet)
@@ -266,6 +267,7 @@ class FinetunePipeline:
             bt.logging.info(f"Logic for hotkey {tracker.hotkey} passed verification.")
         bt.logging.info(f"Beginning evaluation of {len(self.tasks)} tasks...")
         for tracker_idx, tracker in enumerate(self.ungraded_trackers):
+            api_key = APIKey(tracker.hotkey, self)
             bt.logging.info(
                 f"Processing tracker {tracker_idx + 1}/{len(self.ungraded_trackers)}"
             )
@@ -349,6 +351,7 @@ class FinetunePipeline:
                                 if self.use_remote
                                 else None
                             ),
+                            api_key=api_key.key
                         )
                         patch = Patch(**result)
                         bt.logging.info(
@@ -413,6 +416,8 @@ class FinetunePipeline:
             self.graded_trackers.append(tracker)
             if store_results:
                 self.store_trackers()
+            
+            del api_key
 
             bt.logging.info(f"Cleaning up container for hotkey {tracker.hotkey}...")
             bt.logging.info(f"Final score for hotkey {tracker.hotkey}: {tracker.score}")

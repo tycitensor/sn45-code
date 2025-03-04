@@ -158,7 +158,7 @@ class LocalDockerHandler:
         Build an image locally. First checks if image exists in DockerHub.
         If push=True, pushes the built image to DockerHub.
         """
-        logging.info(f"Checking if image '{tag}' exists in DockerHub")
+        logging.info(f"Building image {tag}")
         try:
             # Try to pull the image from DockerHub
             self.client.images.pull(tag)
@@ -171,19 +171,60 @@ class LocalDockerHandler:
 
         logging.info("Building image locally with tag '%s' from %s", tag, dockerfile)
         try:
-            image, logs = self.client.images.build(
-                path=path,
-                dockerfile=dockerfile,
-                tag=tag,
-                buildargs=buildargs,
-                rm=rm,
-                decode=decode,
-            )
-            # Optionally log build output.
-            for chunk in logs:
-                if "stream" in chunk:
-                    logging.info(chunk["stream"].strip())
-            logging.info("Local build successful: %s", tag)
+            try:
+                # Stream the build process to get real-time logs
+                build_logs = []
+                for chunk in self.client.api.build(
+                    path=path,
+                    dockerfile=dockerfile,
+                    tag=tag,
+                    buildargs=buildargs,
+                    rm=rm,
+                    decode=True,
+                ):
+                    if 'stream' in chunk:
+                        log_line = chunk['stream'].strip()
+                        if log_line:
+                            print(log_line)
+                            logging.info(log_line)
+                    elif 'error' in chunk:
+                        print(f"Error: {chunk['error']}")
+                        logging.error(f"Build error: {chunk['error']}")
+                    build_logs.append(chunk)
+                
+                # Verify the image exists with the exact tag we specified
+                try:
+                    image = self.client.images.get(tag)
+                    logging.info(f"Successfully built and tagged image: {tag}")
+                except Exception as e:
+                    logging.error(f"Image with tag {tag} not found after build: {e}")
+                    # List available images to debug
+                    available_images = self.client.images.list()
+                    logging.info(f"Available images: {[img.tags for img in available_images]}")
+                    # Try to tag the image if it exists but with wrong tag
+                    for img in available_images:
+                        if not img.tags:  # If image has no tags, it might be our untagged build
+                            logging.info(f"Found untagged image {img.id}, tagging as {tag}")
+                            self.client.api.tag(img.id, *tag.split(':') if ':' in tag else (tag, 'latest'))
+                            image = self.client.images.get(tag)
+                            break
+                    else:
+                        raise Exception(f"Could not find or tag the built image as {tag}")
+            except BuildError as e:
+                logging.error(f"Build error: {str(e)}")
+                # Print all logs from the failed build
+                for chunk in e.build_log:
+                    if 'stream' in chunk:
+                        log_line = chunk['stream'].strip()
+                        if log_line:
+                            print(log_line)
+                    if 'error' in chunk:
+                        logging.info(f"Error log: {chunk['error']}")
+                raise
+            except Exception as e:
+                logging.error(f"Error building image: {e}")
+                print(f"Error building image: {e}")
+                raise
 
             if push and tag:
                 # Split tag into repository and tag parts
@@ -206,7 +247,6 @@ class LocalDockerHandler:
         except (BuildError, APIError) as e:
             logging.error("Local build error: %s", e)
             raise
-
     def run(
         self,
         image: str,

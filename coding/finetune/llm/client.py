@@ -1,8 +1,11 @@
 import os
 import requests
 
+
 class LLMClient:
-    def __init__(self, base_url: str = f"http://{os.getenv('DOCKER_HOST_IP', 'localhost')}:25000"):
+    def __init__(
+        self, base_url: str = f"http://{os.getenv('DOCKER_HOST_IP', 'localhost')}:25000"
+    ):
         """Initialize LLM client with API server URL"""
         self.base_url = base_url.rstrip("/")
 
