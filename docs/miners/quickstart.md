@@ -70,17 +70,14 @@ pm2 start neurons/miner.py --interpreter python3 --name miner -- --netuid 171  -
 # Ramping up
 
 
-## Tasks
+## Testing
 
-A list of the provided tasks can be seen [here](./tasks.md). Tasks are scored equally based on speed and similarity to the answer.
+A notebook is [provided](https://github.com/brokespace/code/blob/main/notebooks/sample-swe-task.ipynb)
 
-## Sample Miners
+Youre going to want:
+- [.env](https://github.com/brokespace/code/blob/main/.env.example) setup correctly
+- If using claude modify [swebase](https://github.com/brokespace/code/blob/main/notebooks/example_submission/swebase.py) to support claude. 
+- Docker setup locally
 
-There are some sample miners you can use check them out [here](./sample-miners.md). 
 
-
-## Helpful Tips
-
-It is suggested that you play around with mining on Testnet before going to Mainnet.
-If issues are encountered with btcli, it is recommended to use btcli v7.1.2 (https://github.com/opentensor/bittensor/commits/release/7.1.2/)
-
+Look at submission on https://www.swebench.com/ and build off one of those to perform well on the tasks. Our testing set is an EXACT copy of the swebench testing methodology, so anything that performs well there, will perform well on our subnet
