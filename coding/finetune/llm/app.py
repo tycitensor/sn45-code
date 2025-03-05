@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 load_dotenv("../../../.env", override=False)  # Don't override existing env vars
 
 import os
+os.environ["OPENAI_BASE_URL"] = "https://openrouter.ai/api/v1"
 import asyncio
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
@@ -18,7 +19,6 @@ from google.genai import types
 from langchain_openai import OpenAIEmbeddings
 
 
-openai.base_url = "https://openrouter.ai/api/v1"
 
 token_usage: Dict[str, int] = {}
 current_key: Optional[str] = None
@@ -40,7 +40,7 @@ models = {
     "gpt-4o-mini": {"provider": "openai", "model": "gpt-4o-mini", "max_tokens": 16384},
     "claude-3-5-sonnet": {
         "provider": "anthropic",
-        "model": "claude-3-5-sonnet-latest",
+        "model": "claude-3.5-sonnet",
         "max_tokens": 8192,
     },
     "gemini-2.0-flash-exp": {
@@ -136,6 +136,9 @@ async def get_count(auth_key: str = Depends(verify_auth)):
 async def call_openai(
     query: str, model: str, temperature: float, max_tokens: int = 16384, api_key: str = None, provider: str = "openai"
 ):
+    if not api_key:
+        print("No API key provided")
+        return {"content": "", "usage": {"total_tokens": 0}}
     openai.api_key = api_key
     def sync_call():
         response = openai.chat.completions.create(
@@ -148,7 +151,7 @@ async def call_openai(
 
     response = await asyncio.to_thread(sync_call)
     result = response.choices[0].message.content
-    tokens = response.usage.completion_tokens + response.usage.prompt_tokens
+    tokens = response.usage.prompt_tokens + response.usage.completion_tokens
     return {"content": result, "usage": {"total_tokens": tokens}}
 
 async def ainvoke_with_retry(
