@@ -12,7 +12,7 @@ def miner_process(self, synapse: ProvisionKeySynapse) -> ProvisionKeySynapse:
     
     if synapse.action == "create":
         response = requests.post(
-            f"{BASE_URL}/",
+            f"{BASE_URL}",
             headers={
                 "Authorization": f"Bearer {provision_key}",
                 "Content-Type": "application/json"
