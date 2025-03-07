@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 load_dotenv("../../../.env", override=False)  # Don't override existing env vars
 
 import os
+
 os.environ["OPENAI_BASE_URL"] = "https://openrouter.ai/api/v1"
 import asyncio
 from fastapi import FastAPI, HTTPException, Depends
@@ -17,7 +18,6 @@ import anthropic
 from google import genai
 from google.genai import types
 from langchain_openai import OpenAIEmbeddings
-
 
 
 token_usage: Dict[str, int] = {}
@@ -43,13 +43,22 @@ models = {
         "model": "claude-3.5-sonnet",
         "max_tokens": 8192,
     },
+    "claude-3-7-sonnet": {
+        "provider": "anthropic",
+        "model": "claude-3.7-sonnet",
+        "max_tokens": 8192,
+    },
     "gemini-2.0-flash-exp": {
         "provider": "google",
         "model": "gemini-2.0-flash",
         "max_tokens": 8192,
     },
 }
-embedder = OpenAIEmbeddings(model="text-embedding-3-small", api_key=os.getenv("OPENAI_API_KEY"))
+embedder = OpenAIEmbeddings(
+    model="text-embedding-3-small",
+    api_key=os.getenv("OPENAI_API_KEY"),
+    base_url="https://api.openai.com/v1",
+)
 
 
 class InitRequest(BaseModel):
@@ -61,6 +70,7 @@ class LLMRequest(BaseModel):
     api_key: str
     llm_name: str
     temperature: Optional[float] = 0.7  # default temperature value
+    max_tokens: Optional[int] = None
 
 
 class LLMResponse(BaseModel):
@@ -134,15 +144,20 @@ async def get_count(auth_key: str = Depends(verify_auth)):
 
 
 async def call_openai(
-    query: str, model: str, temperature: float, max_tokens: int = 16384, api_key: str = None, provider: str = "openai"
+    query: str,
+    model: str,
+    temperature: float,
+    max_tokens: int = 16384,
+    api_key: str = None,
 ):
     if not api_key:
         print("No API key provided")
         return {"content": "", "usage": {"total_tokens": 0}}
     openai.api_key = api_key
+
     def sync_call():
         response = openai.chat.completions.create(
-            model=f"{provider}/{model}",
+            model=model,
             messages=[{"role": "user", "content": query}],
             temperature=temperature,
             max_tokens=max_tokens,
@@ -154,24 +169,30 @@ async def call_openai(
     tokens = response.usage.prompt_tokens + response.usage.completion_tokens
     return {"content": result, "usage": {"total_tokens": tokens}}
 
+
 async def ainvoke_with_retry(
-    llm_config: dict,
+    model: str,
     query: str,
     temperature: float,
     api_key: str,
     max_retries: int = 50,
     initial_delay: int = 1,
+    max_tokens: int = 16384,
 ):
     delay = initial_delay
     last_exception = None
     for attempt in range(max_retries):
         try:
-            response = await call_openai(query, llm_config["model"], temperature, llm_config["max_tokens"], api_key, llm_config["provider"])
+            response = await call_openai(
+                query,
+                model,
+                temperature,
+                max_tokens,
+                api_key,
+            )
             return response
         except Exception as e:
-            print(
-                "Error in ainvoke_with_retry:", e, "when calling", llm_config["model"]
-            )
+            print("Error in ainvoke_with_retry:", e, "when calling", model)
             # Retry on rate-limit or server errors
             if "429" in str(e) or "529" in str(e):
                 last_exception = e
@@ -188,11 +209,9 @@ async def ainvoke_with_retry(
         raise HTTPException(status_code=500, detail="Unknown error invoking LLM")
 
 
-# ------------------------------
-#          Call LLM Endpoint
-# ------------------------------
 @app.post("/call", response_model=LLMResponse)
 async def call_llm(request: LLMRequest):
+    print("Calling LLM", flush=True)
     global current_key, token_usage
     try:
         if not current_key:
@@ -201,10 +220,19 @@ async def call_llm(request: LLMRequest):
             token_usage[current_key] = 0
 
         # Attempt the requested LLM; fall back to "gpt-4o" if not found.
-        requested_llm = models.get(request.llm_name, models["gpt-4o"])
+        requested_llm = request.llm_name
+        if request.llm_name in models:
+            requested_llm = f"{models[request.llm_name]['provider']}/{models[request.llm_name]['model']}"
+            max_tokens = models[request.llm_name]["max_tokens"]
+        if request.max_tokens:
+            max_tokens = request.max_tokens
 
         response = await ainvoke_with_retry(
-            requested_llm, request.query, request.temperature, request.api_key
+            requested_llm,
+            request.query,
+            request.temperature,
+            request.api_key,
+            max_tokens,
         )
 
         # Update token usage (if provided by the API)
