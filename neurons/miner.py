@@ -16,7 +16,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 import dotenv
-dotenv.load_dotenv('../.env')
+dotenv.load_dotenv('.env')
 import time
 import typing
 import traceback
