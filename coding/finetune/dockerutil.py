@@ -308,7 +308,7 @@ def run_docker_container_from_base(
 
             # Execute runner.py in container
             exec_result, logs = exec_container_with_timeout(
-                container, "python3 -u /app/code/runner.py", 600
+                container, "python3 -u /app/code/runner.py", 1200
             )
             logs = logs.decode("utf-8")
             patch_line = next(
