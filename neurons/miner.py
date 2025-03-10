@@ -70,6 +70,11 @@ class Miner(BaseMinerNeuron):
     ) -> typing.Tuple[bool, str]:
         return await self.blacklist(synapse)
     
+    async def priority_or(
+        self, synapse: ProvisionKeySynapse
+    ) -> float:
+        return await self.priority(synapse)
+    
     async def priority_swe(
         self, synapse: LogicSynapse
     ) -> float:
