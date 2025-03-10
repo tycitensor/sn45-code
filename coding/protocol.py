@@ -49,7 +49,6 @@ class LogicSynapse(bt.Synapse):
         title="logic",
         description="A dictionary where the key is a filename and the value is the file contents",
     )
-    api_key: Optional[str] = None
 
 class HFModelSynapse(bt.Synapse):
     """
