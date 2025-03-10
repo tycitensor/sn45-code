@@ -41,6 +41,13 @@ from coding.helpers.containers import DockerServer
 from coding.finetune.dockerutil import exec_run_with_timeout
 from coding.schemas import Context, Patch, ChangedFile, ChangedFiles, apply_edits
 
+def normalize_image_name(image_name):
+    if ':' in image_name and '/' in image_name:
+        parts = image_name.split('/')
+        if ':' in parts[0]:
+            return '/'.join(parts[1:])
+    return image_name
+
 
 GIT_APPLY_CMDS = [
     "git apply --verbose",
@@ -349,7 +356,8 @@ class SWEBenchTask(Task):
             and self.docker_server.remote
         ):
             docker_host_ip = os.getenv("DOCKER_HOST_IP")
-            self.image_name = f"{docker_host_ip}:5000/{self.image_name}"
+            normalized_name = normalize_image_name(self.image_name)
+            self.image_name = f"{docker_host_ip}:5000/{normalized_name}"
         self._build_image()
 
         self.context = context
