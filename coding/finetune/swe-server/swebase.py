@@ -25,7 +25,7 @@ class LLMClient:
         self.api_key = api_key
 
     def __call__(
-        self, query: str, llm_name: str, temperature: float = 0.7
+        self, query: str, llm_name: str, temperature: float = 0.7, max_tokens: int = 16384
     ) -> tuple[str, int]:
         """
         Call LLM API endpoint
@@ -40,7 +40,7 @@ class LLMClient:
         Raises:
             requests.exceptions.RequestException: If API call fails
         """
-        payload = {"query": query, "llm_name": llm_name, "temperature": temperature, "api_key": self.api_key}
+        payload = {"query": query, "llm_name": llm_name, "temperature": temperature, "api_key": self.api_key, "max_tokens": max_tokens}
 
         response = requests.post(f"{self.base_url}/call", json=payload)
         response.raise_for_status()

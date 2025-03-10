@@ -201,15 +201,6 @@ class LocalDockerHandler:
                     # List available images to debug
                     available_images = self.client.images.list()
                     logging.info(f"Available images: {[img.tags for img in available_images]}")
-                    # Try to tag the image if it exists but with wrong tag
-                    for img in available_images:
-                        if not img.tags:  # If image has no tags, it might be our untagged build
-                            logging.info(f"Found untagged image {img.id}, tagging as {tag}")
-                            self.client.api.tag(img.id, *tag.split(':') if ':' in tag else (tag, 'latest'))
-                            image = self.client.images.get(tag)
-                            break
-                    else:
-                        raise Exception(f"Could not find or tag the built image as {tag}")
             except BuildError as e:
                 logging.error(f"Build error: {str(e)}")
                 # Print all logs from the failed build

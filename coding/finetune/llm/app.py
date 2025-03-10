@@ -161,6 +161,7 @@ async def call_openai(
             messages=[{"role": "user", "content": query}],
             temperature=temperature,
             max_tokens=max_tokens,
+            extra_body={"provider": {"sort": "throughput"}}
         )
         return response
 
