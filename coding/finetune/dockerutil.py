@@ -371,10 +371,10 @@ def test_docker_container(remote_host_url: str):
                 detach=True,
                 # ports={"3000/tcp": 3000},
                 extra_hosts={"host.docker.internal": "host-gateway"},
-                environment={"HOST_IP": os.getenv("HOST_IP", "localhost")},
+                environment={"HOST_IP": os.getenv("HOST_IP", "localhost"), "OPENROUTER_API_KEY": os.getenv("OPENROUTER_API_KEY", "")},
                 command="sleep infinity",
-                api_key=os.getenv("OPENROUTER_API_KEY", ""),
             )
+            
 
             # Start the container
             container.start()
