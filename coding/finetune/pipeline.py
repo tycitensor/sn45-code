@@ -66,8 +66,8 @@ def should_evaluate(tracker: TrackingInfo, block: int) -> bool:
     # Get evaluations within the last 7 days
     recent_evals = [b for b in tracker.score_timestamps if b > block_7_days_ago]
 
-    # Return True if there are fewer than 3 evaluations in the last 7 days
-    return len(recent_evals) < 3
+    # Return True if there are fewer than 6 evaluations in the last 7 days
+    return len(recent_evals) < 6
 
 
 def generate_swe_tasks(
@@ -123,6 +123,40 @@ def generate_swe_tasks(
                 raise Exception("Failed to generate tasks")
     
     return tasks[:n]
+
+def deduplicate_timestamps(timestamps: List[int]) -> List[int]:
+    """
+    Deduplicate timestamps by removing duplicates and keeping the most recent ones.
+    If any timestamps are within 20 blocks of each other, keep the earliest one.
+    
+    Args:
+        timestamps (List[int]): The list of timestamps to deduplicate.
+        
+    Returns:
+        List[int]: The deduplicated timestamps.
+    """
+    if not timestamps:
+        return []
+    
+    # Sort timestamps in ascending order
+    sorted_timestamps = sorted(timestamps)
+    result = []
+    
+    # Iterate through sorted timestamps
+    for ts in sorted_timestamps:
+        # Check if current timestamp is at least 20 blocks away from all timestamps in result
+        should_add = True
+        for existing_ts in result:
+            if abs(ts - existing_ts) <= 20:
+                should_add = False
+                break
+        
+        if should_add:
+            result.append(ts)
+    
+    return result
+
+
 
 def bittensor_injector(self):
     self.wallet = bt.wallet(config=self.config)
@@ -193,6 +227,7 @@ class FinetunePipeline:
             self.model_store.upsert(tracker.logic)
             exists = False
             for saved_tracker in saved_trackers:
+                saved_tracker.score_timestamps = deduplicate_timestamps(saved_tracker.score_timestamps)
                 if len(saved_tracker.score_timestamps) == 0:
                     saved_tracker.score_timestamps.append(saved_tracker.block)
                 if tracker.hotkey == saved_tracker.hotkey:
