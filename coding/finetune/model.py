@@ -36,6 +36,7 @@ def validate_logic(logic: dict):
     - Methods for interacting with a file system
     - Methods for interacting with an LLM/model
     - Python code parsing/compression
+    - Running commands via subprocesses or other mechanisms
     - Creating a diff
     </Allowed tasks>
     
@@ -111,7 +112,7 @@ def validate_logic(logic: dict):
                             if "false" in collected_content.lower():
                                 return (
                                     False,
-                                    "File is invalid because the LLM detected that it is not valid.",
+                                    f"File {filename} is invalid because the LLM detected that it is not valid.",
                                 )
             else:
                 stream = client.chat.completions.create(
@@ -130,43 +131,11 @@ def validate_logic(logic: dict):
                         if "false" in collected_content.lower():
                             return (
                                 False,
-                                "File is invalid because the LLM detected that it is not valid.",
+                                f"File {filename} is invalid because the LLM detected that it is not valid.",
                             )
                 
         additional_msg = "\t"
         # Dictionary mapping modules to allowed functions/imports
-        allowed_modules = ALLOWED_MODULES.copy()
-
-        # Define allowed file extensions
-        allowed_extensions = {".yaml", ".py", ".txt", ".json"}
-
-        for module in logic:
-            # Handle folder paths by taking first component
-            module_name = module.split("/")[0].split(".")[0]
-            if module_name not in allowed_modules:
-                allowed_modules.append(module_name)
-
-        for key, value in logic.items():
-            if value:
-                # Check if the file extension is allowed
-                file_extension = key.split(".")[-1]
-                if f".{file_extension}" not in allowed_extensions:
-                    return False, f"File extension .{file_extension} is not allowed."
-
-                # Create expanded allowed modules list that includes submodules and specific imports
-                expanded_allowed = set()
-                for mod in allowed_modules:
-                    expanded_allowed.add(mod)
-                    # If module is allowed, all its submodules are allowed
-                    for used_mod in value.split():
-                        if used_mod.startswith(f"{mod}."):
-                            expanded_allowed.add(used_mod)
-                        # Check for specific allowed imports like "from os import getenv"
-                usage_pass, usage_msg = verify_code_usage(
-                    value, list(expanded_allowed), ALLOWED_IMPORTS
-                )
-                if not usage_pass:
-                    return False, usage_msg
 
         total_chars = 0
         for key, value in logic.items():
@@ -184,7 +153,7 @@ def validate_logic(logic: dict):
             if not pass_large_literals:
                 logic[key] = ""
                 additional_msg += (
-                    f"Large literal found in file: {large_literals_msg}. It was cleared.\n"
+                    f"Large literal found in file - {key} error: {large_literals_msg}. It was cleared.\n"
                 )
         return True, "Logic is valid" + additional_msg
     finally:
