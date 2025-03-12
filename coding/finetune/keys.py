@@ -13,6 +13,8 @@ class APIKey:
 
     @property
     def key(self):
+        if self.key_synapse.api_key:
+            return self.key_synapse.api_key
         dendrite = bt.dendrite(wallet=self.wallet)
         uid = get_uid_from_hotkey(self.validator, self.hotkey)
         responses = run_async_in_thread(
