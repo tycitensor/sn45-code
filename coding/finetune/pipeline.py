@@ -395,7 +395,7 @@ class FinetunePipeline:
                         # TODO in the next comp uncomment the below
                         # score = task.score(patch, self.llm_manager.get_count())
                         score = task.score(patch)
-                        self.llm_manager.reset_count()
+                        # self.llm_manager.reset_count()
                         bt.logging.info(
                             f"Score for hotkey {tracker.hotkey}, task index {task_idx}: {score}"
                         )
