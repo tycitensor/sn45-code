@@ -21,9 +21,16 @@ class Patch(BaseModel):
 
 ## Things available to you
 
-### Packages
+### Repository
 
-You will have access to the modules in the `coding/constants.py` file in the `ALLOWED_MODULES` list. Along with specific imports from certain packages defined in the `coding/constants.py` file, in the `ALLOWED_IMPORTS` dictionary.
+You will be provided a repository to work on. There is a conda env created `testbed` that has all the dependencies installed, allowing you to call `pytest -rA` or other commands to run tests, scripts, etc. 
+
+To access this environment, you will need to ensure that you have the `testbed` environment activated. 
+
+```bash
+source /opt/miniconda3/bin/activate # this cmd may not be needed, but it's good to have 
+conda activate testbed
+```
 
 ### Size Limits
 
@@ -38,6 +45,8 @@ You will have access to the following LLM models:
 - "gpt-4o-mini"
 - "claude-3-5-sonnet"
 - "gemini-2.0-flash-exp"
+
+- Along with that any model hosted from OpenRouter.
 
 You will also have access to the following embedding models:
 
