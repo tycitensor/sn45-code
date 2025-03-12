@@ -30,7 +30,7 @@ from coding.tasks.swe import SWEBenchTask
 from coding.datasets.swefull import SWEFullDataset
 from coding.finetune.llm.manager import LLMManager
 from coding.helpers.containers import DockerServer
-from coding.finetune.model import ModelStore, validate_logic
+from coding.finetune.model import ModelStore
 
 class FinetuneEventResults(BaseModel):
     trackers: List[TrackingInfo]
@@ -452,7 +452,7 @@ class FinetunePipeline:
             if store_results:
                 self.store_trackers()
             
-            del api_key
+            api_key.delete()
 
             bt.logging.info(f"Cleaning up container for hotkey {tracker.hotkey}...")
             bt.logging.info(f"Final score for hotkey {tracker.hotkey}: {tracker.score}")
