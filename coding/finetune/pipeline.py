@@ -242,6 +242,9 @@ class FinetunePipeline:
                         break
                     exists = True
                     if saved_tracker.score == 0:
+                        if saved_tracker.logic != tracker.logic:
+                            self.model_store.delete(saved_tracker.logic)
+                            model = self.model_store.upsert(tracker.logic)
                         ungraded_trackers.append(tracker)
                         break
                     if (
