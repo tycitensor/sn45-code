@@ -254,7 +254,11 @@ class FinetunePipeline:
                         > 0.90
                     ):
                         model = self.model_store.get(tracker.logic)
-                        if not model or not model.valid:
+                        # if models are different, delete the old one and insert the new one to get the logic revalidated
+                        if json.dumps(tracker.logic) != json.dumps(saved_tracker.logic):
+                            self.model_store.delete(saved_tracker.logic)
+                            model = self.model_store.upsert(tracker.logic)
+                        if not model or not model.valid or saved_tracker.score == 0:
                             tracker.score = 0
                             ungraded_trackers.append(tracker)
                         else:

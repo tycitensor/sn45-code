@@ -252,3 +252,10 @@ class ModelStore:
 
     def __contains__(self, logic: dict) -> bool:
         return self.get(logic) is not None
+    
+    def delete(self, logic: dict):
+        for model in self.models:
+            if logic_similar(logic, model.logic):
+                self.models.remove(model)
+                return True
+        return False
