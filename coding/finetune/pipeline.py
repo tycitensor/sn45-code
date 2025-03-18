@@ -297,18 +297,23 @@ class FinetunePipeline:
     def evaluate(self, n_tasks: int = None, store_results: bool = True) -> FinetuneEventResults:
         # gather all logics
         bt.logging.info("Verifying and building docker containers for each logic...")
-        for tracker in self.ungraded_trackers:
-            bt.logging.info(f"Verifying logic for hotkey {tracker.hotkey}...")
-            model = self.model_store.upsert(tracker.logic)
-            if model and not model.valid:
-                bt.logging.info(
-                    f"Logic for hotkey {tracker.hotkey} is invalid, skipping..."
-                )
-                tracker.logic = {}
-                continue
-            bt.logging.info(f"Logic for hotkey {tracker.hotkey} passed verification.")
+        # for tracker in self.ungraded_trackers:
+        #     bt.logging.info(f"Verifying logic for hotkey {tracker.hotkey}...")
+        #     model = self.model_store.upsert(tracker.logic)
+        #     if model and not model.valid:
+        #         bt.logging.info(
+        #             f"Logic for hotkey {tracker.hotkey} is invalid, skipping..."
+        #         )
+        #         tracker.logic = {}
+        #         continue
+        #     bt.logging.info(f"Logic for hotkey {tracker.hotkey} passed verification.")
         bt.logging.info(f"Beginning evaluation of {len(self.tasks)} tasks...")
         for tracker_idx, tracker in enumerate(self.ungraded_trackers):
+            model = self.model_store.upsert(tracker.logic)
+            if model and not model.valid:
+                tracker.score = 0
+                self.graded_trackers.append(tracker)
+                continue
             api_key = APIKey(tracker.hotkey, self)
             bt.logging.info(
                 f"Processing tracker {tracker_idx + 1}/{len(self.ungraded_trackers)}"
