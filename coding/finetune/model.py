@@ -220,7 +220,7 @@ class Model(BaseModel):
     valid: bool
     valid_msg: str | None = None
     score: float | None = None
-    hotkeys: list[str] | None = None
+    hotkeys: list[str] = []
     scoring_in_progress: bool = False
     scoring_in_queue: bool = False
     
@@ -251,15 +251,19 @@ class ModelStore:
         self.models.append(model)
         return model
 
-    def create_model(self, logic: dict, score: float | None = None) -> Model:
+    def create_model(self, logic: dict, score: float | None = None, hotkeys: list[str] | None = None) -> Model:
         valid, msg = validate_logic_threaded(logic)
-        return Model(logic=logic, valid=valid, score=score, valid_msg=msg)
+        return Model(logic=logic, valid=valid, score=score, valid_msg=msg, hotkeys=hotkeys)
 
-    def upsert(self, logic: dict, score: float | None = None) -> Model:
+    def upsert(self, logic: dict, score: float | None = None, hotkeys: list[str] | None = None) -> Model:
         model = self.get(logic)
         if model:
+            if score:
+                model.score = score
+            if hotkeys:
+                model.hotkeys.extend(hotkeys)
             return model
-        return self.add(self.create_model(logic, score))
+        return self.add(self.create_model(logic, score, hotkeys))
 
     def get(self, logic: dict) -> Model | None:
         for model in self.models:
@@ -308,6 +312,10 @@ class ModelStore:
             return model.get_results_string()
         return None
     
+    def clear_hotkeys(self):
+        for model in self.models:
+            model.hotkeys = []
+    
     def save(self):
         with open(f"{self.config.neuron.full_path}/model_store_{COMPETITION_ID}.pkl", "wb") as f:
             pickle.dump(self, f)
@@ -316,3 +324,5 @@ class ModelStore:
         if os.path.exists(f"{self.config.neuron.full_path}/model_store_{COMPETITION_ID}.pkl"):
             with open(f"{self.config.neuron.full_path}/model_store_{COMPETITION_ID}.pkl", "rb") as f:
                 self.models = pickle.load(f).models
+
+    

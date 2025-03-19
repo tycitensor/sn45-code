@@ -220,13 +220,15 @@ class FinetunePipeline:
         print(f"Loaded {len(self.tasks)} tasks")
 
     def load_logics(self):
+        self.model_store.clear_hotkeys()
         grabbed_trackers = gather_all_logics(self)
         print(f"Grabbed {len(grabbed_trackers)} logics")
         saved_trackers = self.load_trackers()
         graded_trackers = []
         ungraded_trackers = []
         for tracker in grabbed_trackers:
-            self.model_store.upsert(tracker.logic)
+            model = self.model_store.upsert(tracker.logic)
+            model.hotkeys.append(tracker.hotkey)
             exists = False
             for saved_tracker in saved_trackers:
                 saved_tracker.score_timestamps = deduplicate_timestamps(saved_tracker.score_timestamps)
