@@ -37,6 +37,16 @@ class ProvisionKeySynapse(bt.Synapse):
     key_hash: Optional[str] = None
     action: Optional[str] = None # "create" or "delete"
 
+class ResultSynapse(bt.Synapse):
+    """
+    ResultSynapse is a Synapse that is used to get the result of the miner.
+    """
+    result: str = pydantic.Field(
+        "",
+        title="result",
+        description="The result of the miner",
+    )
+
 class LogicSynapse(bt.Synapse):
     """
     LogicSynapse is a Synapse that is used to get the logic of the miner. 
