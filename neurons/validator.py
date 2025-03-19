@@ -38,6 +38,7 @@ from coding.rewards.pipeline import RewardPipeline
 from coding.protocol import StreamCodeSynapse
 
 # import base validator class which takes care of most of the boilerplate
+from coding.finetune.model import ModelStore
 from coding.utils.config import config as util_config
 from coding.base.validator import BaseValidatorNeuron
 from coding.finetune.dockerutil import test_docker_container
@@ -99,6 +100,8 @@ class Validator(BaseValidatorNeuron):
                 break
             bt.logging.error("Docker server test failed, waiting 3 minutes and trying again.")
             sleep(60*3)
+        self.model_store = ModelStore(self)
+        self.model_store.load()
 
     def _forward(
         self, synapse: StreamCodeSynapse

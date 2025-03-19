@@ -5,6 +5,7 @@ from datetime import datetime, timezone, timedelta
 
 from coding.constants import COMPETITION_ID
 from coding.protocol import StreamCodeSynapse
+from coding.helpers.results import forward_results
 from coding.finetune.pipeline import FinetunePipeline
 from coding.utils.logging import log_event, clean_wandb
 from coding.finetune.dockerutil import delete_all_containers
@@ -33,6 +34,7 @@ async def forward(self, synapse: StreamCodeSynapse):
         finetune_pipeline = FinetunePipeline(
             config=self.config,
             use_remote=True,
+            model_store=self.model_store,
         )
         self.finetune_eval_future = self.executor.submit(finetune_pipeline.evaluate)
     # Check if evaluation is complete
@@ -62,4 +64,5 @@ async def forward(self, synapse: StreamCodeSynapse):
         except Exception as e:
             bt.logging.error(f"Error cleaning wandb: {e}")
 
+    forward_results(self)
     sleep(60*5)

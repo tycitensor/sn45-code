@@ -171,9 +171,11 @@ class FinetunePipeline:
         config,
         tracking_logics: List[TrackingInfo] = None,
         use_remote: bool = False,
+        model_store: ModelStore = None,
     ):
         self.config = config
         self.use_remote = use_remote
+        self.model_store = model_store
         try:
             bittensor_injector(self)
         except Exception as e:
@@ -189,7 +191,7 @@ class FinetunePipeline:
         self.ungraded_trackers = []
         self.dataset = SWEFullDataset()
         self.llm_manager = LLMManager()
-        self.load_model_store()
+        # self.load_model_store()
         if tracking_logics is None:
             self.load_logics()
         else:
@@ -285,7 +287,7 @@ class FinetunePipeline:
                 ungraded_trackers.append(tracker)
         self.graded_trackers = graded_trackers
         self.ungraded_trackers = ungraded_trackers
-        self.store_model_store()
+        self.model_store.save()
         print(
             f"Loaded {len(self.graded_trackers)} graded and {len(self.ungraded_trackers)} ungraded trackers"
         )
@@ -297,23 +299,22 @@ class FinetunePipeline:
     def evaluate(self, n_tasks: int = None, store_results: bool = True) -> FinetuneEventResults:
         # gather all logics
         bt.logging.info("Verifying and building docker containers for each logic...")
-        # for tracker in self.ungraded_trackers:
-        #     bt.logging.info(f"Verifying logic for hotkey {tracker.hotkey}...")
-        #     model = self.model_store.upsert(tracker.logic)
-        #     if model and not model.valid:
-        #         bt.logging.info(
-        #             f"Logic for hotkey {tracker.hotkey} is invalid, skipping..."
-        #         )
-        #         tracker.logic = {}
-        #         continue
-        #     bt.logging.info(f"Logic for hotkey {tracker.hotkey} passed verification.")
+        for tracker in self.ungraded_trackers:
+            model = self.model_store.upsert(tracker.logic)
+            if model: 
+                self.model_store.set_hotkey_scoring_status(tracker.hotkey, False, True)
+        
         bt.logging.info(f"Beginning evaluation of {len(self.tasks)} tasks...")
         for tracker_idx, tracker in enumerate(self.ungraded_trackers):
             model = self.model_store.upsert(tracker.logic)
+            model.scoring_in_queue = False
             if model and not model.valid:
                 tracker.score = 0
                 self.graded_trackers.append(tracker)
                 continue
+            
+            model.scoring_in_progress = True
+            
             api_key = APIKey(tracker.hotkey, self)
             bt.logging.info(
                 f"Processing tracker {tracker_idx + 1}/{len(self.ungraded_trackers)}"
@@ -461,6 +462,8 @@ class FinetunePipeline:
             tracker.score = sum(scores) / len(scores)
             tracker.score_timestamps.append(self.metagraph.block)
             self.graded_trackers.append(tracker)
+            self.model_store.set_hotkey_scoring_status(tracker.hotkey, False, False)
+            model.score = tracker.score
             if store_results:
                 self.store_trackers()
             
@@ -495,22 +498,22 @@ class FinetunePipeline:
         pipeline.cleanup()  # Ensure cleanup is called after evaluation
         return result
 
-    def load_model_store(self):
-        if os.path.exists(
-            f"{self.config.neuron.full_path}/models_{COMPETITION_ID}.pkl"
-        ):
-            with open(
-                f"{self.config.neuron.full_path}/models_{COMPETITION_ID}.pkl", "rb"
-            ) as f:
-                self.model_store = pickle.load(f)
-        else:
-            self.model_store = ModelStore()
+    # def load_model_store(self):
+    #     if os.path.exists(
+    #         f"{self.config.neuron.full_path}/models_{COMPETITION_ID}.pkl"
+    #     ):
+    #         with open(
+    #             f"{self.config.neuron.full_path}/models_{COMPETITION_ID}.pkl", "rb"
+    #         ) as f:
+    #             self.model_store = pickle.load(f)
+    #     else:
+    #         self.model_store = ModelStore()
 
-    def store_model_store(self):
-        with open(
-            f"{self.config.neuron.full_path}/models_{COMPETITION_ID}.pkl", "wb"
-        ) as f:
-            pickle.dump(self.model_store, f)
+    # def store_model_store(self):
+    #     with open(
+    #         f"{self.config.neuron.full_path}/models_{COMPETITION_ID}.pkl", "wb"
+    #     ) as f:
+    #         pickle.dump(self.model_store, f)
 
     def load_trackers(self):
         loaded_trackers = []

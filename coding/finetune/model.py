@@ -1,12 +1,16 @@
+import os
 import json
+import pickle
+import hashlib
 import difflib
 import logging
 from pydantic import BaseModel
 from openai import OpenAI
 from tiktoken import encoding_for_model
+
+from coding.constants import COMPETITION_ID
 from coding.helpers.codeanal import verify_code_usage, check_large_literals
 from coding.constants import ALLOWED_MODULES, NUM_ALLOWED_CHARACTERS, ALLOWED_IMPORTS
-
 
 def logic_similar(logic1: dict, logic2: dict, threshold: float = 0.9) -> bool:
     return (
@@ -111,7 +115,7 @@ def validate_logic(logic: dict):
                             if "false" in collected_content.lower():
                                 return (
                                     False,
-                                    "File is invalid because the LLM detected that it is not valid.",
+                                    f"File {filename} is invalid because the LLM detected that it is not valid.",
                                 )
             else:
                 stream = client.chat.completions.create(
@@ -130,7 +134,7 @@ def validate_logic(logic: dict):
                         if "false" in collected_content.lower():
                             return (
                                 False,
-                                "File is invalid because the LLM detected that it is not valid.",
+                                f"File {filename} is invalid because the LLM detected that it is not valid.",
                             )
                 
         additional_msg = "\t"
@@ -214,8 +218,26 @@ def validate_logic_threaded(logic: dict):
 class Model(BaseModel):
     logic: dict
     valid: bool
+    valid_msg: str | None = None
     score: float | None = None
-
+    hotkeys: list[str] | None = None
+    scoring_in_progress: bool = False
+    scoring_in_queue: bool = False
+    
+    
+    def get_results_string(self):
+        model_hash = hashlib.sha256(json.dumps(self.logic, sort_keys=True).encode()).hexdigest()
+        string = f"""\
+                [bold]Model hash:[/bold] {model_hash}
+                [bold]Model logic keys:[/bold] {self.logic.keys()}
+                [bold]Scoring in queue:[/bold] {self.scoring_in_queue}
+                [bold]Scoring in progress:[/bold] {self.scoring_in_progress}
+                [bold]Model score:[/bold] {self.score}
+            """
+        if self.valid:
+            return string
+        else:
+            return string + f"\n[bold]Model is invalid:[/bold] {self.valid_msg}"
 
 class ModelStore:
     def __init__(self):
@@ -230,7 +252,7 @@ class ModelStore:
 
     def create_model(self, logic: dict, score: float | None = None) -> Model:
         valid, msg = validate_logic_threaded(logic)
-        return Model(logic=logic, valid=valid, score=score)
+        return Model(logic=logic, valid=valid, score=score, valid_msg=msg)
 
     def upsert(self, logic: dict, score: float | None = None) -> Model:
         model = self.get(logic)
@@ -244,6 +266,12 @@ class ModelStore:
                 return model
         return None
 
+    def get_by_hotkey(self, hotkey: str) -> Model | None:
+        for model in self.models:
+            if hotkey in model.hotkeys:
+                return model
+        return None
+    
     def __len__(self):
         return len(self.models)
 
@@ -259,3 +287,31 @@ class ModelStore:
                 self.models.remove(model)
                 return True
         return False
+    
+    def set_hotkey_scoring_status(self, hotkey: str, scoring_in_progress: bool, scoring_in_queue: bool):
+        for model in self.models:
+            if hotkey in model.hotkeys:
+                model.scoring_in_progress = scoring_in_progress
+                model.scoring_in_queue = scoring_in_queue
+                return
+    
+    def get_hotkey_scoring_status(self, hotkey: str):
+        for model in self.models:
+            if hotkey in model.hotkeys:
+                return model.scoring_in_progress, model.scoring_in_queue
+        return False, False
+    
+    def get_results_string(self, hotkey: str):
+        model = self.get_by_hotkey(hotkey)
+        if model:
+            return model.get_results_string()
+        return None
+    
+    def save(self):
+        with open(f"{self.config.neuron.full_path}/model_store_{COMPETITION_ID}.pkl", "wb") as f:
+            pickle.dump(self, f)
+    
+    def load(self):
+        if os.path.exists(f"{self.config.neuron.full_path}/model_store_{COMPETITION_ID}.pkl"):
+            with open(f"{self.config.neuron.full_path}/model_store_{COMPETITION_ID}.pkl", "rb") as f:
+                self.models = pickle.load(f).models
