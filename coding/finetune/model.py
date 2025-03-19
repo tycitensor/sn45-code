@@ -240,8 +240,9 @@ class Model(BaseModel):
             return string + f"\n[bold]Model is invalid:[/bold] {self.valid_msg}"
 
 class ModelStore:
-    def __init__(self):
+    def __init__(self, config):
         self.models = []
+        self.config = config
 
     def add(self, model: Model):
         for existing_model in self.models:

@@ -100,7 +100,7 @@ class Validator(BaseValidatorNeuron):
                 break
             bt.logging.error("Docker server test failed, waiting 3 minutes and trying again.")
             sleep(60*3)
-        self.model_store = ModelStore()
+        self.model_store = ModelStore(config=self.config)
         self.model_store.load()
 
     def _forward(
