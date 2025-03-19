@@ -251,11 +251,11 @@ class ModelStore:
         self.models.append(model)
         return model
 
-    def create_model(self, logic: dict, score: float | None = None, hotkeys: list[str] | None = None) -> Model:
+    def create_model(self, logic: dict, score: float | None = None, hotkeys: list[str] = []) -> Model:
         valid, msg = validate_logic_threaded(logic)
         return Model(logic=logic, valid=valid, score=score, valid_msg=msg, hotkeys=hotkeys)
 
-    def upsert(self, logic: dict, score: float | None = None, hotkeys: list[str] | None = None) -> Model:
+    def upsert(self, logic: dict, score: float | None = None, hotkeys: list[str] = []) -> Model:
         model = self.get(logic)
         if model:
             if score:
