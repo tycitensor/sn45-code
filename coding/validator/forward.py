@@ -21,6 +21,7 @@ async def forward(self, synapse: StreamCodeSynapse):
 
     """
     bt.logging.info("🚀 Starting forward loop...")
+    forward_results(self)
     if not FinetunePipeline.tasks_exist(self.config):
         FinetunePipeline.generate_tasks(self.config)
     
@@ -64,5 +65,4 @@ async def forward(self, synapse: StreamCodeSynapse):
         except Exception as e:
             bt.logging.error(f"Error cleaning wandb: {e}")
 
-    forward_results(self)
     sleep(60*5)
