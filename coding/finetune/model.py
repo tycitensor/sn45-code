@@ -285,6 +285,11 @@ class ModelStore:
         for model in self.models:
             model.hotkeys = []
     
+    def set_all_scoring_status(self, scoring_in_progress: bool, scoring_in_queue: bool):
+        for model in self.models:
+            model.scoring_in_progress = scoring_in_progress
+            model.scoring_in_queue = scoring_in_queue
+    
     def save(self):
         with open(f"{self.config.neuron.full_path}/model_store_{COMPETITION_ID}.pkl", "wb") as f:
             pickle.dump(self, f)

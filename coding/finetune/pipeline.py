@@ -468,6 +468,7 @@ class FinetunePipeline:
             model.score = tracker.score
             if store_results:
                 self.store_trackers()
+                self.model_store.save()
             
             api_key.delete()
 
@@ -475,8 +476,10 @@ class FinetunePipeline:
             bt.logging.info(f"Final score for hotkey {tracker.hotkey}: {tracker.score}")
 
         bt.logging.info("Evaluation complete!")
+        self.model_store.set_all_scoring_status(False, False)
         if store_results:
             self.store_trackers()
+            self.model_store.save()
 
         return self.results
 
