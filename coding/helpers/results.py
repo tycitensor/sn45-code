@@ -44,7 +44,7 @@ def forward_results(validator) -> None:
     for axon, synapse in zip(axons, synapses):
         run_async_in_thread(
             validator.dendrite.aquery(
-                axons=[axon], synapse=synapse, timeout=5, deserialize=False
+                axons=[axon], synapse=synapse, timeout=20, deserialize=False
             )
         )
     bt.logging.info("Results forwarded to miners.")
