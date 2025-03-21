@@ -41,9 +41,10 @@ def forward_results(validator) -> None:
     results = [validator.model_store.get_results_string(hotkey) for hotkey in hotkeys]
     results = [result if result is not None else "" for result in results]
     synapses = [ResultSynapse(result=result) for result in results]
+    dendrite = bt.dendrite(wallet=validator.wallet)
     for axon, synapse in zip(axons, synapses):
         run_async_in_thread(
-            validator.dendrite.aquery(
+            dendrite.aquery(
                 axons=[axon], synapse=synapse, timeout=20, deserialize=False
             )
         )
