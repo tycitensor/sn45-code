@@ -30,7 +30,7 @@ def run_async_in_thread(coro):
     return result_container[0]
 
 
-def forward_results(validator) -> None:
+async def forward_results(validator) -> None:
     """
     Forward the results of the validator to the miners.
     """
@@ -43,9 +43,7 @@ def forward_results(validator) -> None:
     synapses = [ResultSynapse(result=result) for result in results]
     dendrite = bt.dendrite(wallet=validator.wallet)
     for axon, synapse in zip(axons, synapses):
-        run_async_in_thread(
-            dendrite.aquery(
-                axons=[axon], synapse=synapse, timeout=20, deserialize=False
-            )
+        await dendrite.forward(
+            axons=[axon], synapse=synapse, timeout=20, deserialize=False
         )
     bt.logging.info("Results forwarded to miners.")
