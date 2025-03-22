@@ -162,7 +162,7 @@ class BaseValidatorNeuron(BaseNeuron):
                     ]
                     self.loop.run_until_complete(
                         asyncio.wait_for(
-                            asyncio.gather(*tasks), timeout=forward_timeout
+                            asyncio.gather(*tasks)
                         )
                     )
                 except MaxRetryError as e:
