@@ -161,9 +161,7 @@ class BaseValidatorNeuron(BaseNeuron):
                         for _ in range(self.config.neuron.num_concurrent_forwards)
                     ]
                     self.loop.run_until_complete(
-                        asyncio.wait_for(
-                            asyncio.gather(*tasks)
-                        )
+                        asyncio.gather(*tasks)
                     )
                 except MaxRetryError as e:
                     bt.logging.error(f"MaxRetryError: {e}")
