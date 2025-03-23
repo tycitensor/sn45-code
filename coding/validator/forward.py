@@ -21,7 +21,8 @@ async def forward(self, synapse: StreamCodeSynapse):
 
     """
     bt.logging.info("🚀 Starting forward loop...")
-    await forward_results(self)
+    # This event loop is already running, so we call without await
+    forward_results(self)
     if not FinetunePipeline.tasks_exist(self.config):
         FinetunePipeline.generate_tasks(self.config)
     
