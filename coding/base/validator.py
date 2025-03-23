@@ -155,18 +155,6 @@ class BaseValidatorNeuron(BaseNeuron):
                 bt.logging.info(f"step({self.step}) block({self.block})")
 
                 asyncio.run(self.forward(synapse=None))
-                except asyncio.TimeoutError as e:
-                    bt.logging.error(
-                        f"Forward timeout: Task execution exceeded {forward_timeout} seconds and was cancelled.: {e}"
-                    )
-                    continue
-                except (
-                    Exception
-                ) as e:  # TODO this wasnt here previously, but any errors were cancelling the forward loop so i added it
-                    bt.logging.error("Error during validation", str(e))
-                    bt.logging.debug(print_exception(type(e), e, e.__traceback__))
-                    sys.exit(1)
-
                 # Check if we should exit.
                 if self.should_exit:
                     break
