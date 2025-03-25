@@ -37,6 +37,7 @@ from swebench.harness.utils import (
 
 from .task import Task
 from coding.helpers.git import GitRepo
+from coding.constants import IMAGE_VERSION
 from coding.helpers.containers import DockerServer
 from coding.finetune.dockerutil import exec_run_with_timeout
 from coding.schemas import Context, Patch, ChangedFile, ChangedFiles, apply_edits
@@ -349,7 +350,7 @@ class SWEBenchTask(Task):
             )
         else:
             self.docker_server = docker_server
-        self.image_name = f"swe-eval-{self.row['repo']}-{self.row['version']}:latest"
+        self.image_name = f"swe-eval-{self.row['repo']}-{self.row['version']}:{IMAGE_VERSION}"
         if (
             self.use_remote
             and hasattr(self.docker_server, "remote")
@@ -391,7 +392,7 @@ class SWEBenchTask(Task):
             with open(os.path.join(temp_dir, "setup_repo.sh"), "w") as f:
                 f.write(repo_script)
             dockerfile_content = f"""
-FROM "brokespace/swe-env-{test_spec.repo.replace("/", "-")}-{test_spec.version}:latest"
+FROM "brokespace/swe-env-{test_spec.repo.replace("/", "-")}-{test_spec.version}:{IMAGE_VERSION}"
 USER root
 
 COPY ./setup_repo.sh /root/
