@@ -420,6 +420,8 @@ WORKDIR /testbed/
                 except Exception as e:
                     print("There was an error building the image: ", e)
                     print(traceback.format_exc())
+            if self.use_remote and hasattr(self.docker_server, "remote") and self.docker_server.remote:
+                self.docker_server._remote_client.images.pull(self.image_name)
             end_time = time.time()
             build_duration = end_time - start_time
             print(f"Building the Docker image took {build_duration:.2f} seconds.")
