@@ -195,7 +195,7 @@ async def ainvoke_with_retry(
         except Exception as e:
             print("Error in ainvoke_with_retry:", e, "when calling", model)
             # Retry on rate-limit or server errors
-            if "429" in str(e) or "529" in str(e):
+            if "429" in str(e) or "529" in str(e) or "list index out of range" in str(e):
                 last_exception = e
                 if attempt < max_retries - 1:
                     await asyncio.sleep(delay)
@@ -233,7 +233,7 @@ async def call_llm(request: LLMRequest):
             request.query,
             request.temperature,
             request.api_key,
-            max_tokens,
+            max_tokens=max_tokens,
         )
 
         # Update token usage (if provided by the API)
