@@ -1,5 +1,6 @@
 import os
 import io
+import time
 import docker
 import logging
 from docker.errors import BuildError, APIError
@@ -92,7 +93,7 @@ class DockerServer:
             ):
                 if "status" in line:
                     logging.info(line["status"])
-
+            time.sleep(5)
             # Pull on remote host
             logging.info(f"Pulling image on remote host {remote_tag}")
             self._remote_client.images.pull(remote_tag)
