@@ -440,8 +440,11 @@ WORKDIR /testbed/
         ):
             docker_host_ip = os.getenv("DOCKER_HOST_IP")
             self.image_name = f"{docker_host_ip}:5000/{self.image_name}"
-        if self.image_name.split(":")[1] != IMAGE_VERSION:
-            self.image_name = self.image_name.split(":")[0] + ":" + IMAGE_VERSION
+        # Extract the version part from the image name, handling multiple colons
+        image_parts = self.image_name.split(":")
+        if len(image_parts) > 1 and image_parts[-1] != IMAGE_VERSION:
+            self.image_name = ":".join(image_parts[:-1]) + ":" + IMAGE_VERSION
+        
         self._build_image()
 
     # def __del__(self):
