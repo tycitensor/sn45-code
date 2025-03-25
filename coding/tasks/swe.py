@@ -404,16 +404,22 @@ WORKDIR /testbed/
             with open(os.path.join(temp_dir, "Dockerfile"), "w") as f:
                 f.write(dockerfile_content)
             start_time = time.time()
-            if (
-                self.use_remote
-                and hasattr(self.docker_server, "remote")
-                and self.docker_server.remote
-            ):
-                self.docker_server.remote.build(
-                    path=temp_dir, tag=self.image_name, push=False
-                )
-            else:
-                self.docker_server.local.build(path=temp_dir, tag=self.image_name)
+            for _ in range(3): # try 3 times
+                try:
+                    if (
+                        self.use_remote
+                        and hasattr(self.docker_server, "remote")
+                        and self.docker_server.remote
+                    ):
+                        self.docker_server.remote.build(
+                            path=temp_dir, tag=self.image_name, push=False
+                        )
+                    else:
+                        self.docker_server.local.build(path=temp_dir, tag=self.image_name)
+                    break
+                except Exception as e:
+                    print("There was an error building the image: ", e)
+                    print(traceback.format_exc())
             end_time = time.time()
             build_duration = end_time - start_time
             print(f"Building the Docker image took {build_duration:.2f} seconds.")
