@@ -287,6 +287,11 @@ class FinetunePipeline:
                     break
             if not exists:
                 ungraded_trackers.append(tracker)
+        
+        for tracker in graded_trackers:
+            model = self.model_store.get(tracker.logic)
+            if not model or not model.valid:
+                tracker.score = 0
         self.graded_trackers = graded_trackers
         self.ungraded_trackers = ungraded_trackers
         self.model_store.save()

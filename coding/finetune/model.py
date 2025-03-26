@@ -48,6 +48,7 @@ def validate_logic(logic: dict):
     <Not allowed>
     - A data structure (e.g., dictionary, list, etc.) that specifically maps or correlates filenames (hashed or plain) to diffs, lines needing edits, or issue descriptions in a way that effectively hardcodes how the AI pipeline should fix those files or issues.
     - A predefined list, dictionary, or comment explicitly enumerating files or issue descriptions (especially if hashed or encrypted) and associating them with diffs or edits or filenames or numbers that need to be performed.
+    - a bunch of random nonesense that could be encoded text
     </Not allowed>
 
     (The intent is to prevent “hardcoded solutions” that bypass the AI pipeline logic. General data structures for configurations, testing, or model references are acceptable, as long as they are not used to map specific files or issues to their required diffs or edits.)
@@ -212,6 +213,7 @@ class ModelStore:
     def __init__(self, config):
         self.models = []
         self.config = config
+        self.validation_version = 1
 
     def add(self, model: Model):
         for existing_model in self.models:
@@ -291,12 +293,12 @@ class ModelStore:
             model.scoring_in_queue = scoring_in_queue
     
     def save(self):
-        with open(f"{self.config.neuron.full_path}/model_store_{COMPETITION_ID}.pkl", "wb") as f:
+        with open(f"{self.config.neuron.full_path}/model_store_{COMPETITION_ID}_{self.validation_version}.pkl", "wb") as f:
             pickle.dump(self, f)
     
     def load(self):
-        if os.path.exists(f"{self.config.neuron.full_path}/model_store_{COMPETITION_ID}.pkl"):
-            with open(f"{self.config.neuron.full_path}/model_store_{COMPETITION_ID}.pkl", "rb") as f:
+        if os.path.exists(f"{self.config.neuron.full_path}/model_store_{COMPETITION_ID}_{self.validation_version}.pkl"):
+            with open(f"{self.config.neuron.full_path}/model_store_{COMPETITION_ID}_{self.validation_version}.pkl", "rb") as f:
                 self.models = pickle.load(f).models
 
     
