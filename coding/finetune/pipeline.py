@@ -220,7 +220,6 @@ class FinetunePipeline:
         print(f"Loaded {len(self.tasks)} tasks")
 
     def load_logics(self):
-        self.model_store.clear_hotkeys()
         grabbed_trackers = gather_all_logics(self)
         print(f"Grabbed {len(grabbed_trackers)} logics")
         saved_trackers = self.load_trackers()
@@ -228,6 +227,7 @@ class FinetunePipeline:
         ungraded_trackers = []
         for tracker in grabbed_trackers:
             model = self.model_store.upsert(tracker.logic)
+            self.model_store.remove_hotkey(tracker.hotkey)
             model.hotkeys.append(tracker.hotkey)
             exists = False
             for saved_tracker in saved_trackers:
@@ -258,7 +258,7 @@ class FinetunePipeline:
                             json.dumps(tracker.logic, sort_keys=True),
                             json.dumps(saved_tracker.logic, sort_keys=True),
                         ).quick_ratio()
-                        > 0.90
+                        > 0.98
                     ):
                         model = self.model_store.get(tracker.logic)
                         # if models are different, delete the old one and insert the new one to get the logic revalidated
@@ -349,7 +349,7 @@ class FinetunePipeline:
                         json.dumps(tracker.logic, sort_keys=True),
                         json.dumps(t.logic, sort_keys=True),
                     ).quick_ratio()
-                    > 0.90
+                    > 0.98
                 ),
                 None,
             )

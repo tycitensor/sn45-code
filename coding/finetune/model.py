@@ -12,7 +12,7 @@ from coding.constants import COMPETITION_ID
 from coding.helpers.codeanal import verify_code_usage, check_large_literals
 from coding.constants import ALLOWED_MODULES, NUM_ALLOWED_CHARACTERS, ALLOWED_IMPORTS
 
-def logic_similar(logic1: dict, logic2: dict, threshold: float = 0.9) -> bool:
+def logic_similar(logic1: dict, logic2: dict, threshold: float = 0.98) -> bool:
     return (
         difflib.SequenceMatcher(
             None, json.dumps(logic1, sort_keys=True), json.dumps(logic2, sort_keys=True)
@@ -286,6 +286,11 @@ class ModelStore:
     def clear_hotkeys(self):
         for model in self.models:
             model.hotkeys = []
+    
+    def remove_hotkey(self, hotkey: str):
+        for model in self.models:
+            if hotkey in model.hotkeys:
+                model.hotkeys.remove(hotkey)
     
     def set_all_scoring_status(self, scoring_in_progress: bool, scoring_in_queue: bool):
         for model in self.models:
