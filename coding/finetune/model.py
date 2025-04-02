@@ -12,14 +12,8 @@ from coding.constants import COMPETITION_ID
 from coding.helpers.codeanal import verify_code_usage, check_large_literals
 from coding.constants import ALLOWED_MODULES, NUM_ALLOWED_CHARACTERS, ALLOWED_IMPORTS
 
-def logic_similar(logic1: dict, logic2: dict, threshold: float = 0.98) -> bool:
-    return (
-        difflib.SequenceMatcher(
-            None, json.dumps(logic1, sort_keys=True), json.dumps(logic2, sort_keys=True)
-        ).quick_ratio()
-        > threshold
-    )
-
+def logic_similar(logic1: dict, logic2: dict) -> bool:
+    return json.dumps(logic1, sort_keys=True) == json.dumps(logic2, sort_keys=True)
 
 def validate_logic(logic: dict):
     logger = logging.getLogger()

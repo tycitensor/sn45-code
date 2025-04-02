@@ -30,7 +30,7 @@ from coding.tasks.swe import SWEBenchTask
 from coding.datasets.swefull import SWEFullDataset
 from coding.finetune.llm.manager import LLMManager
 from coding.helpers.containers import DockerServer
-from coding.finetune.model import ModelStore
+from coding.finetune.model import ModelStore, logic_similar
 
 class FinetuneEventResults(BaseModel):
     trackers: List[TrackingInfo]
@@ -226,6 +226,7 @@ class FinetunePipeline:
         graded_trackers = []
         ungraded_trackers = []
         for tracker in grabbed_trackers:
+            print(f"Loading logic for {tracker.hotkey}")
             model = self.model_store.upsert(tracker.logic)
             self.model_store.remove_hotkey(tracker.hotkey)
             model.hotkeys.append(tracker.hotkey)
@@ -253,16 +254,11 @@ class FinetunePipeline:
                         break
                     if (
                         tracker.logic != {}
-                        and difflib.SequenceMatcher(
-                            None,
-                            json.dumps(tracker.logic, sort_keys=True),
-                            json.dumps(saved_tracker.logic, sort_keys=True),
-                        ).quick_ratio()
-                        > 0.98
+                        and logic_similar(tracker.logic, saved_tracker.logic)
                     ):
                         model = self.model_store.get(tracker.logic)
                         # if models are different, delete the old one and insert the new one to get the logic revalidated
-                        if json.dumps(tracker.logic) != json.dumps(saved_tracker.logic):
+                        if not logic_similar(tracker.logic, saved_tracker.logic):
                             self.model_store.delete(saved_tracker.logic)
                             model = self.model_store.upsert(tracker.logic)
                         if not model or not model.valid or saved_tracker.score == 0:
@@ -287,11 +283,12 @@ class FinetunePipeline:
                     break
             if not exists:
                 ungraded_trackers.append(tracker)
-        
+        print(f"Loaded {len(grabbed_trackers)} logics. Doing a final walkthrough to ensure all logics are valid...")
         for tracker in graded_trackers:
             model = self.model_store.get(tracker.logic)
             if not model or not model.valid:
                 tracker.score = 0
+                print(f"Logic for {tracker.hotkey} is invalid, setting score to 0")
         self.graded_trackers = graded_trackers
         self.ungraded_trackers = ungraded_trackers
         self.model_store.save()
@@ -344,12 +341,7 @@ class FinetunePipeline:
                 (
                     t
                     for t in self.graded_trackers
-                    if difflib.SequenceMatcher(
-                        None,
-                        json.dumps(tracker.logic, sort_keys=True),
-                        json.dumps(t.logic, sort_keys=True),
-                    ).quick_ratio()
-                    > 0.98
+                    if logic_similar(tracker.logic, t.logic)
                 ),
                 None,
             )
