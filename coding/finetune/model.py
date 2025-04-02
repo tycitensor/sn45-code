@@ -159,6 +159,7 @@ def validate_logic(logic: dict):
         logging.disable(log_level)
 
 def validate_logic_threaded(logic: dict):
+    print("Validating logic in a thread")
     import threading
     
     # Create a container for the result
@@ -174,7 +175,7 @@ def validate_logic_threaded(logic: dict):
     validation_thread = threading.Thread(target=run_validation)
     validation_thread.start()
     validation_thread.join()  # Wait for the thread to complete
-    
+    print("Validation thread completed")
     return result["valid"], result["msg"]
     
     
