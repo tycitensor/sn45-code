@@ -242,7 +242,7 @@ class FinetunePipeline:
                     if (
                         len(saved_tracker.score_timestamps) > 0
                         and saved_tracker.score_timestamps[-1]
-                        < self.subtensor.block - 14400
+                        < self.subtensor.block - 14400 * 3
                     ):
                         break
                     exists = True
