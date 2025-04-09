@@ -173,9 +173,6 @@ def run_docker_container(
         # Wait for container to finish and get logs
         result = container.wait()
         logs = container.logs().decode("utf-8")
-        print("===== CONTAINER LOGS =====")
-        print(logs)
-        print("===== CONTAINER LOGS =====")
         # Parse the patch from the logs
         patch_line = next(
             line for line in reversed(logs.split("\n")) if line.startswith("Patch:")
@@ -311,6 +308,9 @@ def run_docker_container_from_base(
                 container, "python3 -u /app/code/runner.py", 1200
             )
             logs = logs.decode("utf-8")
+            print("===== CONTAINER LOGS =====")
+            print(logs)
+            print("===== CONTAINER LOGS =====")
             patch_line = next(
                 line for line in reversed(logs.split("\n")) if line.startswith("Patch:")
             )
@@ -338,9 +338,11 @@ def run_docker_container_from_base(
                 container.remove(force=True)
             except:
                 pass
+from coding.helpers.containers import DockerServer
 
 def test_docker_container(remote_host_url: str):
-    client = docker.DockerClient(base_url=remote_host_url)
+    docker_server = DockerServer(remote_host_url=remote_host_url, remote_host_registry=f"{os.getenv('DOCKER_HOST_IP')}:5000")
+    docker_server.load_image_remote("brokespace/swe-server:latest")
     container_name = "swe-server"
     with tempfile.TemporaryDirectory() as temp_dir:
         code_dir = os.path.join(temp_dir, "code")
@@ -360,13 +362,13 @@ def test_docker_container(remote_host_url: str):
         try:
             # Remove any existing container with the same name
             try:
-                existing = client.containers.get(container_name)
+                existing = docker_server._remote_client.containers.get(container_name)
                 existing.remove(force=True)
             except docker.errors.NotFound:
                 pass
 
-            container = client.containers.create(
-                image="brokespace/swe-server:latest",
+            container = docker_server._remote_client.containers.create(
+                image=f"{os.getenv('DOCKER_HOST_IP')}:5000/brokespace/swe-server:latest",
                 name=container_name,
                 detach=True,
                 # ports={"3000/tcp": 3000},
