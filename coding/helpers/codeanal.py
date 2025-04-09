@@ -1,6 +1,20 @@
 import ast
 from typing import List, Dict
+from coding.constants import DISALLOWED_IMPORTS
 
+def check_nonvalid_imports(
+    code: str, unallowed_imports: List[str] = DISALLOWED_IMPORTS
+) -> tuple[bool, str]:
+    try:
+        tree = ast.parse(code)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    if alias.name in unallowed_imports:
+                        return False, f"Disallowed import: {alias.name}"
+    except Exception as e:
+        return False, f"Error during parsing: {e}"
+    return True, "Code is safe"
 
 def verify_code_usage(
     code: str, allowed_modules: List[str], allowed_imports: Dict[str, List[str]]

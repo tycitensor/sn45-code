@@ -9,7 +9,7 @@ from openai import OpenAI
 from tiktoken import encoding_for_model
 
 from coding.constants import COMPETITION_ID
-from coding.helpers.codeanal import verify_code_usage, check_large_literals
+from coding.helpers.codeanal import verify_code_usage, check_large_literals, check_nonvalid_imports
 from coding.constants import ALLOWED_MODULES, NUM_ALLOWED_CHARACTERS, ALLOWED_IMPORTS
 
 def logic_similar(logic1: dict, logic2: dict) -> bool:
@@ -42,7 +42,7 @@ def validate_logic(logic: dict):
     <Not allowed>
     - A data structure (e.g., dictionary, list, etc.) that specifically maps or correlates filenames (hashed or plain) to diffs, lines needing edits, or issue descriptions in a way that effectively hardcodes how the AI pipeline should fix those files or issues.
     - A predefined list, dictionary, or comment explicitly enumerating files or issue descriptions (especially if hashed or encrypted) and associating them with diffs or edits or filenames or numbers that need to be performed.
-    - a bunch of random nonesense that could be encoded text
+    - a bunch of random nonesense that could be encoded text (they may say its documentation, or something, but its not)
     </Not allowed>
 
     (The intent is to prevent “hardcoded solutions” that bypass the AI pipeline logic. General data structures for configurations, testing, or model references are acceptable, as long as they are not used to map specific files or issues to their required diffs or edits.)
@@ -146,7 +146,7 @@ def validate_logic(logic: dict):
                 False,
                 f"Total characters: {total_chars} exceeds the limit of {NUM_ALLOWED_CHARACTERS}",
             )
-
+        
         for key, value in logic.items():
             pass_large_literals, large_literals_msg = check_large_literals(value)
             if not pass_large_literals:
@@ -154,6 +154,15 @@ def validate_logic(logic: dict):
                 additional_msg += (
                     f"Large literal found in file - {key} error: {large_literals_msg}. It was cleared.\n"
                 )
+                return False, "Logic is invalid" + additional_msg
+
+            pass_nonvalid_imports, nonvalid_imports_msg = check_nonvalid_imports(value)
+            if not pass_nonvalid_imports:
+                logic[key] = ""
+                additional_msg += (
+                    f"Nonvalid import found in file - {key} error: {nonvalid_imports_msg}. It was cleared.\n"
+                )
+                return False, "Logic is invalid" + additional_msg
         return True, "Logic is valid" + additional_msg
     finally:
         logging.disable(log_level)
@@ -208,7 +217,7 @@ class ModelStore:
     def __init__(self, config):
         self.models = []
         self.config = config
-        self.validation_version = 1
+        self.validation_version = 2
 
     def add(self, model: Model):
         for existing_model in self.models:
