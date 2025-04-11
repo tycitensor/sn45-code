@@ -308,9 +308,9 @@ def run_docker_container_from_base(
                 container, "python3 -u /app/code/runner.py", 1200
             )
             logs = logs.decode("utf-8")
-            print("===== CONTAINER LOGS =====")
-            print(logs)
-            print("===== CONTAINER LOGS =====")
+            # print("===== CONTAINER LOGS =====")
+            # print(logs)
+            # print("===== CONTAINER LOGS =====")
             patch_line = next(
                 line for line in reversed(logs.split("\n")) if line.startswith("Patch:")
             )
