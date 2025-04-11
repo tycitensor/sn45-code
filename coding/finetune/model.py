@@ -218,7 +218,7 @@ class ModelStore:
     def __init__(self, config):
         self.models = []
         self.config = config
-        self.validation_version = 2
+        self.validation_version = 3
 
     def add(self, model: Model):
         for existing_model in self.models:
