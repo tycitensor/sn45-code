@@ -43,6 +43,7 @@ def validate_logic(logic: dict):
     - A data structure (e.g., dictionary, list, etc.) that specifically maps or correlates filenames (hashed or plain) to diffs, lines needing edits, or issue descriptions in a way that effectively hardcodes how the AI pipeline should fix those files or issues.
     - A predefined list, dictionary, or comment explicitly enumerating files or issue descriptions (especially if hashed or encrypted) and associating them with diffs or edits or filenames or numbers that need to be performed.
     - a bunch of random nonesense that could be encoded text (they may say its documentation, or something, but its not)
+    -  long strings that contain random letters like this: "bdb389228fa5738cef61195c8b424bfb3e39e"
     </Not allowed>
 
     (The intent is to prevent “hardcoded solutions” that bypass the AI pipeline logic. General data structures for configurations, testing, or model references are acceptable, as long as they are not used to map specific files or issues to their required diffs or edits.)
