@@ -51,19 +51,19 @@ class Miner(BaseMinerNeuron):
         if not config:
             config = util_config(self)
         self.forward_capabilities = [
-            {'forward': self.forward, 'blacklist': self.blacklist, 'priority': self.priority},
+            # {'forward': self.forward, 'blacklist': self.blacklist, 'priority': self.priority},
             {'forward': self.forward_swe, 'blacklist': self.blacklist_swe, 'priority': self.priority_swe},
             {'forward': self.forward_or, 'blacklist': self.blacklist_or, 'priority': self.priority_or},
             {'forward': self.forward_result, 'blacklist': self.blacklist_result, 'priority': self.priority_result},
         ]
         super().__init__(config=config)
-        miner_name = f"coding.miners.{config.miner.name}_miner"  # if config and config.miner else "bitagent.miners.t5_miner"
-        miner_module = importlib.import_module(miner_name)
+        # miner_name = f"coding.miners.{config.miner.name}_miner"  # if config and config.miner else "bitagent.miners.t5_miner"
+        # miner_module = importlib.import_module(miner_name)
         
-        self.miner_init = miner_module.miner_init
-        self.miner_process = miner_module.miner_process
+        # self.miner_init = miner_module.miner_init
+        # self.miner_process = miner_module.miner_process
 
-        self.miner_init(self)
+        # self.miner_init(self)
     
     async def forward_result(
         self, synapse: ResultSynapse
@@ -121,134 +121,137 @@ class Miner(BaseMinerNeuron):
     def forward(
         self, synapse: StreamCodeSynapse
     ) -> StreamCodeSynapse:
-        """
-        Processes the incoming 'Dummy' synapse by performing a predefined operation on the input data.
-        This method should be replaced with actual logic relevant to the miner's purpose.
+        pass
+    #     """
+    #     Processes the incoming 'Dummy' synapse by performing a predefined operation on the input data.
+    #     This method should be replaced with actual logic relevant to the miner's purpose.
 
-        Args:
-            synapse (template.protocol.Dummy): The synapse object containing the 'dummy_input' data.
+    #     Args:
+    #         synapse (template.protocol.Dummy): The synapse object containing the 'dummy_input' data.
 
-        Returns:
-            template.protocol.Dummy: The synapse object with the 'dummy_output' field set to twice the 'dummy_input' value.
+    #     Returns:
+    #         template.protocol.Dummy: The synapse object with the 'dummy_output' field set to twice the 'dummy_input' value.
 
-        The 'forward' function is a placeholder and should be overridden with logic that is appropriate for
-        the miner's intended operation. This method demonstrates a basic transformation of input data.
-        """
-        try:
-            response = self.miner_process(self, synapse)
-        except:
-            bt.logging.error(
-                "An error occurred while processing the synapse: ",
-                traceback.format_exc(),
-            )
-        return response
+    #     The 'forward' function is a placeholder and should be overridden with logic that is appropriate for
+    #     the miner's intended operation. This method demonstrates a basic transformation of input data.
+    #     """
+    #     try:
+    #         response = self.miner_process(self, synapse)
+    #     except:
+    #         bt.logging.error(
+    #             "An error occurred while processing the synapse: ",
+    #             traceback.format_exc(),
+    #         )
+    #     return response
 
     async def blacklist(
         self, synapse: StreamCodeSynapse
     ) -> typing.Tuple[bool, str]:
-        """
-        Determines whether an incoming request should be blacklisted and thus ignored. Your implementation should
-        define the logic for blacklisting requests based on your needs and desired security parameters.
+        pass
+    #     """
+    #     Determines whether an incoming request should be blacklisted and thus ignored. Your implementation should
+    #     define the logic for blacklisting requests based on your needs and desired security parameters.
 
-        Blacklist runs before the synapse data has been deserialized (i.e. before synapse.data is available).
-        The synapse is instead contructed via the headers of the request. It is important to blacklist
-        requests before they are deserialized to avoid wasting resources on requests that will be ignored.
+    #     Blacklist runs before the synapse data has been deserialized (i.e. before synapse.data is available).
+    #     The synapse is instead contructed via the headers of the request. It is important to blacklist
+    #     requests before they are deserialized to avoid wasting resources on requests that will be ignored.
 
-        Args:
-            synapse (template.protocol.Dummy): A synapse object constructed from the headers of the incoming request.
+    #     Args:
+    #         synapse (template.protocol.Dummy): A synapse object constructed from the headers of the incoming request.
 
-        Returns:
-            Tuple[bool, str]: A tuple containing a boolean indicating whether the synapse's hotkey is blacklisted,
-                            and a string providing the reason for the decision.
+    #     Returns:
+    #         Tuple[bool, str]: A tuple containing a boolean indicating whether the synapse's hotkey is blacklisted,
+    #                         and a string providing the reason for the decision.
 
-        This function is a security measure to prevent resource wastage on undesired requests. It should be enhanced
-        to include checks against the metagraph for entity registration, validator status, and sufficient stake
-        before deserialization of synapse data to minimize processing overhead.
+    #     This function is a security measure to prevent resource wastage on undesired requests. It should be enhanced
+    #     to include checks against the metagraph for entity registration, validator status, and sufficient stake
+    #     before deserialization of synapse data to minimize processing overhead.
 
-        Example blacklist logic:
-        - Reject if the hotkey is not a registered entity within the metagraph.
-        - Consider blacklisting entities that are not validators or have insufficient stake.
+    #     Example blacklist logic:
+    #     - Reject if the hotkey is not a registered entity within the metagraph.
+    #     - Consider blacklisting entities that are not validators or have insufficient stake.
 
-        In practice it would be wise to blacklist requests from entities that are not validators, or do not have
-        enough stake. This can be checked via metagraph.S and metagraph.validator_permit. You can always attain
-        the uid of the sender via a metagraph.hotkeys.index( synapse.dendrite.hotkey ) call.
+    #     In practice it would be wise to blacklist requests from entities that are not validators, or do not have
+    #     enough stake. This can be checked via metagraph.S and metagraph.validator_permit. You can always attain
+    #     the uid of the sender via a metagraph.hotkeys.index( synapse.dendrite.hotkey ) call.
 
-        Otherwise, allow the request to be processed further.
-        """
-        try:
-            if synapse.dendrite is None or synapse.dendrite.hotkey is None:
-                bt.logging.warning("Received a request without a dendrite or hotkey.")
-                return True, "Missing dendrite or hotkey"
-            if (
-                synapse.dendrite.hotkey
-                == "5Fy7c6skhxBifdPPEs3TyytxFc7Rq6UdLqysNPZ5AMAUbRQx"
-            ):
-                return False, "Subnet owner hotkey"
-            # TODO(developer): Define how miners should blacklist requests.
-            uid = self.metagraph.hotkeys.index(synapse.dendrite.hotkey)
-            if (
-                not self.config.blacklist.allow_non_registered
-                and synapse.dendrite.hotkey not in self.metagraph.hotkeys
-            ):
-                # Ignore requests from un-registered entities.
-                bt.logging.trace(
-                    f"Blacklisting un-registered hotkey {synapse.dendrite.hotkey}"
-                )
-                return True, "Unrecognized hotkey"
+    #     Otherwise, allow the request to be processed further.
+    #     """
+    #     try:
+    #         if synapse.dendrite is None or synapse.dendrite.hotkey is None:
+    #             bt.logging.warning("Received a request without a dendrite or hotkey.")
+    #             return True, "Missing dendrite or hotkey"
+    #         if (
+    #             synapse.dendrite.hotkey
+    #             == "5Fy7c6skhxBifdPPEs3TyytxFc7Rq6UdLqysNPZ5AMAUbRQx"
+    #         ):
+    #             return False, "Subnet owner hotkey"
+    #         # TODO(developer): Define how miners should blacklist requests.
+    #         uid = self.metagraph.hotkeys.index(synapse.dendrite.hotkey)
+    #         if (
+    #             not self.config.blacklist.allow_non_registered
+    #             and synapse.dendrite.hotkey not in self.metagraph.hotkeys
+    #         ):
+    #             # Ignore requests from un-registered entities.
+    #             bt.logging.trace(
+    #                 f"Blacklisting un-registered hotkey {synapse.dendrite.hotkey}"
+    #             )
+    #             return True, "Unrecognized hotkey"
 
-            if self.config.blacklist.force_validator_permit:
-                # If the config is set to force validator permit, then we should only allow requests from validators.
-                if not self.metagraph.validator_permit[uid]:
-                    bt.logging.warning(
-                        f"Blacklisting a request from non-validator hotkey {synapse.dendrite.hotkey}"
-                    )
-                    return True, "Non-validator hotkey"
+    #         if self.config.blacklist.force_validator_permit:
+    #             # If the config is set to force validator permit, then we should only allow requests from validators.
+    #             if not self.metagraph.validator_permit[uid]:
+    #                 bt.logging.warning(
+    #                     f"Blacklisting a request from non-validator hotkey {synapse.dendrite.hotkey}"
+    #                 )
+    #                 return True, "Non-validator hotkey"
 
-            bt.logging.trace(
-                f"Not Blacklisting recognized hotkey {synapse.dendrite.hotkey}"
-            )
-            return False, "Hotkey recognized!"
-        except:
-            return True, "Errored out the blacklist function, blacklisting the hotkey"
+    #         bt.logging.trace(
+    #             f"Not Blacklisting recognized hotkey {synapse.dendrite.hotkey}"
+    #         )
+    #         return False, "Hotkey recognized!"
+    #     except:
+    #         return True, "Errored out the blacklist function, blacklisting the hotkey"
 
     async def priority(
         self, synapse: StreamCodeSynapse
     ) -> float:
-        """
-        The priority function determines the order in which requests are handled. More valuable or higher-priority
-        requests are processed before others. You should design your own priority mechanism with care.
+        pass
+    #     """
+    #     The priority function determines the order in which requests are handled. More valuable or higher-priority
+    #     requests are processed before others. You should design your own priority mechanism with care.
 
-        This implementation assigns priority to incoming requests based on the calling entity's stake in the metagraph.
+    #     This implementation assigns priority to incoming requests based on the calling entity's stake in the metagraph.
 
-        Args:
-            synapse (template.protocol.Dummy): The synapse object that contains metadata about the incoming request.
+    #     Args:
+    #         synapse (template.protocol.Dummy): The synapse object that contains metadata about the incoming request.
 
-        Returns:
-            float: A priority score derived from the stake of the calling entity.
+    #     Returns:
+    #         float: A priority score derived from the stake of the calling entity.
 
-        Miners may recieve messages from multiple entities at once. This function determines which request should be
-        processed first. Higher values indicate that the request should be processed first. Lower values indicate
-        that the request should be processed later.
+    #     Miners may recieve messages from multiple entities at once. This function determines which request should be
+    #     processed first. Higher values indicate that the request should be processed first. Lower values indicate
+    #     that the request should be processed later.
 
-        Example priority logic:
-        - A higher stake results in a higher priority value.
-        """
-        if synapse.dendrite is None or synapse.dendrite.hotkey is None:
-            bt.logging.warning("Received a request without a dendrite or hotkey.")
-            return 0.0
-        try:
-            caller_uid = self.metagraph.hotkeys.index(
-                synapse.dendrite.hotkey
-            )  # Get the caller index.
-            priority = float(
-                self.metagraph.S[caller_uid]
-            )  # Return the stake as the priority.
-            bt.logging.trace(
-                f"Prioritizing {synapse.dendrite.hotkey} with value: {priority}"
-            )
-            return priority
-        except:
-            return 1
+    #     Example priority logic:
+    #     - A higher stake results in a higher priority value.
+    #     """
+    #     if synapse.dendrite is None or synapse.dendrite.hotkey is None:
+    #         bt.logging.warning("Received a request without a dendrite or hotkey.")
+    #         return 0.0
+    #     try:
+    #         caller_uid = self.metagraph.hotkeys.index(
+    #             synapse.dendrite.hotkey
+    #         )  # Get the caller index.
+    #         priority = float(
+    #             self.metagraph.S[caller_uid]
+    #         )  # Return the stake as the priority.
+    #         bt.logging.trace(
+    #             f"Prioritizing {synapse.dendrite.hotkey} with value: {priority}"
+    #         )
+    #         return priority
+    #     except:
+    #         return 1
 
 
 # This is the main function, which runs the miner.
