@@ -29,10 +29,9 @@ from traceback import print_exception
 
 from coding.mock import MockDendrite
 from coding.base.neuron import BaseNeuron
+from coding.constants import BLACKLISTED_COLDKEYS
 from coding.utils.config import add_validator_args
 from coding.utils.exceptions import MaxRetryError
-from coding.utils.uids import get_hotkey_from_uid, get_uid_from_hotkey
-
 
 class BaseValidatorNeuron(BaseNeuron):
     """
@@ -255,6 +254,9 @@ class BaseValidatorNeuron(BaseNeuron):
         Sets the validator weights to the metagraph hotkeys based on the scores it has received from the miners. The weights determine the trust and incentive level the validator assigns to miner nodes on the network.
         """
         # check to be sure self.scores is not all 0's
+        for uid in self.metagraph.uids:
+            if self.metagraph.coldkeys[uid] in BLACKLISTED_COLDKEYS:
+                self.scores[uid] = 0
         if np.all(self.scores == 0):
             bt.logging.warning("self.scores is all 0's, skipping set_weights.")
             return
