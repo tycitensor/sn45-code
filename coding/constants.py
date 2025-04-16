@@ -67,3 +67,8 @@ DISALLOWED_IMPORTS = [
 ]
 NUM_ALLOWED_CHARACTERS = 1000000
 IMAGE_VERSION = "2.0"
+
+
+BLACKLISTED_COLDKEYS = [
+    "5HZBQNezW75BozcFzA43a55vNBFZapvrtvRU4CZDPEoa9mWg" # Blacklisted for repeatedly exploiting
+]

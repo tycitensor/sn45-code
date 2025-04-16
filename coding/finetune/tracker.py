@@ -6,7 +6,7 @@ from coding.schemas.tracking import TrackingInfo
 from coding.utils.uids import get_miner_uids, get_hotkey_from_uid
 import asyncio
 import threading
-
+from coding.constants import BLACKLISTED_COLDKEYS
 
 def run_async_in_thread(coro):
     """
@@ -33,6 +33,7 @@ def run_async_in_thread(coro):
 
 def gather_all_logics(validator) -> List[TrackingInfo]:
     uids = get_miner_uids(validator)
+    uids = [uid for uid in uids if validator.metagraph.coldkeys[uid] not in BLACKLISTED_COLDKEYS]
     axons = [validator.metagraph.axons[uid] for uid in uids]
     synapse = LogicSynapse()
 
