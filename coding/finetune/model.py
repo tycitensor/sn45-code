@@ -80,6 +80,8 @@ def validate_logic(logic: dict):
         encoder = encoding_for_model("gpt-4o-mini")
 
         for filename, code in logic.items():
+            if code.strip() == "":
+                continue
             full_prompt = prompt + f"\n\nFile: {filename}\n\nCode: {code}"
             # Count tokens using tiktoken
             token_count = len(encoder.encode(full_prompt))
