@@ -119,7 +119,7 @@ def validate_logic(logic: dict):
                             content = chunk.choices[0].delta.content
                             collected_content += content
                             # Check early if "false" is detected
-                            if "<response>" in collected_content and "</response>" in collected_content:
+                            if "<is_file_valid>" in collected_content and "</is_file_valid>" in collected_content:
                                 # get between the tags
                                 response = collected_content.split("<is_file_valid>")[1].split("</is_file_valid>")[0].lower()
                                 if response == "false":
@@ -141,7 +141,7 @@ def validate_logic(logic: dict):
                         content = chunk.choices[0].delta.content
                         collected_content += content
                         # Check early if "false" is detected
-                        if "<response>" in collected_content and "</response>" in collected_content:
+                        if "<is_file_valid>" in collected_content and "</is_file_valid>" in collected_content:
                             # get between the tags
                             response = collected_content.split("<is_file_valid>")[1].split("</is_file_valid>")[0].lower()
                             if response == "false":
