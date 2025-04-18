@@ -121,7 +121,7 @@ class Miner(BaseMinerNeuron):
     def forward(
         self, synapse: StreamCodeSynapse
     ) -> StreamCodeSynapse:
-        pass
+        return synapse
     #     """
     #     Processes the incoming 'Dummy' synapse by performing a predefined operation on the input data.
     #     This method should be replaced with actual logic relevant to the miner's purpose.
@@ -147,7 +147,7 @@ class Miner(BaseMinerNeuron):
     async def blacklist(
         self, synapse: StreamCodeSynapse
     ) -> typing.Tuple[bool, str]:
-        pass
+        return False, "Not implemented"
     #     """
     #     Determines whether an incoming request should be blacklisted and thus ignored. Your implementation should
     #     define the logic for blacklisting requests based on your needs and desired security parameters.
@@ -216,7 +216,7 @@ class Miner(BaseMinerNeuron):
     async def priority(
         self, synapse: StreamCodeSynapse
     ) -> float:
-        pass
+        return 0.0
     #     """
     #     The priority function determines the order in which requests are handled. More valuable or higher-priority
     #     requests are processed before others. You should design your own priority mechanism with care.
