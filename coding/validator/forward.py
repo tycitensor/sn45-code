@@ -35,11 +35,13 @@ async def forward(self, synapse: StreamCodeSynapse):
     if not hasattr(self, 'finetune_eval_future'):
         delete_all_containers(os.getenv("REMOTE_DOCKER_HOST", None))
         sleep(10) # wait for containers to be truly deleted
+        bt.logging.info("Creating finetune pipeline")
         finetune_pipeline = FinetunePipeline(
             config=self.config,
             use_remote=True,
             model_store=self.model_store,
         )
+        bt.logging.info("Finetune pipeline created, submitting evaluation")
         self.finetune_eval_future = self.executor.submit(finetune_pipeline.evaluate)
     # Check if evaluation is complete
     if hasattr(self, "finetune_eval_future") and self.finetune_eval_future.done():
