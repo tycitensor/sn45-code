@@ -303,13 +303,13 @@ class FinetunePipeline:
 
     def evaluate(self, n_tasks: int = None, store_results: bool = True) -> FinetuneEventResults:
         # gather all logics
-        bt.logging.info("Verifying and building docker containers for each logic...")
+        print("Verifying and building docker containers for each logic...")
         for tracker in self.ungraded_trackers:
             model = self.model_store.upsert(tracker.logic)
             if model: 
                 self.model_store.set_hotkey_scoring_status(tracker.hotkey, False, True)
         
-        bt.logging.info(f"Beginning evaluation of {len(self.tasks)} tasks...")
+        print(f"Beginning evaluation of {len(self.tasks)} tasks...")
         for tracker_idx, tracker in enumerate(self.ungraded_trackers):
             model = self.model_store.upsert(tracker.logic)
             model.scoring_in_queue = False
@@ -321,18 +321,18 @@ class FinetunePipeline:
             model.scoring_in_progress = True
             
             api_key = APIKey(tracker.hotkey, self)
-            bt.logging.info(
+            print(
                 f"Processing tracker {tracker_idx + 1}/{len(self.ungraded_trackers)}"
             )
             # Skip if no logic provided
             if not tracker.logic:
-                bt.logging.info(
+                print(
                     f"No logic provided for tracker {tracker.hotkey}, skipping..."
                 )
                 self.graded_trackers.append(tracker)
                 continue
             if not should_evaluate(tracker, self.metagraph.block):
-                bt.logging.info(
+                print(
                     f"Not enough blocks have passed since the last evaluation for tracker {tracker.hotkey}, skipping..."
                 )
                 self.graded_trackers.append(tracker)
@@ -352,7 +352,7 @@ class FinetunePipeline:
                     and len(tracker.score_timestamps) == 0
                 ):
                     tracker.score_timestamps = previous_tracker.score_timestamps
-                bt.logging.info(
+                print(
                     f"Finetune: Using previously evaluated score for hotkey: {tracker.hotkey}"
                 )
                 # if a tracker had a score before, add the block number to the score_timestamps
@@ -365,20 +365,20 @@ class FinetunePipeline:
                 continue
 
             # Otherwise, evaluate the logic
-            bt.logging.info(f"Initializing LLM key for hotkey {tracker.hotkey}...")
+            print(f"Initializing LLM key for hotkey {tracker.hotkey}...")
             self.llm_manager.init_key(tracker.hotkey)
-            bt.logging.info(f"Starting docker container for hotkey {tracker.hotkey}...")
+            print(f"Starting docker container for hotkey {tracker.hotkey}...")
             scores = []
             # Create a thread pool to process tasks in parallel
-            bt.logging.info("Starting thread pool for task processing...")
+            print("Starting thread pool for task processing...")
             with ThreadPoolExecutor() as executor:
-                bt.logging.info("Thread pool started.")
+                print("Thread pool started.")
 
                 def process_task(task_data):
-                    bt.logging.info(f"Processing task...")
+                    print(f"Processing task...")
                     task_idx, task = task_data
                     try:
-                        bt.logging.info(
+                        print(
                             f"Making request to container for hotkey {tracker.hotkey}, task index {task_idx}..."
                         )
                         result = run_docker_container_from_base(
@@ -402,14 +402,14 @@ class FinetunePipeline:
                             api_key=api_key.key
                         )
                         patch = Patch(**result)
-                        bt.logging.info(
+                        print(
                             f"Scoring response for hotkey {tracker.hotkey}, task index {task_idx}..."
                         )
                         # TODO in the next comp uncomment the below
                         # score = task.score(patch, self.llm_manager.get_count())
                         score = task.score(patch)
                         # self.llm_manager.reset_count()
-                        bt.logging.info(
+                        print(
                             f"Score for hotkey {tracker.hotkey}, task index {task_idx}: {score}"
                         )
                         return score
@@ -428,13 +428,13 @@ class FinetunePipeline:
                 task_idx = 0
 
                 # Start initial batch of 8 tasks
-                bt.logging.info("Starting initial batch of 8 tasks...")
+                print("Starting initial batch of 8 tasks...")
                 while len(active_futures) < 8 and task_queue:
                     task_data = task_queue.pop(0)
                     future = executor.submit(process_task, task_data)
                     active_futures[future] = task_data
 
-                bt.logging.info(
+                print(
                     f"Task queue drained, active futures left: {len(active_futures)}"
                 )
                 # Process remaining tasks as others complete
@@ -445,7 +445,7 @@ class FinetunePipeline:
                     # Get score from completed task
                     score = completed_future.result()
                     scores.append(score)
-                    bt.logging.info(
+                    print(
                         f"Average score for hotkey {tracker.hotkey}: {sum(scores) / len(scores)}"
                     )
 
@@ -456,7 +456,7 @@ class FinetunePipeline:
                         active_futures[future] = task_data
 
                     task_idx += 1
-                    bt.logging.info(
+                    print(
                         f"Completed task {task_idx}/{len(self.tasks)} for hotkey {tracker.hotkey}"
                     )
             tracker.score = sum(scores) / len(scores)
@@ -470,10 +470,10 @@ class FinetunePipeline:
             
             api_key.delete()
 
-            bt.logging.info(f"Cleaning up container for hotkey {tracker.hotkey}...")
-            bt.logging.info(f"Final score for hotkey {tracker.hotkey}: {tracker.score}")
+            print(f"Cleaning up container for hotkey {tracker.hotkey}...")
+            print(f"Final score for hotkey {tracker.hotkey}: {tracker.score}")
 
-        bt.logging.info("Evaluation complete!")
+        print("Evaluation complete!")
         self.model_store.set_all_scoring_status(False, False)
         if store_results:
             self.store_trackers()
