@@ -273,6 +273,10 @@ class BaseValidatorNeuron(BaseNeuron):
             kurtosis_factor=0.5,
             divisions=np.random.randint(2, 9),
         )
+        # find the uids of the top 10 weights
+        top_10_uids = np.argsort(weighted_scores)[-10:]
+        # set all but the top 10 to 0
+        weighted_scores[~np.isin(np.arange(len(weighted_scores)), top_10_uids)] = 0
         # Process the raw weights to final_weights via subtensor limitations.
         (
             processed_weight_uids,
