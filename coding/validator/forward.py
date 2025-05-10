@@ -33,6 +33,12 @@ async def forward(self, synapse: StreamCodeSynapse):
         self.last_task_update = self.block
     
     if not hasattr(self, 'finetune_eval_future'):
+        if self.last_model_clear + 14400 * 3 < self.block:
+            self.model_store.clear_all()
+            # delete trackers
+            if os.path.exists(f"{self.config.neuron.full_path}/trackers_{COMPETITION_ID}.pkl"):
+                os.remove(f"{self.config.neuron.full_path}/trackers_{COMPETITION_ID}.pkl")
+            self.last_model_clear = self.block
         delete_all_containers(os.getenv("REMOTE_DOCKER_HOST", None))
         sleep(10) # wait for containers to be truly deleted
         print("Creating finetune pipeline")

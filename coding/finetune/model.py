@@ -319,4 +319,7 @@ class ModelStore:
             with open(f"{self.config.neuron.full_path}/model_store_{COMPETITION_ID}_{self.validation_version}.pkl", "rb") as f:
                 self.models = pickle.load(f).models
 
-    
+    def clear_all(self, save: bool = True):
+        self.models = []
+        if save:
+            self.save()

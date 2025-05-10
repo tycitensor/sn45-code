@@ -404,6 +404,7 @@ class BaseValidatorNeuron(BaseNeuron):
             self.finetune_results = {}
             self.last_task_update = 0
             self.last_wandb_clean = 0
+            self.last_model_clear = 0
             return
 
         # Load the state of the validator from file.
@@ -418,6 +419,9 @@ class BaseValidatorNeuron(BaseNeuron):
         )
         self.last_wandb_clean = (
             state["last_wandb_clean"].item() if "last_wandb_clean" in state else 0
+        )
+        self.last_model_clear = (
+            state["last_model_clear"].item() if "last_model_clear" in state else 0
         )
         # Convert finetune_items back to dictionary
         self.finetune_results = {}

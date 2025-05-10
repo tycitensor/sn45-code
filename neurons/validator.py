@@ -62,6 +62,7 @@ class Validator(BaseValidatorNeuron):
 
         self.last_task_update = 0
         self.last_wandb_clean = self.block
+        self.last_model_clear = 0
         bt.logging.info("load_state()")
         self.load_state()
         if self.last_task_update == 0:
