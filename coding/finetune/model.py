@@ -24,7 +24,7 @@ def validate_logic(logic: dict, use_anthropic: bool = True):
     try:
         # Check for Anthropic API key and use appropriate model
         if os.getenv("ANTHROPIC_API_KEY") and use_anthropic:
-            from langchain_anthropic import ChatOpenAI
+            from langchain_openai import ChatOpenAI
             llm = ChatOpenAI(model="anthropic/claude-3.7-sonnet", max_tokens=1024, base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"))
         else:
             from langchain_google_genai import ChatGoogleGenerativeAI
