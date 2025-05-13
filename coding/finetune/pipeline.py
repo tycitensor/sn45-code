@@ -290,6 +290,8 @@ class FinetunePipeline:
                 tracker.score = 0
                 print(f"Logic for {tracker.hotkey} is invalid, setting score to 0")
             model.score = tracker.score
+        if all(tracker.logic == {} for tracker in ungraded_trackers):
+            print("All ungraded trackers have empty logic")
         self.graded_trackers = graded_trackers
         self.ungraded_trackers = ungraded_trackers
         self.model_store.save()
