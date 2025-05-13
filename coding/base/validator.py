@@ -387,6 +387,7 @@ class BaseValidatorNeuron(BaseNeuron):
             finetune_items=finetune_items,
             last_task_update=self.last_task_update,
             last_wandb_clean=self.last_wandb_clean,
+            last_model_clear=self.last_model_clear,
         )
 
     def load_state(self):
