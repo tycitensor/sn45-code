@@ -3,6 +3,7 @@ import json
 import pickle
 import hashlib
 import difflib
+import traceback
 import logging
 import anthropic
 from pydantic import BaseModel
@@ -174,6 +175,9 @@ def validate_logic(logic: dict, use_anthropic: bool = True):
                 )
                 return False, "Logic is invalid" + additional_msg
         return True, "Logic is valid" + additional_msg
+    except Exception as e:
+        print(f"Error validating logic {e} ", traceback.format_exc())
+        return False, f"Error validating logic: {e}"
     finally:
         logging.disable(log_level)
 def validate_logic_threaded(logic: dict):
