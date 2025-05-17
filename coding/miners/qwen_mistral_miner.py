@@ -44,6 +44,11 @@ def miner_init(self):
     Initializes the miner. This function is called once when the miner is created.
     """
 
+    bt.logging.info(f"----------> INITIALIZIMMO")
+    bt.logging.info(f"----------> INITIALIZIMMO")
+    bt.logging.info(f"----------> INITIALIZIMMO")
+    bt.logging.info(f"----------> INITIALIZIMMO")
+
     def model_factory(
         api_base="http://localhost:8000/v1",
         model_name=self.config.neuron.model_id,
@@ -87,6 +92,7 @@ def miner_process(self, synapse: StreamCodeSynapse) -> Awaitable:
     The miner process function is called every time the miner receives a request. This function should contain the main logic of the miner.
     """
 
+    bt.logging.info(f"--------------> MINER PROCESSSSS")
     if synapse.messages:
         query = synapse.messages[-1].content
 

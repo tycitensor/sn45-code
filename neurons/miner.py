@@ -35,8 +35,11 @@ from coding.utils.config import config as util_config
 from coding.miners.swe import miner_process as miner_process_swe
 from coding.miners.openrouter import miner_process as miner_process_or
 from coding.protocol import StreamCodeSynapse, LogicSynapse, ProvisionKeySynapse, ResultSynapse
+from coding.miners.qwen_mistral_miner import miner_init, miner_process
 
 console = Console()
+
+print(f"elo!")
 
 class Miner(BaseMinerNeuron):
     """
@@ -51,7 +54,7 @@ class Miner(BaseMinerNeuron):
         if not config:
             config = util_config(self)
         self.forward_capabilities = [
-            # {'forward': self.forward, 'blacklist': self.blacklist, 'priority': self.priority},
+            {'forward': self.forward, 'blacklist': self.blacklist, 'priority': self.priority},
             {'forward': self.forward_swe, 'blacklist': self.blacklist_swe, 'priority': self.priority_swe},
             {'forward': self.forward_or, 'blacklist': self.blacklist_or, 'priority': self.priority_or},
             {'forward': self.forward_result, 'blacklist': self.blacklist_result, 'priority': self.priority_result},
@@ -59,65 +62,68 @@ class Miner(BaseMinerNeuron):
         super().__init__(config=config)
         # miner_name = f"coding.miners.{config.miner.name}_miner"  # if config and config.miner else "bitagent.miners.t5_miner"
         # miner_module = importlib.import_module(miner_name)
-        
-        # self.miner_init = miner_module.miner_init
-        # self.miner_process = miner_module.miner_process
 
-        # self.miner_init(self)
-    
+        self.miner_init = miner_init
+        self.miner_process = miner_process
+
+        self.miner_init(self)
+
     async def forward_result(
         self, synapse: ResultSynapse
     ) -> ResultSynapse:
+        bt.logging.info(f"---------> forward_result synapse: >{synapse.result}<")
         if synapse.result == "":
             return synapse
         console.print(synapse.result)
         return synapse
-    
+
     async def blacklist_result(
         self, synapse: ResultSynapse
     ) -> typing.Tuple[bool, str]:
         return await self.blacklist(synapse)
-    
+
     async def priority_result(
         self, synapse: ResultSynapse
     ) -> float:
         return await self.priority(synapse)
-    
+
     async def forward_or(
         self, synapse: ProvisionKeySynapse
     ) -> ProvisionKeySynapse:
+        bt.logging.info(f"---------> forward_or")
         return miner_process_or(self, synapse)
-    
+
     async def blacklist_or(
         self, synapse: ProvisionKeySynapse
     ) -> typing.Tuple[bool, str]:
         return await self.blacklist(synapse)
-    
+
     async def priority_or(
         self, synapse: ProvisionKeySynapse
     ) -> float:
         return await self.priority(synapse)
-    
+
     async def priority_swe(
         self, synapse: LogicSynapse
     ) -> float:
         return await self.priority(synapse)
-    
+
     async def forward_swe(
         self, synapse: LogicSynapse
     ) -> LogicSynapse:
+        bt.logging.info(f"---------> forward_swe")
         return miner_process_swe(self, synapse)
-    
+
     async def blacklist_swe(
         self, synapse: LogicSynapse
     ) -> typing.Tuple[bool, str]:
         return await self.blacklist(synapse)
-    
+
     async def priority_swe(
         self, synapse: LogicSynapse
     ) -> float:
         return await self.priority(synapse)
-    
+
     def forward(
         self, synapse: StreamCodeSynapse
     ) -> StreamCodeSynapse:
@@ -134,14 +140,20 @@ class Miner(BaseMinerNeuron):
         The 'forward' function is a placeholder and should be overridden with logic that is appropriate for
         the miner's intended operation. This method demonstrates a basic transformation of input data.
         """
-        # try:
-        #     # response = self.miner_process(self, synapse)
-        # except:
-        #     bt.logging.error(
-        #         "An error occurred while processing the synapse: ",
-        #         traceback.format_exc(),
-        #     )
-        return synapse
+        try:
+            bt.logging.info( f"------> Response properly passed")
+            bt.logging.info( f"------> Response properly passed")
+            bt.logging.info( f"------> Response properly passed")
+            bt.logging.info( f"------> Response properly passed")
+            bt.logging.info( f"------> Response properly passed")
+            response = self.miner_process(self, synapse)
+            bt.logging.info( f"------> Response properly passed")
+        except:
+            bt.logging.error(
+                "An error occurred while processing the synapse: ",
+                traceback.format_exc(),
+            )
+        return response
 
     async def blacklist(
         self, synapse: StreamCodeSynapse
